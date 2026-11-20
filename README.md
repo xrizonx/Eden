@@ -111,6 +111,11 @@ select current site identities before copying rows and avoid materializing histo
 
 ## Build and run
 
+GitHub Actions compiles every .NET project and packages the self-contained Windows 11 x64 server plus a complete kit
+containing all tracked source files, tools (PowerShell and Python), docs, assets, configuration, compiled benchmarks and
+test binaries. Download either ZIP from a successful run or GitHub Release; see [Windows build CI/CD](docs/windows-ci.md).
+Client files, resource cache, generated catalogs and saved worlds are not bundled.
+
 Use the Windows commands in [Start here](#start-here) to prepare data and run a local server. For code milestones, run
 the following checks from the repository root in order. Replace the example hosting filter with the affected behavior and
 its immediate dependencies.
