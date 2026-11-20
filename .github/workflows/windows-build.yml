@@ -1,0 +1,301 @@
+name: Windows x64 build
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-x64-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  windows-x64:
+    name: Build and validate Windows x64
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install current stable .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Verify selected SDK
+        shell: pwsh
+        run: |
+          $sdk = dotnet --version
+          if ($LASTEXITCODE -ne 0 -or -not $sdk.StartsWith('10.')) {
+            throw "The repository must build with a stable .NET 10 SDK (selected: $sdk)."
+          }
+          "Selected SDK: $sdk"
+
+      - name: Install Python for repository checks
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Verify all .NET projects are in the solution
+        shell: pwsh
+        run: |
+          $solution = Get-Content Eden.slnx -Raw
+          $projects = @(Get-ChildItem src, tests, tools -Filter '*.csproj' -Recurse -File)
+          if ($projects.Count -eq 0) { throw 'No .NET projects found.' }
+          foreach ($project in $projects) {
+            $relative = [IO.Path]::GetRelativePath($env:GITHUB_WORKSPACE, $project.FullName).Replace([IO.Path]::DirectorySeparatorChar, '/')
+            if (-not $solution.Contains(('Path="' + $relative + '"'))) {
+              throw "Project missing from Eden.slnx: $relative"
+            }
+          }
+          "Validated $($projects.Count) .NET projects in Eden.slnx."
+
+      - name: Compile Python tools to check syntax
+        shell: pwsh
+        run: |
+          python -m compileall -q tools
+          if ($LASTEXITCODE -ne 0) { throw 'Python tool syntax validation failed.' }
+
+      - name: Validate PowerShell tooling syntax
+        shell: pwsh
+        run: |
+          $scripts = @(Get-ChildItem -Path tools -Recurse -File | Where-Object { $_.Extension -in '.ps1', '.psm1' })
+          if ($scripts.Count -eq 0) { throw 'No PowerShell tools found.' }
+          foreach ($script in $scripts) {
+            $tokens = $null
+            $parseErrors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              $script.FullName, [ref]$tokens, [ref]$parseErrors
+            )
+            if ($parseErrors) {
+              throw "PowerShell syntax errors in $($script.FullName): $($parseErrors -join '; ')"
+            }
+          }
+          "Validated $($scripts.Count) PowerShell tools."
+
+      - name: Restore formatting tools
+        run: dotnet tool restore
+
+      - name: Restore solution
+        run: dotnet restore Eden.slnx
+
+      - name: Compile all projects
+        run: dotnet build Eden.slnx --configuration Release --no-restore
+
+      - name: Run focused hosting tests
+        run: >-
+          dotnet test tests/Eden.Protocol.Tests/Eden.Protocol.Tests.csproj
+          --configuration Release --no-build --no-restore
+          --filter "FullyQualifiedName~Eden.Protocol.Tests.Hosting"
+          --logger "trx;LogFileName=hosting.trx"
+
+      - name: Validate catalog and formatting policies
+        shell: pwsh
+        run: |
+          python tests/Eden.Protocol.Tests/Persistence/catalog_setup_test.py
+          if ($LASTEXITCODE -ne 0) { throw 'Catalog setup policy failed.' }
+          python tests/Eden.Protocol.Tests/Formatting/formatting_policy_test.py
+          if ($LASTEXITCODE -ne 0) { throw 'Formatting policy failed.' }
+          ./tools/Format.ps1 -Check
+
+      - name: Publish self-contained Windows executable
+        shell: pwsh
+        run: |
+          dotnet publish src/Eden.Server/Eden.Server.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            --output dist/Eden-win-x64 `
+            -p:UseAppHost=true `
+            -p:EdenBuildRevision=${{ github.sha }}
+          if ($LASTEXITCODE -ne 0) { throw 'Windows publish failed.' }
+
+      - name: Publish Windows benchmark executable
+        shell: pwsh
+        run: |
+          dotnet publish tools/Benchmarks/Eden.Benchmarks.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            --output dist/Eden-win-x64-benchmarks `
+            -p:UseAppHost=true
+          if ($LASTEXITCODE -ne 0) { throw 'Windows benchmark publish failed.' }
+
+      - name: Verify and package Windows distribution
+        shell: pwsh
+        run: |
+          $publishDir = Join-Path $env:GITHUB_WORKSPACE 'dist/Eden-win-x64'
+          foreach ($relativePath in @(
+            'Eden.Server.exe',
+            'Eden.Server.dll',
+            'coreclr.dll',
+            'wwwroot/_framework/blazor.web.js'
+          )) {
+            $fullPath = Join-Path $publishDir $relativePath
+            if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
+              throw "Missing published file: $relativePath"
+            }
+          }
+          Copy-Item docs/windows-ci.md (Join-Path $publishDir 'BUILD-NOTES.md')
+          $archive = Join-Path $env:GITHUB_WORKSPACE 'dist/Eden-win-x64.zip'
+          Compress-Archive -Path (Join-Path $publishDir '*') -DestinationPath $archive -CompressionLevel Optimal
+          if (-not (Test-Path -LiteralPath $archive -PathType Leaf)) {
+            throw 'Windows distribution ZIP was not created.'
+          }
+          $digest = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$digest  Eden-win-x64.zip" | Set-Content -Path "$archive.sha256" -Encoding ascii
+
+      - name: Assemble complete Windows source and tools kit
+        shell: pwsh
+        run: |
+          $kit = Join-Path $env:GITHUB_WORKSPACE 'dist/Eden-win-x64-complete'
+          $sourceArchive = Join-Path $env:RUNNER_TEMP 'eden-tracked-source.zip'
+          git archive --format=zip --output="$sourceArchive" HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Git source archive failed.' }
+          Expand-Archive -LiteralPath $sourceArchive -DestinationPath $kit
+
+          # git archive copies tracked sources, scripts, assets, docs and configuration,
+          # without shipping .git, credentials, caches or generated player databases.
+          $tracked = @(git ls-files)
+          if ($LASTEXITCODE -ne 0) { throw 'Git file inventory failed.' }
+          foreach ($relative in $tracked) {
+            $file = Join-Path $kit $relative
+            if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
+              throw "Tracked file missing from Windows kit: $relative"
+            }
+          }
+
+          $build = Join-Path $kit 'build/windows-x64'
+          New-Item -ItemType Directory -Force -Path $build | Out-Null
+          Copy-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'dist/Eden-win-x64') `
+            -Destination (Join-Path $build 'server') -Recurse
+          Copy-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'dist/Eden-win-x64-benchmarks') `
+            -Destination (Join-Path $build 'benchmarks') -Recurse
+          $testBin = Join-Path $env:GITHUB_WORKSPACE 'tests/Eden.Protocol.Tests/bin/Release/net10.0'
+          if (-not (Test-Path -LiteralPath (Join-Path $testBin 'Eden.Protocol.Tests.dll'))) {
+            throw 'Compiled test assembly is missing.'
+          }
+          Copy-Item -LiteralPath $testBin -Destination (Join-Path $build 'tests') -Recurse
+
+          foreach ($relative in @(
+            'build/windows-x64/server/Eden.Server.exe',
+            'build/windows-x64/benchmarks/Eden.Benchmarks.exe',
+            'build/windows-x64/tests/Eden.Protocol.Tests.dll',
+            'tools/Setup-Catalog.ps1',
+            'tools/DevelopmentClient.ps1',
+            'tools/catalog/build.py',
+            'src/Eden.Server/Eden.Server.csproj',
+            'assets/icons/eden-server.ico',
+            'README.md',
+            '.github/workflows/windows-build.yml',
+            '.config/dotnet-tools.json',
+            '.gitignore',
+            'global.json',
+            'Eden.slnx'
+          )) {
+            if (-not (Test-Path -LiteralPath (Join-Path $kit $relative) -PathType Leaf)) {
+              throw "Complete kit verification failed: $relative"
+            }
+          }
+
+          $archive = Join-Path $env:GITHUB_WORKSPACE 'dist/Eden-win-x64-complete.zip'
+          [IO.Compression.ZipFile]::CreateFromDirectory($kit, $archive, [IO.Compression.CompressionLevel]::Optimal, $false)
+          if (-not (Test-Path -LiteralPath $archive -PathType Leaf)) {
+            throw 'Complete kit ZIP was not created.'
+          }
+          # Confirm that hidden repository files were included in the final ZIP.
+          $zip = [IO.Compression.ZipFile]::OpenRead($archive)
+          try {
+            foreach ($entry in @('.github/workflows/windows-build.yml', '.config/dotnet-tools.json', '.gitignore')) {
+              if (-not ($zip.Entries.FullName -contains $entry)) {
+                throw "Hidden file missing from complete ZIP: $entry"
+              }
+            }
+          }
+          finally { $zip.Dispose() }
+          $digest = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$digest  Eden-win-x64-complete.zip" | Set-Content -Path "$archive.sha256" -Encoding ascii
+          "Packaged $($tracked.Count) tracked files and compiled Windows server, benchmarks and tests."
+
+      - name: Upload complete Windows source and tools kit
+        uses: actions/upload-artifact@v4
+        with:
+          name: Eden-Windows-11-x64-complete
+          path: |
+            dist/Eden-win-x64-complete.zip
+            dist/Eden-win-x64-complete.zip.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload Windows x64 build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Eden-Windows-11-x64
+          path: |
+            dist/Eden-win-x64.zip
+            dist/Eden-win-x64.zip.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Eden-Windows-x64-test-results
+          path: '**/TestResults/*.trx'
+          if-no-files-found: ignore
+          retention-days: 7
+
+  release:
+    name: Publish Windows release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: windows-x64
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download validated Windows binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: Eden-Windows-11-x64
+          path: release
+
+      - name: Download complete Windows tools kit
+        uses: actions/download-artifact@v4
+        with:
+          name: Eden-Windows-11-x64-complete
+          path: release
+
+      - name: Verify ZIP checksum
+        run: |
+          cd release
+          sha256sum --check Eden-win-x64.zip.sha256
+          sha256sum --check Eden-win-x64-complete.zip.sha256
+
+      - name: Attach Windows ZIP to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" \
+              release/Eden-win-x64.zip release/Eden-win-x64.zip.sha256 \
+              release/Eden-win-x64-complete.zip release/Eden-win-x64-complete.zip.sha256 --clobber
+          else
+            gh release create "$RELEASE_TAG" \
+              release/Eden-win-x64.zip release/Eden-win-x64.zip.sha256 \
+              release/Eden-win-x64-complete.zip release/Eden-win-x64-complete.zip.sha256 \
+              --title "$RELEASE_TAG" --generate-notes --verify-tag
+          fi

@@ -22,6 +22,7 @@ dotnet run --no-build --project src/Eden.Server
 - [Windows client setup](docs/development-client.md) covers staging, offline catalog rebuilds and development login.
 - [Launcher and remote hosting](docs/launcher.md) covers account setup, connecting with Eden Launcher and configuring TLS.
 - [Docker deployment](docs/docker.md) covers hosting in Linux containers with persistent data.
+- [Windows 11 CI/CD](docs/windows-ci.md) builds all .NET projects, validates tooling, and publishes standalone Windows server and complete source/tool ZIPs.
 - [Documentation index](docs/README.md) lists setup, gameplay, modding and developer guides.
 
 ## Current status
