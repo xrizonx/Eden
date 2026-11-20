@@ -37,7 +37,7 @@ internal static class AdministratorBootstrap
         if (generated)
         {
             // Print only to an attached local terminal, never to the buffered server log.
-            console.WriteLine("Created local Eden administrator for http://127.0.0.1:26003.");
+            console.WriteLine("Created local Eden administrator.");
             console.WriteLine($"Administrator username: {DefaultName}");
             console.WriteLine($"Initial administrator password: {password}");
             console.WriteLine("Save this password now. Eden stores only its hash and will not display it again.");

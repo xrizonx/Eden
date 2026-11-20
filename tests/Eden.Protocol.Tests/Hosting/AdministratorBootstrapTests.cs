@@ -9,15 +9,15 @@ public sealed class AdministratorBootstrapTests
     {
         using var directory = new TemporaryAdminDirectory();
         AdministratorAccounts accounts = new(directory.World);
+        Assert.Equal(26003, AdministrationHost.DefaultPort);
         using StringWriter console = new();
         using StringWriter diagnostics = new();
         Assert.True(AdministratorBootstrap.EnsureProvisioned(accounts, true, null, console, diagnostics));
         Assert.True(accounts.Provisioned);
         string output = console.ToString();
         const string marker = "Initial administrator password: ";
-        string password = Assert.Single(output.Split('\n').Where(line => line.StartsWith(marker, StringComparison.Ordinal)))[
-            marker.Length..
-        ].Trim();
+        string passwordLine = Assert.Single(output.Split('\n'), line => line.StartsWith(marker, StringComparison.Ordinal));
+        string password = passwordLine[marker.Length..].Trim();
         Assert.Equal(48, password.Length);
         Assert.NotNull(accounts.Authenticate("admin", password));
         Assert.Null(accounts.Authenticate("admin", "invalid password"));
