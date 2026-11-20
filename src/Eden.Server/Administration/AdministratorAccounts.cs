@@ -22,6 +22,17 @@ internal sealed class AdministratorAccounts(string worldPath)
 
     internal void SetPassword(string name, string password)
     {
+        _ = SavePassword(name, password, overwrite: true);
+    }
+
+    internal bool CreateIfMissing(string name, string password) => SavePassword(name, password, overwrite: false);
+
+    private bool SavePassword(string name, string password, bool overwrite)
+    {
+        if (!overwrite && Provisioned)
+        {
+            return false;
+        }
         name = name.Trim();
         if (
             name.Length is < 1 or > 64
@@ -44,7 +55,16 @@ internal sealed class AdministratorAccounts(string worldPath)
                 JsonSerializer.Serialize(file, credential, JsonSerializerOptions.Web);
                 file.Flush(flushToDisk: true);
             }
-            File.Move(temporary, _path, overwrite: true);
+            try
+            {
+                File.Move(temporary, _path, overwrite);
+            }
+            catch (IOException) when (!overwrite && File.Exists(_path))
+            {
+                // A separately provisioned account wins; never replace it during bootstrap.
+                return false;
+            }
+            return true;
         }
         finally
         {

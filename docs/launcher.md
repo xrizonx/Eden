@@ -13,6 +13,31 @@ The separate [Eden Launcher](https://github.com/CJ-SPT/Eden-Launcher) uses API v
 - [Authentication](#authentication)
 - [Native chat trust](#native-chat-trust)
 
+## First-run administrator (port 26003)
+
+On the first **interactive** server startup, Eden automatically creates the local web administrator `admin` if the
+world's `world.sqlite.administrators.json` credential file does not exist. A cryptographically random, one-time password
+is printed **only to the attached terminal**, not to the buffered server log or the saved credential file. Copy the
+password before closing the terminal and sign in at [http://127.0.0.1:26003](http://127.0.0.1:26003).
+The administration site listens only on loopback by default; game, gateway and launcher API listeners keep their
+separate ports (26000, 26001 and 26002). The native chat listener still uses 5222.
+
+On an unattended/server/service/Docker launch where the console is redirected, set
+`EDEN_ADMIN_BOOTSTRAP_PASSWORD` to a private 6–128 character password **before the first startup**. Eden creates
+`admin` without printing that password. Prefer a secret manager or a private environment setting; never commit
+the value to Git or place it in a public configuration file. Without an interactive terminal or supplied password,
+Eden runs without the administration listener and prints provisioning instructions (fail-closed). Set up the account
+interactively with `dotnet run --project src/Eden.Server -- --set-admin-password admin` as an alternative.
+
+Once the credential exists, **restarts never regenerate or replace it**, even if the bootstrap environment variable
+changes. To rotate or recover the password, stop the server and run
+`dotnet run --project src/Eden.Server -- --set-admin-password admin`. This command prompts twice without echo.
+A custom administrator name can also be provisioned with `--set-admin-password <name>`; only one local
+administrator credential is stored per world. The `--disable-admin` flag disables the listener and automatic
+provisioning. `--admin-port <port>` overrides the default administration port. Remote administration requires
+a configured `EDEN_ADMIN_ORIGIN`, a valid HTTPS origin and a TLS certificate; do not expose plain HTTP port 26003
+to the internet.
+
 ## Existing accounts
 
 Run `dotnet run --project src/Eden.Server -- --set-account-password Eden` in an interactive terminal. For the second account, use `--set-account-password 'Eden Wing'`. Passwords are entered twice without echo. No default passwords are assigned. Password changes revoke launcher sessions and preserve account IDs, characters, possessions and progress.

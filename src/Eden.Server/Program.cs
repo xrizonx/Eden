@@ -313,15 +313,24 @@ internal static class Program
                     ? parsedPort
                     : throw new InvalidDataException("--admin-port requires a port between 1 and 65535.")
                 : AdministrationHost.DefaultPort;
-            bool administrationEnabled = !args.Contains("--disable-admin") && new AdministratorAccounts(worldPath).Provisioned;
+            bool administrationRequested = !args.Contains("--disable-admin");
             string? administrationOrigin = Environment.GetEnvironmentVariable("EDEN_ADMIN_ORIGIN");
             if (
-                administrationEnabled
+                administrationRequested
                 && new[] { options.GamePort, options.GatewayPort, options.ApiPort, ChatServer.ClientPort }.Contains(administrationPort)
             )
             {
                 throw new InvalidDataException("Administration requires a separate port.");
             }
+            bool administrationEnabled =
+                administrationRequested
+                && AdministratorBootstrap.EnsureProvisioned(
+                    new AdministratorAccounts(worldPath),
+                    Environment.UserInteractive && !Console.IsInputRedirected && !Console.IsOutputRedirected,
+                    Environment.GetEnvironmentVariable(AdministratorBootstrap.PasswordEnvironmentVariable),
+                    Console.Out,
+                    Console.Error
+                );
             var launcherMaintenance = services.GetRequiredService<LauncherMaintenance>();
             lifetime.OnStop(nameof(LauncherMaintenance), launcherMaintenance.DisposeAsync);
             launcherMaintenance.Start();

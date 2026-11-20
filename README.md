@@ -20,6 +20,8 @@ dotnet run --no-build --project src/Eden.Server
 
 - [Windows client setup](docs/development-client.md) covers staging, offline catalog rebuilds and development login.
 - [Launcher and remote hosting](docs/launcher.md) covers account setup, connecting with Eden Launcher and configuring TLS.
+- Local administration is available at `http://127.0.0.1:26003`. On an interactive first startup, Eden displays a one-time
+  generated `admin` password. For unattended setup see [admin bootstrap](docs/launcher.md#first-run-administrator-port-26003).
 - [Docker deployment](docs/docker.md) covers hosting in Linux containers with persistent data.
 - [Documentation index](docs/README.md) lists setup, gameplay, modding and developer guides.
 
