@@ -26,8 +26,9 @@ Run the full .NET suite (`dotnet test --no-build` without a filter) **only when 
 
 ## Local validation
 
-Run milestone validation locally using the README build order and the affected feature filters. The [Windows x64 build workflow](../.github/workflows/windows-build.yml) compiles the solution, runs focused hosting
-tests and policy checks, and publishes a server ZIP for Windows 11. It is not a full regression run or live
+Run milestone validation locally using the README build order and the affected feature filters. The [Windows x64 build workflow](../.github/workflows/windows-build.yml) compiles every listed .NET project, checks
+Python tool syntax, runs focused hosting tests and policy checks, and publishes both a Windows server ZIP and a complete
+tracked-source-and-tools ZIP with compiled server, benchmarks and tests. It is not a full regression run or live
 client-compatibility check; the former general validation workflow was removed to conserve hosted runner minutes.
 See [Windows CI/CD usage](windows-ci.md).
 
