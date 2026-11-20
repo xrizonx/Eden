@@ -111,6 +111,10 @@ select current site identities before copying rows and avoid materializing histo
 
 ## Build and run
 
+GitHub Actions compiles and packages the self-contained Windows x64 server for Windows 11. Download the ZIP from a
+successful workflow run or a version-tagged GitHub Release; see [Windows build CI/CD](docs/windows-ci.md). Client files,
+resource cache, catalogs and saved worlds are not bundled.
+
 Use the Windows commands in [Start here](#start-here) to prepare data and run a local server. For code milestones, run
 the following checks from the repository root in order. Replace the example hosting filter with the affected behavior and
 its immediate dependencies.

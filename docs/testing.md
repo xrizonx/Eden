@@ -26,7 +26,10 @@ Run the full .NET suite (`dotnet test --no-build` without a filter) **only when 
 
 ## Local validation
 
-Run milestone validation locally using the README build order and the affected feature filters. The GitHub Actions validation workflow was removed to avoid consuming hosted runner minutes.
+Run milestone validation locally using the README build order and the affected feature filters. The [Windows x64 build workflow](../.github/workflows/windows-build.yml) compiles the solution, runs focused hosting
+tests and policy checks, and publishes a server ZIP for Windows 11. It is not a full regression run or live
+client-compatibility check; the former general validation workflow was removed to conserve hosted runner minutes.
+See [Windows CI/CD usage](windows-ci.md).
 
 ## Test infrastructure
 
