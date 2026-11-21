@@ -27,6 +27,9 @@ From the repository root, run these commands in PowerShell 7. Replace `E:\Eve` w
 dotnet run --no-build --project src/Eden.Server
 ```
 
+GitHub Actions builds all nine .NET projects and exports a complete Windows ZIP with every tracked source/tool file.
+[Windows CI/CD build and download guide](docs/windows-ci.md).
+
 The first command copies and verifies the client. Catalog setup builds the server and downloads the matching game data on
 its first run. For staging, offline setup, and troubleshooting, see the [Windows client guide](docs/development-client.md).
 
