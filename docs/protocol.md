@@ -764,6 +764,9 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Session performance and resident state
 
+- [Bot CPU and the fresh-world population ceiling](protocol/performance.md#bot-cpu-and-the-fresh-world-population-ceiling)
+- [Fresh-world backlog during starter ore sales](protocol/performance.md#fresh-world-backlog-during-starter-ore-sales)
+- [CPU profiling at 2,500 autonomous capsuleers](protocol/performance.md#cpu-profiling-at-2500-autonomous-capsuleers)
 - [Site history discovery and identity maxima](protocol/performance.md#site-history-discovery-and-identity-maxima-november-15-2026)
 - [Population validation during travel](protocol/performance.md#population-validation-during-travel-november-15-2026)
 - [Server lock contention](protocol/performance.md#server-lock-contention-november-15-2026)
@@ -824,6 +827,9 @@ scope tested at the time. Add new findings to the owning topic page and link the
 - [Skill-point and market call latency (November 13, 2026)](protocol/performance.md#skill-point-and-market-call-latency-november-13-2026)
 - [Multi-buy price-history queries (November 15, 2026)](protocol/performance.md#multi-buy-price-history-queries-november-15-2026)
 - [Mining-fit skill-point stalls (November 13, 2026)](protocol/performance.md#mining-fit-skill-point-stalls-november-13-2026)
+- [Hauler traffic identity selection](protocol/performance.md#hauler-traffic-identity-selection)
+- [Bot corporation recruitment and timed effects](protocol/performance.md#bot-corporation-recruitment-and-timed-effects)
+- [Hauler identity reservations and journey ranges](protocol/performance.md#hauler-identity-reservations-and-journey-ranges)
 - [Allocation during bot admission and market settlement](protocol/performance.md#allocation-during-bot-admission-and-market-settlement)
 - [Player bot allocation and queue delay](protocol/performance.md#player-bot-allocation-and-queue-delay)
 - [Offscreen bot scheduling at ten thousand pilots](protocol/performance.md#offscreen-bot-scheduling-at-ten-thousand-pilots)
@@ -919,6 +925,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### World configuration
 
+- [First-start world setup](protocol/world-configuration.md#first-start-world-setup)
 - [Administration settings with decimal-comma locales](protocol/world-configuration.md#administration-settings-with-decimal-comma-locales-november-20-2026)
 - [Optional data imports in server administration](protocol/world-configuration.md#optional-data-imports-in-server-administration)
 - [Custom gameplay switches](protocol/world-configuration.md#custom-gameplay-switches-november-15-2026)

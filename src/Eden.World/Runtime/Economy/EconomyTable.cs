@@ -116,7 +116,7 @@ internal sealed partial class EconomyTable<TRow, TState>(
             return [];
         }
         var candidates = EconomyCandidates.Find(predicate.Body, predicate.Parameters[0], (column, value) => Candidates(column, value));
-        if (candidates is { Count: 0 })
+        if (candidates is { UpperBound: 0 })
         {
             return [];
         }
@@ -135,7 +135,7 @@ internal sealed partial class EconomyTable<TRow, TState>(
         {
             // A whole entity argument cannot be evaluated on its scalar snapshot.
         }
-        var keys = candidates ?? Keys;
+        var keys = candidates?.Keys ?? Keys;
         return keys.Where(id => Snapshot(id) is { } row && (match is null || match(row))).ToArray();
     }
 
@@ -597,6 +597,17 @@ internal sealed partial class EconomySet<TRow, TState>(EconomyTable<TRow, TState
 
     internal IEnumerable<TState> IndexedSnapshots<TValue>(string column, IReadOnlySet<TValue> values)
         where TValue : notnull => ReadSnapshots(values.SelectMany(value => table.Indexed(column, value)));
+
+    internal IEnumerable<TState> VisibleCommittedSnapshots(string column, object value)
+    {
+        foreach (var key in table.Indexed(column, value))
+        {
+            if (!_local.ContainsKey(key) && transaction.VisibleScalar<TRow>(key) && table.Snapshot(key) is { } saved)
+            {
+                yield return saved;
+            }
+        }
+    }
 
     private IEnumerable<TState> ReadSnapshots(IEnumerable<EconomyKey> keys)
     {
