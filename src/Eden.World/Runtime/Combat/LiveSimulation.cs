@@ -14,6 +14,7 @@ using Eden.World.Catalog;
 using Eden.World.Characters;
 using Eden.World.Combat.Npcs;
 using Eden.World.Propulsion;
+using Eden.World.Runtime.Economy;
 using Eden.World.Storage;
 using Microsoft.EntityFrameworkCore;
 
@@ -90,9 +91,12 @@ internal sealed partial class LiveCombatRuntime
         }
     }
 
-    private void InvalidatePopulation(int system, string reason)
+    private void InvalidatePopulation(int system, string reason, bool keepDeadline)
     {
-        InvalidatePopulationDeadline(system, reason);
+        if (!keepDeadline)
+        {
+            InvalidatePopulationDeadline(system, reason);
+        }
         _systemNpcs.Remove(system);
         _beltClearances.Remove(system);
         _simulationContacts.Remove(system);
@@ -104,16 +108,16 @@ internal sealed partial class LiveCombatRuntime
         }
     }
 
-    private void ObserveNpcPopulation(long id, string reason, bool resident)
+    private void ObserveNpcPopulation(long id, string reason, bool resident, bool keepDeadline = false)
     {
         if (_populationRefreshSystem is { } scoped)
         {
-            InvalidatePopulation(scoped, reason);
+            InvalidatePopulation(scoped, reason, keepDeadline);
             return;
         }
         if (_npcs.TryGetValue(id, out var previous))
         {
-            InvalidatePopulation(previous.SystemId, reason);
+            InvalidatePopulation(previous.SystemId, reason, keepDeadline);
         }
         int? current =
             resident || owner.Economy.IsLoaded
@@ -125,7 +129,7 @@ internal sealed partial class LiveCombatRuntime
                 });
         if (current is int system)
         {
-            InvalidatePopulation(system, reason);
+            InvalidatePopulation(system, reason, keepDeadline);
         }
     }
 
@@ -553,23 +557,20 @@ internal sealed partial class LiveCombatRuntime
     private readonly ResidentMap<int, BeltClearance> _beltClearances = [];
     private long _miningGeometry;
 
-    internal bool MiningPopulationDue(int system, long now)
-    {
-        using var ownership = owner.Enter();
-        return !_populationDue.TryGetValue(system, out long due) || due <= now || !_systemNpcs.ContainsKey(system);
-    }
-
     // The encounter owner invalidates these membership and population snapshots on changes.
     // Cold, mobile and contested scenes return to the ordinary NPC and defense owners.
-    internal bool QuietMiningBelt(int system, long ship, SpacePosition position, double radius, long now)
+    internal bool QuietMiningBelt(int system, long ship, SpacePosition position, double radius, long now, out bool populationDue)
     {
         using var ownership = owner.Enter();
+        if (!_populationDue.TryGetValue(system, out long due) || due <= now || !_systemNpcs.TryGetValue(system, out var members))
+        {
+            populationDue = true;
+            return false;
+        }
+        populationDue = false;
         if (
             !simulationObjects
             || !CanRun
-            || !_populationDue.TryGetValue(system, out long due)
-            || due <= now
-            || !_systemNpcs.TryGetValue(system, out var members)
             || !_droneAttackers.TryGetValue(ship, out var attacks)
             || attacks.Length != 0
             || _residentAttackers.TryGetValue(ship, out var pending) && pending.Count != 0
@@ -778,6 +779,11 @@ internal sealed partial class LiveCombatRuntime
 
     private void SimulationAcquire(IReadOnlyList<NpcTargetCandidate> candidates, long now)
     {
+        if (candidates.Count == 1)
+        {
+            SimulationAcquire(candidates[0], now);
+            return;
+        }
         var ships = AcquisitionShips(candidates).ToArray();
         if (ships.Length == 0)
         {
@@ -794,8 +800,46 @@ internal sealed partial class LiveCombatRuntime
             aggression.ContainsKey,
             now
         );
-        foreach (var addition in additions)
+        PublishAcquisitions(aggression, additions);
+    }
+
+    private void SimulationAcquire(NpcTargetCandidate candidate, long now)
+    {
+        if (!_acquisitionShips.TryGetValue(candidate.PilotId, out var ship))
         {
+            ship = Loading(() =>
+            {
+                using CatalogDbContext catalog = new(database.CatalogPath);
+                return owner.Economy.Inspect(world =>
+                    world.Pilots.Find(candidate.PilotId) is { } pilot
+                        ? ReadAcquisitionShip(world, catalog, pilot.Id, pilot.ActiveShipId)
+                        : null
+                );
+            });
+            _acquisitionShips[candidate.PilotId] = ship;
+        }
+        if (ship is null || ship.ShipId != candidate.ShipId || ship.GroupId == FleetDefinitions.CapsuleGroup)
+        {
+            return;
+        }
+
+        var current = _positions.GetValueOrDefault(ship.ShipId);
+        int system = current?.System ?? ship.SystemId;
+        var aggression = Aggression();
+        var additions = LiveNpcAcquisitionRules.AcquireOrdered(
+            SystemNpcs(system, now),
+            new(ship.ShipId, system, current?.Position ?? ship.Position, ship.Radius),
+            aggression.ContainsKey,
+            now
+        );
+        PublishAcquisitions(aggression, additions);
+    }
+
+    private void PublishAcquisitions(ResidentMap<long, LiveAggression> aggression, IReadOnlyList<LiveAggression> additions)
+    {
+        for (int index = 0; index < additions.Count; index++)
+        {
+            var addition = additions[index];
             aggression[addition.NpcId] = addition;
             _dirtyAggressions.Add(addition.NpcId);
             owner.ObjectsChanged();
@@ -825,21 +869,7 @@ internal sealed partial class LiveCombatRuntime
                         .ToArray();
                     foreach (var pilot in pilots)
                     {
-                        var ship = world.Ships.Find(pilot.ShipId);
-                        if (ship?.Position is not { } position)
-                        {
-                            continue;
-                        }
-                        var type = catalog.RequireItem(ship.TypeId);
-                        int system = position.SystemId ?? catalog.RequireStation(ship.StationId).SolarSystemId;
-                        loaded[pilot.PilotId] = new(
-                            pilot.PilotId,
-                            ship.Id,
-                            system,
-                            new(position.X, position.Y, position.Z),
-                            type.Radius ?? 0,
-                            type.GroupId
-                        );
+                        loaded[pilot.PilotId] = ReadAcquisitionShip(world, catalog, pilot.PilotId, pilot.ShipId);
                     }
                     return true;
                 });
@@ -863,6 +893,18 @@ internal sealed partial class LiveCombatRuntime
                     }
                     : s
             );
+    }
+
+    private static AcquisitionShip? ReadAcquisitionShip(WorldAction world, CatalogDbContext catalog, long pilot, long shipId)
+    {
+        var ship = world.Ships.Find(shipId);
+        if (ship?.Position is not { } position)
+        {
+            return null;
+        }
+        var type = catalog.RequireItem(ship.TypeId);
+        int system = position.SystemId ?? catalog.RequireStation(ship.StationId).SolarSystemId;
+        return new(pilot, ship.Id, system, new(position.X, position.Y, position.Z), type.Radius ?? 0, type.GroupId);
     }
 
     private void ClearSimulation(bool retainPositions)

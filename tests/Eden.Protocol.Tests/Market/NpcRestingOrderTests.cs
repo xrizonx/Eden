@@ -135,8 +135,11 @@ public sealed class NpcRestingOrderTests(ITestOutputHelper output)
         Assert.Equal(bid.Remaining - 10, f.Bid.Remaining);
     }
 
-    [Fact]
-    public void ResidentSalesKeepUnrelatedRegionalOrdersOutOfMatchingAllocations()
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void ResidentSalesKeepUnrelatedRegionalOrdersOutOfMatchingAllocations(bool atSellerStation, bool matchingType)
     {
         using Fixture f = new();
         var pilot = f.Pilot;
@@ -167,6 +170,7 @@ public sealed class NpcRestingOrderTests(ITestOutputHelper output)
         _ = Measure();
         var small = Measure();
         const int depth = 16384;
+        int crowdedStation = atSellerStation ? pilot.StationId : pilot.StationId + 1;
         using (var setup = live.Economy.Begin())
         {
             for (int index = 0; index < depth; index++)
@@ -174,11 +178,11 @@ public sealed class NpcRestingOrderTests(ITestOutputHelper output)
                 setup.Add(
                     new NpcMarketOrder
                     {
-                        StationId = pilot.StationId + 1,
+                        StationId = matchingType ? crowdedStation + index : crowdedStation,
                         SystemId = pilot.SystemId,
                         RegionId = pilot.RegionId,
                         OwnerId = pilot.StationOwnerId,
-                        TypeId = 100_000 + index,
+                        TypeId = matchingType ? type : 100_000 + index,
                         Kind = NpcMarketKind.Regional,
                         Bid = true,
                         Entered = 1,
@@ -193,14 +197,15 @@ public sealed class NpcRestingOrderTests(ITestOutputHelper output)
         var large = Measure();
         output.WriteLine($"Four sales on the small book: {small.AllocatedBytes:N0} bytes, {small.Elapsed.TotalMilliseconds:F2} ms.");
         output.WriteLine(
-            $"Four sales with {depth:N0} unrelated orders: {large.AllocatedBytes:N0} bytes, {large.Elapsed.TotalMilliseconds:F2} ms."
+            $"Four sales with {depth:N0} unrelated orders at station {crowdedStation}: "
+                + $"{large.AllocatedBytes:N0} bytes, {large.Elapsed.TotalMilliseconds:F2} ms."
         );
         output.WriteLine(
             $"SQL commands / opens / fitting calculations per four sales: {large.Commands} / {large.Connections} / {large.Fittings}."
         );
         Assert.Equal((0, 0, 0), (small.Commands, small.Connections, small.Fittings));
         Assert.Equal((0, 0, 0), (large.Commands, large.Connections, large.Fittings));
-        Assert.InRange(large.AllocatedBytes, 0, small.AllocatedBytes + 1024 * 1024);
+        Assert.InRange(large.AllocatedBytes, 0, Math.Min(small.AllocatedBytes + 64 * 1024, 512 * 1024));
 
         PerformanceSample Measure()
         {

@@ -1,8 +1,10 @@
 using System.Diagnostics;
+using Eden.Data.World.Characters;
 using Eden.Data.World.Inventory;
 using Eden.Data.World.Market;
 using Eden.Data.World.Skills;
 using Eden.Gameplay.Flight;
+using Eden.Gameplay.Skills;
 using Eden.Server;
 using Eden.Server.Launcher;
 using Eden.World.Docking;
@@ -13,10 +15,11 @@ using Eden.World.Storage;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit.Abstractions;
 
 namespace Eden.Protocol.Tests.Persistence;
 
-public sealed class LiveWorldTests
+public sealed class LiveWorldTests(ITestOutputHelper output)
 {
     [Fact]
     public void GameplayUsesResidentStateWithAnOpenSqlConnection()
@@ -346,6 +349,160 @@ public sealed class LiveWorldTests
     }
 
     [Fact]
+    public async Task CheckpointBatchesPilotsWithoutAppearanceAndPreservesBinaryPayloads()
+    {
+        const int count = 257;
+        const long firstPilot = (1L << 53) + 1;
+        const long firstShip = firstPilot + 1_000;
+        byte[] appearance = [0, 127, 128, 255];
+        using TestWorld fixture = new();
+        WorldDatabase database = new(fixture.Path);
+        TestClock clock = new();
+        using (LiveWorld live = new(database, clock, _ => { }))
+        {
+            live.MeasureCheckpoints = true;
+            using (var action = live.Economy.Begin())
+            {
+                for (int index = 0; index < count; index++)
+                {
+                    long pilot = firstPilot + index;
+                    long ship = firstShip + index;
+                    action.Add(new InventoryOwner { Id = pilot });
+                    action.Add(
+                        new Ship
+                        {
+                            Id = ship,
+                            OwnerId = pilot,
+                            TypeId = 601,
+                            StationId = 60000004,
+                        }
+                    );
+                    action.Add(
+                        new Pilot
+                        {
+                            Id = pilot,
+                            AccountId = 1000001,
+                            Name = $"Checkpoint pilot {index}",
+                            ActiveShipId = ship,
+                            CreatedAt = clock.Now,
+                            Appearance = index == count - 1 ? appearance : null,
+                        }
+                    );
+                }
+                action.Commit();
+            }
+            await live.FlushAsync();
+            var projection = Assert.Single(live.LastCheckpoint!.ProjectionTables!, table => table.Table == "WorldPilot");
+            Assert.Equal((count, 3), (projection.Rows, projection.Commands));
+        }
+        using LiveWorld reopened = new(database, clock, _ => { });
+        for (int index = 0; index < count; index++)
+        {
+            long pilot = firstPilot + index;
+            var saved = Assert.IsType<Pilot>(reopened.Economy.Peek<Pilot>(pilot));
+            Assert.Equal(pilot, saved.Id);
+            Assert.Equal(firstShip + index, saved.ActiveShipId);
+            Assert.Equal($"Checkpoint pilot {index}", saved.Name);
+            Assert.Equal(clock.Now, saved.CreatedAt);
+            Assert.Equal(index == count - 1 ? appearance : null, saved.Appearance);
+        }
+    }
+
+    [Fact]
+    public async Task TrainingHistoryCheckpointBatchesPreserveRowsAndReplayOrderAfterRetry()
+    {
+        const long pilot = 90000001;
+        const int records = 8192;
+        const int skill = 3449;
+        const long points = (1L << 53) + 1;
+        using TestWorld fixture = new();
+        WorldDatabase database = new(fixture.Path);
+        TestClock clock = new();
+        long now = clock.Now;
+        bool fail = false;
+        List<TrainingEvent> expected = [];
+        long updated;
+        long removed;
+        using (LiveWorld seed = new(database, clock, _ => { }))
+        {
+            using (var prepare = seed.Economy.Begin(new(pilots: [pilot])))
+            {
+                updated = prepare.Add(Event(1, 36)).Entity.Id;
+                removed = prepare.Add(Event(2, 38)).Entity.Id;
+                prepare.Commit();
+            }
+            await seed.FlushAsync();
+        }
+        using (
+            LiveWorld live = new(
+                database,
+                clock,
+                _ => { },
+                (snapshot, path) =>
+                {
+                    if (fail)
+                    {
+                        throw new IOException("Injected training history checkpoint failure");
+                    }
+                    LiveWorld.PersistSnapshot(snapshot, path);
+                }
+            )
+        )
+        {
+            live.MeasureCheckpoints = true;
+            var first = live.LastCheckpoint;
+            using (var rolledBack = live.Economy.Begin(new(pilots: [pilot])))
+            {
+                rolledBack.Add(Event(3, 38));
+            }
+            expected.Add(new(now, skill, points, 53));
+            using (var work = live.Economy.Begin(new(pilots: [pilot])))
+            {
+                var log = work.Set<TrainingLog>();
+                log.Find(updated)!.Points = points;
+                log.Find(updated)!.EventId = 53;
+                work.Remove(log.Find(removed)!);
+                for (int i = 0; i < records; i++)
+                {
+                    int eventId = i % 2 == 0 ? 36 : 53;
+                    long balance = points + i + 1;
+                    work.Add(Event(balance, eventId));
+                    expected.Add(new(now, skill, balance, eventId));
+                }
+                work.Commit();
+            }
+            fail = true;
+            await Assert.ThrowsAsync<IOException>(() => live.FlushAsync());
+            Assert.Same(first, live.LastCheckpoint);
+            Assert.Equal(2, DiskValue(database.Path, "SELECT COUNT(*) FROM WorldSkillHistory"));
+            Assert.Equal(1, DiskValue(database.Path, $"SELECT Points FROM WorldSkillHistory WHERE Id={updated}"));
+            fail = false;
+            await live.FlushAsync();
+            var projection = Assert.Single(live.LastCheckpoint!.ProjectionTables!, table => table.Table == "WorldSkillHistory");
+            output.WriteLine(
+                $"{projection.Rows:N0} history changes, {projection.Commands:N0} commands, {projection.AllocatedBytes:N0} bytes "
+                    + $"and {projection.Elapsed.TotalMilliseconds:F2} ms projection."
+            );
+            Assert.Equal(records + 2, projection.Rows);
+            Assert.Equal(66, projection.Commands);
+            Assert.Equal(0, DiskValue(database.Path, $"SELECT COUNT(*) FROM WorldSkillHistory WHERE Id={removed}"));
+        }
+        using var reopened = ServerServices.Build(database, clock, liveWorld: true);
+        expected.Reverse();
+        Assert.Equal(expected, reopened.GetRequiredService<IPilotTraining>().History(pilot, records + 2));
+
+        TrainingLog Event(long balance, int eventId) =>
+            new()
+            {
+                PilotId = pilot,
+                Time = now,
+                TypeId = skill,
+                Points = balance,
+                EventId = eventId,
+            };
+    }
+
+    [Fact]
     public async Task ConcurrentTransactionsDoNotLoseWalletUpdates()
     {
         using TestWorld db = new();
@@ -474,11 +631,13 @@ public sealed class LiveWorldTests
         Assert.Equal(0, DiskValue(db.Path, "SELECT COUNT(*) FROM LauncherTicket"));
     }
 
-    [Fact]
-    public async Task FailedAtomicInstallKeepsOriginalCheckpointAndCleansStagingFile()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FailedAtomicInstallKeepsOriginalCheckpointAndCleansStagingFile(bool diskCapture)
     {
         using TestWorld db = new();
-        using LiveWorld live = new(new(db.Path), new TestClock(), _ => { });
+        using LiveWorld live = new(new(db.Path), new TestClock(), _ => { }, diskCheckpointCapture: diskCapture);
         using (WorldDbContext first = new(db.Path))
         {
             first.Database.ExecuteSqlRaw("UPDATE WorldPilot SET Name='First atomic save' WHERE Id=90000001");
@@ -497,6 +656,7 @@ public sealed class LiveWorldTests
             Assert.True(error is IOException or UnauthorizedAccessException, error?.ToString());
             Assert.Equal(1, DiskValue(db.Path, "SELECT COUNT(*) FROM WorldPilot WHERE Name='First atomic save'"));
             Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(db.Path)!, "*.save-*"));
+            Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(db.Path)!, "*.checkpoint-capture-*"));
         }
         finally
         {

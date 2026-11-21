@@ -168,10 +168,10 @@ internal sealed partial record CapsuleerDefenseProfile
         return result.ToArray();
     }
 
-    internal static CapsuleerDefenseProfile Read(WorldAction world, CatalogDbContext catalog, long pilotId)
+    internal static CapsuleerDefenseProfile Read(WorldAction world, CatalogDbContext catalog, long pilotId, FittingCalculation? fit = null)
     {
         var pilot = world.Pilots.Single(value => value.Id == pilotId);
-        var fit = FittingCalculation.Read(world, catalog, pilot);
+        fit ??= FittingCalculation.Read(world, catalog, pilot);
         var active = world
             .Set<ActiveFittedModule>()
             .Where(module => module.ShipId == pilot.ActiveShipId && module.ExpiresAt == 0)
@@ -205,7 +205,8 @@ internal sealed partial record CapsuleerDefenseProfile
         bool rookieCombat =
             world.Settings.FreshUniverse
             && catalog.FittingType(pilot.ActiveShip.TypeId)?.GroupId == (int)HullClass.Corvette
-            && world.Set<SavedCapsuleerAgent>().Find(pilotId) is { Career: CapsuleerCareer.Hauling, Slot: FreshCareerRules.CombatSlot };
+            && world.Set<SavedCapsuleerAgent>().Find(pilotId) is { Career: CapsuleerCareer.Hauling } agent
+            && FreshCareerRules.IsCombatSlot(agent.Slot);
         return new CapsuleerDefenseProfile(
             rookieCombat
                 || (

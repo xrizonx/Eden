@@ -34,6 +34,12 @@ internal sealed partial class CapsuleerIndustry
         long id = pilot.PilotId;
         int product = (int)MiningLaserType.MinerI;
         var hangar = Hangar(world, id, station);
+        if (world.Set<SavedCapsuleerAgent>().Find(id) is { Slot: int slot } && StarterIndustryRules.IsBuyerSlot(slot))
+        {
+            bool sold = SellStarterOre(world, catalog, pilot, hangar);
+            return PlaceStarterBid(world, catalog, pilot, now, product) || sold;
+        }
+
         var bid = world
             .Filter<SavedPersonalOrder>(order => order.StationId == station)
             .Where(order =>
@@ -48,12 +54,6 @@ internal sealed partial class CapsuleerIndustry
             .OrderByDescending(order => order.PriceCents)
             .ThenBy(order => order.Id)
             .FirstOrDefault();
-        if (world.Set<SavedCapsuleerAgent>().Find(id)?.Slot == StarterIndustryRules.BuyerSlot)
-        {
-            bool sold = SellStarterOre(world, catalog, pilot, hangar);
-            return PlaceStarterBid(world, catalog, pilot, now, product) || sold;
-        }
-
         var job = world
             .Filter<IndustryJob>(job => job.PilotId == id)
             .SingleOrDefault(job => job.Status == IndustryJobStatus.Installed && job.ProductTypeId == product);
@@ -94,7 +94,8 @@ internal sealed partial class CapsuleerIndustry
     internal CareerShipTurn? WorkStarterFleetOrders(EconomyTransaction world, CatalogDbContext catalog, DockedPilot pilot, long now)
     {
         if (
-            world.Set<SavedCapsuleerAgent>().Find(pilot.PilotId)?.Slot != StarterIndustryRules.ProducerSlot
+            world.Set<SavedCapsuleerAgent>().Find(pilot.PilotId) is not { Slot: int slot }
+            || !StarterIndustryRules.IsProducerSlot(slot)
             || CapsuleerProvisioningCatalog.StarterIndustry(catalog, pilot.SystemId).HomeStationId != pilot.StationId
         )
         {

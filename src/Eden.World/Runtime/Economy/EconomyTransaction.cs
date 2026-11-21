@@ -56,10 +56,30 @@ internal sealed partial class EconomyTransaction(
             .IndexedSnapshots(nameof(NpcMarketOrder.RegionId), region, typeId is int type ? (nameof(NpcMarketOrder.TypeId), type) : null)
             .Where(o => o.RegionId == region && (typeId is null || o.TypeId == typeId));
 
+    internal IEnumerable<EconomyNpcMarketOrder> StationMarketOrders(int station, int? typeId = null) =>
+        ((EconomySet<NpcMarketOrder, EconomyNpcMarketOrder>)Set<NpcMarketOrder>())
+            .IndexedSnapshots(nameof(NpcMarketOrder.StationId), station, typeId is int type ? (nameof(NpcMarketOrder.TypeId), type) : null)
+            .Where(order => order.StationId == station && (typeId is null || order.TypeId == typeId));
+
     internal IEnumerable<EconomyNpcMarketOrder> NpcMarketOrders(IReadOnlySet<NpcMarketAssortment> assortments) =>
         ((EconomySet<NpcMarketOrder, EconomyNpcMarketOrder>)Set<NpcMarketOrder>())
             .IndexedSnapshots(nameof(NpcMarketAssortment), assortments)
             .Where(o => assortments.Contains(new(o.StationId, o.TypeId, o.Bid, o.Kind, o.SourceOrderId)));
+
+    internal IEnumerable<EconomySavedPersonalOrder> StationPersonalOrders(int station, int type) =>
+        ((EconomySet<SavedPersonalOrder, EconomySavedPersonalOrder>)Set<SavedPersonalOrder>())
+            .IndexedSnapshots(nameof(SavedPersonalOrder.StationId), station, (nameof(SavedPersonalOrder.TypeId), type))
+            .Where(order => order.StationId == station && order.TypeId == type);
+
+    internal bool BlueprintInstalled(long itemId) =>
+        ((EconomySet<IndustryJob, EconomyIndustryJob>)Set<IndustryJob>())
+            .IndexedSnapshots(nameof(IndustryJob.BlueprintId), itemId)
+            .Any(job => job.BlueprintId == itemId && job.Status == IndustryJobStatus.Installed);
+
+    internal IEnumerable<EconomySavedTaskCounter> TaskCounters(long pilotId) =>
+        ((EconomySet<SavedTaskCounter, EconomySavedTaskCounter>)Set<SavedTaskCounter>())
+            .IndexedSnapshots(nameof(SavedTaskCounter.PilotId), pilotId)
+            .Where(counter => counter.PilotId == pilotId);
 
     internal bool PersonalOrderStillOpen(long id) =>
         ((EconomySet<SavedPersonalOrder, EconomySavedPersonalOrder>)Set<SavedPersonalOrder>()).ReadSnapshot(new(id))
