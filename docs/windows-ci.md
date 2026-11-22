@@ -18,7 +18,8 @@ The pipeline verifies that every `.csproj` beneath `src`, `tests` and `tools` is
 NuGet dependencies with the selected stable .NET 10 SDK, builds the entire solution in Release mode, runs the focused
 `Eden.Protocol.Tests.Hosting` tests, checks the two Python policy suites and formatting, and validates Python 3 and PowerShell tooling
 syntax. It separately publishes the server and benchmark executable for `win-x64`, copies the compiled test assemblies,
-and checks required output files. It also hashes every Git-tracked file inside the **final ZIP** and verifies that each matches its checkout source; missing or changed files fail the build. The full regression suite is not run automatically (see [testing policy](testing.md)).
+and smoke-tests both self-contained EXEs. The complete kit also includes relocated Windows Python 3.11 and PowerShell 7
+runtimes, checked for execution after copying. It also hashes every Git-tracked file inside the **final ZIP** and verifies that each matches its checkout source; missing or changed files fail the build. The full regression suite is not run automatically (see [testing policy](testing.md)).
 
 ## What is downloadable
 
@@ -35,14 +36,24 @@ and Python utilities, catalog sources and audit tools), `assets/`, `docs/`, `.co
 build/windows-x64/server/Eden.Server.exe
 build/windows-x64/benchmarks/Eden.Benchmarks.exe
 build/windows-x64/tests/Eden.Protocol.Tests.dll
+build/windows-x64/python/python.exe
+build/windows-x64/powershell/pwsh.exe
 ```
 
-The server and benchmark executables are self-contained. The source tree, benchmark harness and test project can
-also be rebuilt using the pinned .NET SDK. The included Python scripts are **source utilities**, not converted
-Windows EXEs: they require appropriate Python interpreters and sometimes external data or tooling. CI checks their
-Python 3 syntax but does not run every importer/exporter. Docker shell scripts and Linux Compose definitions are
-preserved for completeness; they are not native Windows binaries. Client-side Python 2.7 compilation and
-catalog generation require their documented external inputs, and CI does not run them without those inputs.
+The server and benchmark executables are self-contained and do not require a separate .NET runtime installation.
+The complete ZIP bundles portable native Windows Python 3.11 and PowerShell 7 for the repository's script tools.
+The Python scripts remain editable source utilities, not individually converted EXEs. From the extracted complete
+kit root, run PowerShell tools with `./build/windows-x64/powershell/pwsh.exe -NoProfile -File ./tools/<name>.ps1`
+(or use an existing PowerShell 7 installation). Run ordinary Python tools with
+`./build/windows-x64/python/python.exe ./tools/<name>.py`.
+
+`tools/Setup-Catalog.ps1` now detects both bundled Python and `build/windows-x64/server/Eden.Server.exe`,
+so the standard catalog preparation path in the **complete ZIP** does not require a separately installed .NET SDK.
+Building or changing the C# source, compiling test projects, restoring NuGet tools, or using optional geometry
+embedding still requires the compatible .NET 10 SDK. The Python tools may require additional inputs and/or
+optional third-party packages; CI checks syntax and dependencies used by the catalog build but does not run every
+importer/exporter. Client-side Python 2.7 compilation depends on the matching, separately supplied EVE client.
+Docker shell scripts and Linux Compose definitions remain source-only on Windows.
 
 To download either build, open **Actions > Windows x64 build > successful run > Artifacts**. These artifacts are
 retained for 14 days; version-tagged GitHub Releases provide a durable location.
@@ -57,12 +68,15 @@ Supply the matching EVE client build 3662168 and resource cache separately per
 [Windows client setup](development-client.md). Generate or copy the matching `catalog.sqlite` into the server's
 `data` directory. Preserve existing `world.sqlite` saves when upgrading. In the **complete kit**, run
 `./tools/DevelopmentClient.ps1` and `./tools/Setup-Catalog.ps1` from the repository root as described in that
-guide; local catalog preparation requires PowerShell 7, Python 3.11+, a compatible stable .NET 10 SDK and the matching client
-inputs. Some optional tools also require extra external dependencies. Windows Firewall may need an inbound rule
+guide; catalog preparation from the complete kit uses its bundled PowerShell, Python and self-contained server executable;
+working from an ordinary source checkout requires PowerShell 7, Python 3.11+, a compatible stable .NET 10 SDK,
+and matching client inputs. Optional tools can require extra dependencies. Windows Firewall may need an inbound rule
 for remote multiplayer hosting.
 
 No proprietary EVE client binaries, CCP resource cache, generated catalog database, saved worlds, secrets,
-cached dependencies or other untracked local files are included in either archive.
+NuGet build caches or other untracked local files are included in either archive. Source rebuilds still need
+NuGet access or a separately provisioned package cache. The native runtime package only includes the published server;
+the complete kit additionally includes the tool runtimes and full tracked project files.
 
 ## Release and checksums
 
