@@ -31,6 +31,16 @@ HASHES = {
 HERE = Path(__file__).resolve().parent
 
 
+def server_command(server_exe=None):
+    """Use the bundled self-contained Windows server when available, otherwise the source build."""
+    if server_exe is not None:
+        server_exe = Path(server_exe).resolve()
+        if not server_exe.is_file():
+            raise FileNotFoundError(f"Eden server executable not found: {server_exe}")
+        return [str(server_exe)]
+    return ["dotnet", "run", "--no-build", "--project", str(HERE.parents[1] / "src/Eden.Server"), "--"]
+
+
 def digest(path, algorithm="sha256"):
     with path.open("rb") as stream:
         return hashlib.file_digest(stream, algorithm).hexdigest()
@@ -105,12 +115,11 @@ def pickle_records(path, name):
 
 
 
-def read_planets(db, root, regions, work):
+def read_planets(db, root, regions, work, server_exe=None):
     paths = {str(path): str(work / (Path(uri).stem + ".region.jsonl")) for uri, path in regions.items()}
     manifest = work / "regions.json"
     manifest.write_text(json.dumps(paths))
-    subprocess.run(["dotnet", "run", "--no-build", "--project", str(HERE.parents[1] / "src/Eden.Server"),
-                    "--", "--decode-planet-files", str(manifest)], check=True)
+    subprocess.run(server_command(server_exe) + ["--decode-planet-files", str(manifest)], check=True)
     for uri, path in regions.items():
         with open(paths[str(path)], encoding="utf-8-sig") as stream:
             write_source(db, "planet/" + Path(uri).stem, uri, digest(path), map(json.loads, stream))
@@ -139,7 +148,7 @@ def read_loose(db, root):
                          digest(sample), enumerate({"epoch": float(row["epoch"]), "flux": float(row["flux"])} for row in rows))
 
 
-def read_client(db, root, work):
+def read_client(db, root, work, server_exe=None):
     index = verified(root / "tq/resfileindex.txt")
     verified(root / "tq/code.ccp")
     resources = {}
@@ -155,7 +164,7 @@ def read_client(db, root, work):
             else:
                 resources[uri] = path
     read_loose(db, root)
-    read_planets(db, root, regions, work)
+    read_planets(db, root, regions, work, server_exe)
     binaries = root / "tq/bin64"
     loaders = {p.stem.lower(): p.stem for p in binaries.glob("*Loader.pyd")}
     jobs = []
@@ -201,7 +210,7 @@ def create_model_views(db):
         db.execute(f"""CREATE VIEW "{view}" AS SELECT Key,Data FROM SourceRecord WHERE Dataset='{literal}'""")
 
 
-def build(root, archive, destination):
+def build(root, archive, destination, server_exe=None):
     if destination.name.lower() == "world.sqlite":
         raise ValueError("Choose a separate catalog destination. world.sqlite is the player save.")
     if destination.exists():
@@ -216,12 +225,11 @@ def build(root, archive, destination):
             urllib.request.urlretrieve(URL, download)
             verified(download).replace(archive)
     def populate(candidate, work):
-        subprocess.run(["dotnet", "run", "--no-build", "--project", str(HERE.parents[1] / "src/Eden.Server"),
-                        "--", "--create-catalog", str(candidate)], check=True)
+        subprocess.run(server_command(server_exe) + ["--create-catalog", str(candidate)], check=True)
         db = sqlite3.connect(candidate)
         try:
             read_sde(db, archive)
-            read_client(db, root, work)
+            read_client(db, root, work, server_exe)
             db.executescript((HERE / "project.sql").read_text())
             verify_inventory(db)
             compare(db)
@@ -237,8 +245,7 @@ def build(root, archive, destination):
             db.close()
 
     def validate(candidate):
-        subprocess.run(["dotnet", "run", "--no-build", "--project", str(HERE.parents[1] / "src/Eden.Server"),
-                        "--", "--verify-catalog", str(candidate)], check=True)
+        subprocess.run(server_command(server_exe) + ["--verify-catalog", str(candidate)], check=True)
     publish(destination, populate, validate)
     print(f"Activated {destination}")
 
@@ -261,5 +268,6 @@ if __name__ == "__main__":
     archive_cache = Path(os.environ["LOCALAPPDATA"]) / "Eden/catalog-input"
     parser.add_argument("--archive", type=Path, default=archive_cache / ARCHIVE)
     parser.add_argument("--output", type=Path, default=directory / "catalog.sqlite")
+    parser.add_argument("--server-exe", type=Path, help="Use bundled Eden.Server.exe instead of the .NET SDK")
     args = parser.parse_args()
-    build(args.client.resolve(), args.archive.resolve(), args.output.resolve())
+    build(args.client.resolve(), args.archive.resolve(), args.output.resolve(), args.server_exe)
