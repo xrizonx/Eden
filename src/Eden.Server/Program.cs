@@ -202,6 +202,13 @@ internal static class Program
 
             if (preparationRoot is null)
             {
+                // A missing catalog must fail before world ownership, launcher listeners, or first-start approval.
+                // Otherwise a new world can wait indefinitely for setup instead of reporting the missing input.
+                string catalogPath = database.CatalogPath;
+                if (!File.Exists(catalogPath))
+                {
+                    throw new MissingCatalogException(catalogPath, catalogPath != database.OriginalCatalogPath);
+                }
                 if (online)
                 {
                     ServerBanner.Write(Console.Out);

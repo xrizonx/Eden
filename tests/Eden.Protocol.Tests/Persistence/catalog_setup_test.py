@@ -7,9 +7,22 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools/catalog"))
-from build import publish
+from build import publish, server_command
 from generate_models import Emitter, Shape, generate
 from runtime_policy import scan_code, violations
+
+
+class CatalogToolRuntimeTests(unittest.TestCase):
+    def test_bundled_native_server_has_no_dotnet_sdk_dependency(self):
+        with tempfile.TemporaryDirectory() as directory:
+            executable = Path(directory) / "Eden.Server.exe"
+            executable.touch()
+            self.assertEqual([str(executable.resolve())], server_command(executable))
+
+    def test_source_checkout_keeps_existing_dotnet_build_path(self):
+        command = server_command()
+        self.assertEqual(["dotnet", "run", "--no-build", "--project"], command[:4])
+        self.assertEqual("--", command[-1])
 
 
 class CatalogAccessPolicyTests(unittest.TestCase):

@@ -15,15 +15,21 @@ if (-not (Test-Path -LiteralPath (Join-Path $client '.eden-client-ready'))) {
     throw 'Stage build 3662168 with DevelopmentClient.ps1 before creating the catalog.'
 }
 $repo = Split-Path $PSScriptRoot -Parent
+$nativeServer = Join-Path $repo 'build/windows-x64/server/Eden.Server.exe'
+$portablePython = Join-Path $repo 'build/windows-x64/python/python.exe'
+$python = if (Test-Path -LiteralPath $portablePython -PathType Leaf) { $portablePython } else { 'python' }
 if ($Output) { $Output = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Output) }
 Push-Location $repo
 try {
-    & dotnet build src/Eden.Server
-    if ($LASTEXITCODE -ne 0) { throw 'The catalog verifier failed to build.' }
+    if (-not (Test-Path -LiteralPath $nativeServer -PathType Leaf)) {
+        & dotnet build src/Eden.Server
+        if ($LASTEXITCODE -ne 0) { throw 'The catalog verifier failed to build.' }
+    }
     $arguments = @('tools/catalog/build.py', $client)
     if ($Archive) { $arguments += @('--archive', (Resolve-Path -LiteralPath $Archive).ProviderPath) }
     if ($Output) { $arguments += @('--output', $Output) }
-    & python @arguments
+    if (Test-Path -LiteralPath $nativeServer -PathType Leaf) { $arguments += @('--server-exe', $nativeServer) }
+    & $python @arguments
     if ($LASTEXITCODE -ne 0) { throw 'Catalog setup failed. See the source or verification error above.' }
     if ($CollisionGeometry) {
         $geometryCatalog = $Output
