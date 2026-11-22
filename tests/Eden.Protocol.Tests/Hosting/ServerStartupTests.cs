@@ -22,6 +22,7 @@ public sealed class ServerStartupTests
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
+            start.Environment["EDEN_NO_PAUSE_ON_ERROR"] = "1";
             start.ArgumentList.Add(typeof(ServerServices).Assembly.Location);
             start.ArgumentList.Add("--world");
             start.ArgumentList.Add(world);
@@ -50,6 +51,7 @@ public sealed class ServerStartupTests
             Assert.DoesNotContain("Press any key", diagnostic);
             Assert.DoesNotContain("listening", await output);
             Assert.False(File.Exists(world));
+            Assert.False(File.Exists(world + ".owner"));
         }
         finally
         {
