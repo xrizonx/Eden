@@ -17,7 +17,7 @@ class CatalogToolRuntimeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             executable = Path(directory) / "Eden.Server.exe"
             executable.touch()
-            self.assertEqual([str(executable)], server_command(executable))
+            self.assertEqual([str(executable.resolve())], server_command(executable))
 
     def test_source_checkout_keeps_existing_dotnet_build_path(self):
         command = server_command()
