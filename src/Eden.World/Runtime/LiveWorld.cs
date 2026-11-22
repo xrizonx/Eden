@@ -96,6 +96,11 @@ internal sealed partial class LiveWorld : IDisposable
 
     internal LiveMarketSummaries MarketSummaries { get; } = new();
     internal LiveOwnerDirectory OwnerDirectory { get; }
+    private long _killRightInboxRevision;
+    internal long KillRightInboxRevision => Interlocked.Read(ref _killRightInboxRevision);
+
+    internal void PublishKillRightInbox() => Interlocked.Increment(ref _killRightInboxRevision);
+
     internal LiveTrafficGeometry TrafficGeometry { get; } = new();
     internal long PreparationRevision { get; private set; }
     internal long TrafficTemplateRevision { get; private set; }
@@ -915,6 +920,14 @@ internal sealed partial class LiveWorld : IDisposable
                 {
                     Report($"World checkpoint market rebase deferred: {exception.Message}", failure: true);
                 }
+            }
+            try
+            {
+                Economy.RebaseSavedHistories(_memory, snapshot.Economy);
+            }
+            catch (Exception exception)
+            {
+                Report($"World checkpoint history rebase deferred: {exception.Message}", failure: true);
             }
             return null;
         }

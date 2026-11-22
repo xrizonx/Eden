@@ -6859,3 +6859,71 @@ Not performed; agent client testing is disabled.
 ### Optional maintainer checks
 
 Compare scheduled population and role activity, oldest job age, and peak memory during the deployed ramp.
+
+## Mature fresh-world market and checkpoint throughput
+
+HostCram ran revision `7118d3fe` with settings revision 15. Beginner market supply, progressive markets, and regional hub
+supply were enabled. All three were disabled in the settings revision 14 replay above. At 28 minutes of uptime, the
+dashboard reported 10,000 scheduled pilots, 8,618 due jobs, 35.2 seconds of oldest job age, and 9.2 ms mean session frame
+processing. The same process reached 120.4 seconds of oldest job age by 40 minutes. The queue grew despite available CPU
+and memory at the host level.
+
+An eight-second live EventPipe allocation sample attributed 28% of sampled bytes to resting-sale settlement. The resident
+path now reads typed, transaction-private station books for resting sales and multi-type regional refreshes. It keeps
+price, modification time, and order ID as the sale priority, and opens selected entities for writes after reading the
+station book. The Release four-sale fixture allocated approximately 138 KB, down from 295 KB, with the same fills and zero SQL
+commands, connections, or fitting rebuilds.
+
+Checkpoint projection reached 6.3 seconds and allocated about 349 MB late in the same live run. The checkpoint now uses
+primary-key lookups for combat damage and asteroid deletions. It also folds unchanged, newly inserted skill history and
+market executions into the compatibility database only after a durable save. The owner applies bounded batches and retains
+pending changes when the parent is unavailable or the captured row has changed. The retry fixture saved 8,192 skill history
+inserts and projected only three changed rows on the following checkpoint.
+
+The three-minute comparison used a private copy of the live revision 15 save with the same catalog hashes, a four-processor
+.NET configuration, and a timed observer on Windows. Both runs scheduled 9,996 pilots out of 10,000 saved. The existing
+explorer route visited home communities and left four haulers outside the route. The patched run completed 492,716
+actions without failures, compared with 485,377 on the control. Allocation fell from 209 KB to 151 KB per completed action.
+The final checkpoint projected 197 skill history rows and 85 market executions, down from 9,259 and 3,885. The queue ended
+12.1 seconds late, compared with 14.8 seconds on the control, and the patched run had higher median and p95 job age
+after warmup. This short comparison verifies the allocation and projection changes. Sustained throughput requires
+the exact-population run and live time series.
+
+Set `EDEN_BOT_REPLAY_RESUME_OCCUPIED=1` for a saved roster whose pilots have traveled beyond their communities. The
+untimed explorer adds the saved current systems of pilots in the selected communities. The timed observer count and
+selected community count stay the same.
+
+The 15-minute Windows replay of `48d5f913` scheduled every pilot with the saved-ship route and completed 2,631,922
+actions without failures. Its oldest job first fell below one second after 55.7 seconds. The final five-minute
+p95 was 15.9 seconds, and 257 of 297 samples reached at least one second, which failed the queue-age assertion.
+The final queue age was 2.24 seconds. Frame and market request p99 were 72.6 and 110.6 ms.
+
+The follow-up checkpoint changes parse item payload rows once as SQLite JSONB and bind UTF-8 progress payloads
+for UTF-8 saves. UTF-16 databases keep text binding. Across seven warmed pairs with 5,503 haulers and
+4,497 miners, the two progress writers allocated 17.4 MiB per pass, down from 51.4 MiB, with identical saved
+progress. The free-skill-point path uses an indexed scalar read for the recipient and keeps same-action pilot
+inserts and deletes visible.
+
+Resident fitting selects fitted items and loaded charges through the existing inventory indexes. It preserves
+transaction-private changes, candidate ordering, escrow visibility, and combat-adjusted charge quantities.
+In five warmed comparisons with the same 2,300-item inventory, 200 fitted and loaded item selections allocated
+2.84 MB, down from 19.75 MB, and median time fell from 40.04 to 10.82 ms, with zero SQL commands. The measurement
+covers resident transaction setup and item selection. Full dogma graph evaluation was outside that measurement.
+
+The same 15-minute Windows replay with the follow-up changes kept 10,000 scheduled and completed 2,630,458
+actions without failures. Allocation per action fell from 147.5 KB to 140.3 KB. Final five-minute job age
+p95 fell from 15.9 to 8.15 seconds, and 134 of 298 samples reached one second. Frame and market request p99
+fell to 25.7 and 53.6 ms. The replay still failed the one-second queue-age assertion.
+
+### HostCram observation with 10,000 pilots
+
+HostCram ran `48d5f913` with settings revision 15 and the existing 10,000 cap. Once every pilot had advanced,
+121 checkpoint samples from 05:15:47 to 05:45:49 UTC recorded 5,247,003 job sequence advances. Simulation time advanced
+30 minutes. Oldest job age was 460 ms at p95, peaked at 640 ms, and ended at 355 ms. The server used an average
+of 1.29 of four vCPUs. Its peak resident set was 3.98 GiB, with no restarts, OOM kills, or logged simulation or checkpoint
+failures in the observation. The Windows replays above use an observer and pre-activate the saved roster in a private copy.
+The production observation uses the live player workload and samples durable checkpoints every 15 seconds.
+
+### Live acceptance
+
+Agent client testing is disabled.

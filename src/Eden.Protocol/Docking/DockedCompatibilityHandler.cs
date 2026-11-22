@@ -33,12 +33,6 @@ internal sealed class DockedCompatibilityHandler(
         return (service, method) switch
         {
             ("charMgr", "GetSettingsInfo") => context.SignedSettings,
-            ("bountyProxy", "GetBountiesAndKillRights") => new BountiesAndKillRightsState(),
-            ("bountyProxy", "GetBounties") when args is [HashSet<long> owners] => new BlueList<BountyReply>(
-                owners.Order().Select(owner => new BountyReply(owner)).ToArray()
-            ),
-            ("bountyProxy", "GetMyKillRights") when args.Length == 0 => BlueEmpty.List,
-            ("bountyProxy", "GetMyKillRights") => BlueEmpty.List,
             ("essMgr", "GetDataForClientSolarSystem") => PilotCallResult.None,
             ("insurgencySolarsystem", "GetLocalCampaignClientSnapshot") => new LocalSystemState(pilot.SystemId),
             ("beyonce", "GetFormations") => BlueEmpty.Tuple,

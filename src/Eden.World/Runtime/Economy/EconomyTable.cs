@@ -347,6 +347,11 @@ internal sealed partial class EconomyTable<TRow, TState>(
 
     internal bool HasPendingProjection(EconomyChange<TState> row) => _sqlBaselines.ContainsKey(row.Key) && Same(row.Key, row.Value);
 
+    internal bool HasPendingInsert(EconomyChange<TState> row) =>
+        row.Value is not null && _sqlBaselines.TryGetValue(row.Key, out var baseline) && baseline is null && Same(row.Key, row.Value);
+
+    internal bool HasSqlRow(EconomyKey id) => _sqlBaselines.TryGetValue(id, out var baseline) ? baseline is not null : Contains(id);
+
     public void Projected(WorldDbContext world, IEconomyProjection projection)
     {
         var rows = ((EconomyProjection<TState>)projection).Rows;
@@ -587,6 +592,23 @@ internal sealed partial class EconomySet<TRow, TState>(EconomyTable<TRow, TState
     {
         var matches = table.Indexed(index, value);
         return matches.Count == 1 && matches.Contains(row);
+    }
+
+    internal IReadOnlyCollection<EconomyKey> IndexedKeys(string column, object value) => table.Indexed(column, value);
+
+    internal TRow[] SelectIndexedRows(
+        IReadOnlyCollection<EconomyKey> candidates,
+        Func<TState, bool> matchSnapshot,
+        Func<TRow, bool> matchRow
+    )
+    {
+        var keys = candidates.Where(key => table.Snapshot(key) is { } snapshot && matchSnapshot(snapshot));
+        if (_local.Count != 0)
+        {
+            keys = keys.Concat(_local.Keys).Distinct();
+        }
+        // Find can add private rows; finish selecting keys before materializing them.
+        return keys.ToArray().Select(Find).OfType<TRow>().Where(matchRow).ToArray();
     }
 
     internal IEnumerable<TState> IndexedSnapshots(string column, object value, (string Column, int Value)? alternate = null)
