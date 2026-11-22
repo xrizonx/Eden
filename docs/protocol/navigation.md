@@ -580,6 +580,262 @@ FullyQualifiedName~Eden.Protocol.Tests.Inventory.ItemSpawningTests|FullyQualifie
 
 **Optional maintainer checks:** Open Insider's Type Browser on a developer account; create a small item stack and packaged hull, then check its native inventory display. In space, load a small cargo stack and check the displayed hold usage. Native rendering and input remain unverified.
 
+## Native slash command audit
+
+This baseline audit covers Eden at `f319f8ef`, the signed build 3662168 archive, and the older EVE.js 261108.1 reference.
+The baseline accepted six command names for selected pilots through `slash.SlashCmd`. Sending `/` yields the role-filtered
+`SlashError` discovery list, which the stock console parses. [Dispatcher](../../src/Eden.Protocol/Development/DeveloperCommandHandler.cs)
+· [Discovery](../../src/Eden.Protocol/Development/DeveloperCommandList.cs)
+
+See [current implementation and open gaps](#native-slash-implementation-status) for changes since the audit.
+
+| Implemented command | Accepted form | Authority |
+| --- | --- | --- |
+| `create`, `createitem` | Numeric type ID and optional quantity, delivered to the current docked hangar | World Modifier |
+| `load` | `me`, numeric type ID, optional quantity, delivered to active ship cargo | Low or High GM |
+| `giveskill` | `me` or pilot ID, numeric skill ID, level 0–5 | High GM |
+| `tr` | `me` and an existing numeric destination ID that the resolver supports | Low GM or World Modifier |
+| `structure` | State, operating timer, deploy timer, unanchoring start/cancel/timer, abandonment timer | High GM |
+
+### Stock controls with missing or partial server support
+
+| Stock control | Pinned command or route | Eden gap and owning gameplay |
+| --- | --- | --- |
+| Moon planner GM buttons | `/extraction advance mid`, `stop`, `ready`, `decay` from `moonmining/scheduling.AddGMButtons` | No slash binding. The pinned buttons check Low GM or World Modifier and omit the structure ID. Resolve the controlled/docked refinery, rebase the extraction timestamps together, preserve yield and use the regular fracture and observer paths. `stop` moves the chunk to the stage just before ready-to-fracture. [Manual extraction](structures.md#manual-moon-extraction) |
+| GM: Set Skyhook State | `/skyhook state <id> <state>` from `menusvc.GetGMMenu` | Needs a Skyhook-specific combat state, deadline and slim update. The pinned states are 0 and 210–214. Eden publishes 210 for its resource-managed Skyhook slim metadata. [Skyhook authority](sovereignty.md) |
+| GM fit, unload and online, DNA/Copycat, fighter-bay and ammunition menus | `/fit me <type> [quantity] [flag=N]`, `/unload me <item-or-type-or-all>`, `/online <me-or-id>`, `/getshipsetup <id>`, `/copyship <id> 1` | Neither ship creation nor cargo loading completes these flows. The native fitting, ship resource and fighter owners supply boundaries for equipment, charges, drones, fighter bays, capacity and observer changes. The Type Browser's repeated fit action runs through the client's local `/loop`. [Fitting](fitting.md) |
+| GM repair, remove and attribute tools | `/heal <id>`, `/heal me capac=1`, `/heal <id> 0`, `/repairmodules`, `/dogma <target> <attribute> = <value>` | Missing. Module repair, hull/charge state, deliberate destruction and typed debug overrides are distinct operations. The same `heal` family is used for repair and for zeroing health. [Fitting](fitting.md) |
+| Type Browser scene controls and Insider entity spawner | `/spawn`, `/spawnN`, `/entity deploy`, `/unspawn`; grid/QA extensions use `/fetch`, `/chowner`, `/kill`, and `/nuke` | Missing. Physical stack creation covers the browser's Create and Load buttons. Scene commands need per-family NPC, ship, deployable and inventory authority with separate rules for create, retire and normal destruction. [Item creation](#native-type-browser-item-creation-november-8-2026) |
+| Skill info and console skill tools | `/removeskill`, `/givestarterskills`, `/randomizeskills`, `/skillscopy`, quoted targets forwarded by `giveskills`, and `/giveskill <target> super 5` | Numeric Grant and Skill Tool profile application work. Quotes, name targets, tier groups and the removal/copy/reset operations are missing. Removal must reconcile saved training, the queue, history, prerequisites and active skill effects. The native `noob` wrapper sends `/removeskill <target> all`. [Skill profile support](#insider-tools-and-reward-destinations-november-9-2026) |
+| Character creation image picker | `/create <typeID> 1 <stationID>` from `eveImagePicker.GMCreateItem` | The fourth token is rejected by the two/three-token item grammar. The native call also refreshes available appearance types after creation. Verify when this UI has a selected pilot before choosing its routing phase. |
+| GM / WM travel and console travel helpers | `/tr me <id>`, `/tr me me offset=...`, `/tr me pos=...`, `/tr <pilotID> me noblock`; the warp-vector tool uses `/getpos` and `/warptopoint` | Ordinary numeric GM travel works for supported destinations. Position/offset, other-subject, mass move and point tools are absent. A direct Upwell structure ID has no resolver branch. A target pilot docked in an Upwell structure currently resolves through the ship's saved NPC `StationId`, since the resolver ignores `StructureId` and docking sets that field independently. [Resolver](../../src/Eden.World/Flight/PilotTranslocationTargets.cs) · [Structure docking](../../src/Eden.World/Docking/SqliteWorld.Structures.cs) |
+| Legacy starbase tools | `/pos anchor`, `unanchor`, `online`, `offline`, `fuel`, `reinforce`, `interrupt` from `GetGMStructureStateMenu` and `svc_poser` | Requires the legacy POS lifecycle. Eden's player Upwell implementation uses the separate modern state machine. [Structure scope](structures.md#implemented-structure-foundation) |
+| GM kill-right and bounty tools | `/killright <arguments>` from `svc_slash.cmd_killright`; `bountyProxy.GMReimburseBounties` and `GMClearBountyCache` | The slash command and two direct GM bounty RPCs are absent. The client wrapper forwards free-form arguments, so its full GM grammar is unresolved. Eden separately implements resident player kill rights and returns zero for bounty reads. [Kill-right route](../../src/Eden.Protocol/Combat/KillRightHandler.cs) |
+| GM chat moderation | `/baniskspammer <pilotID>` and `/gagiskspammer <pilotID>`; ordinary reporting calls `userSvc.ReportISKSpammer` | All three server actions are absent. Reporting, chat restrictions and account sanctions need distinct authority and persistence. |
+| Console diagnostics | `/reportdesync` from `svc_console.cmd_reportdesync` | Client collection has a separate server call. Eden has no handler for the command. |
+
+The pinned missing-fitting dialog's **GM Create All** and **GM Load All** use the supported
+`/create <typeID> <quantity>` and `/load me <typeID> <quantity>` forms. The **QA Create Missing** button in
+MultiFit follows the capability path below.
+
+Additional pinned QA callers include `/dailygoals expire|regen`, `/assetholding expire`, `/expertsystem add|remove`,
+`/freelanceprojects progress`, `/communitycampaign add_objective_progress`, `/seasons challenge update|expire`,
+`/moonmine chunkmove`, `/asteroid rewards`, `/bp`, `/setstanding`, `/dogmaupdate`, `/sessionchange`
+and `/behavior` debug operations. The `/spacecomponent` family covers reinforcement, phase transitions/stabilization,
+filament ship eligibility, mineable state/efficiency, breach-point asteroids and dungeon fractures. These are callers for
+individual gameplay features. The pinned client also has QA helpers that construct commands from runtime data, so the audit
+cannot recover an exhaustive list of CCP server-only verbs or all subcommand grammars.
+
+### Related routes, authorization and discovery
+
+- The pinned chat handlers try the public-QA client allowlist before their normal `ROLE_GML | ROLE_LEGIONEER` slash gate.
+  The allowlist contains `moveme`, `copyskills`, `copyships`, `boostsov`, `booststandings`, `giveitem`,
+  `shipcloak`, `shipuncloak`, `mycharid`, `giveallskills`, `givetesteventskills`, `omega`, `alpha`
+  and `completeextraction`. Eden lacks `publicQaToolsServer.SlashCmd` and `MoveMeTo`, and intentionally returns false for
+  `CanGiveItemForMultifit`. The Move Me picker sends a system name to its own RPC. Treat the allowlist as a client routing fact,
+  with server-side policy for each operation. CCP's Singularity skill copy depends on a TQ snapshot Eden has no source for.
+  [MultiFit capability](fitting.md#multifit-item-creation-capability-november-9-2026) · [CCP Singularity commands](https://support.eveonline.com/hc/en-us/articles/13172436309020-Singularity-Player-Commands)
+- The client handles slash matching, abbreviations, aliases and loops locally. A leading `//` bypasses local matching and
+  forwards a single-leading-slash command to `slash.SlashCmd`. The pinned `ReportSlashCommandUsage` call publishes a client
+  telemetry event. EVE.js additionally exposes a server logger with the same method name, with no demonstrated pinned RPC
+  dependency. Local chat emotes and keyboard shortcuts sit outside Eden's server slash registry.
+  [CCP 23.02 changes to chat shortcuts](https://www.eveonline.com/news/view/patch-notes-version-23-02)
+- Dispatch and discovery currently enumerate supported names and roles separately. Unsupported verbs fall into the translocation
+  branch and return travel usage or an authorization error about travel. The console would benefit from one role-aware command
+  registry, command-specific usage, a bounded parser for confirmed quoted arguments, and a distinct unknown-command response.
+  Numeric IDs and authenticated account roles can remain explicit at each operation boundary.
+  [Dispatch](../../src/Eden.Protocol/Development/DeveloperCommandHandler.cs) · [Discovery](../../src/Eden.Protocol/Development/DeveloperCommandList.cs)
+- The client RPC inventory has 111 indexed sites for `slash.SlashCmd` and one for `publicQaToolsServer.SlashCmd`.
+  Its candidate for the former still names the retired `TranslocationHandler` and it labels
+  `CanGiveItemForMultifit` missing. Literal-string and local-wrapper inspection found additional callers, including all four
+  moon buttons. The generated index is an RPC starting point. [Client route inventory](../client-routes/README.md)
+- Eden mod commands use selected-pilot `edenMods.Execute` with a mod ID and command name. They have an independent protocol
+  and do not participate in native slash discovery. [Mod command handler](../../src/Eden.Protocol/Modding/ModCommandHandler.cs)
+
+### EVE.js comparison inventory
+
+The local EVE.js 261108.1 advertised list includes 195 distinct names after resolving its four spread arrays. Six names overlap
+Eden. The following 189 are absent as Eden slash names. These include the native gaps above and emulator-specific testing
+presets, diagnostics, aliases and economy shortcuts. The names alone do not establish stock-client requirements or equivalent
+semantics for the six shared commands.
+
+~~~text
+abyssaldebug abyssallayout abyssalrescue abyssalstatus addcorpevermarks addevermarks addisk addlp addplex allskills
+allskinr allskins announce autocannon autosov backintime basilisk blue bookmarkauto bp bpauto calauto capnpc
+capnpcclear capnpcfighters capnpchome capnpcinfo capnpcperf capnpcsignoff capnpcstatus capnpcsuper capnpctarget
+cburst celestial ceq commandlist commands concord container container1 copyship corpcreate corpevermarks cwatch
+deadwarp deathstructure deathtest deer_hunter dirt dmg dock dogma drifter effect entity events evermarks ewar
+expertsystem expertsystems extraction fetch fire fire2 fit fullstandings gateconcord gaterats gateskin getshipsetup
+giveitem giveme gmships gmskills gmweapons grantalliancelogo grantcorplogo grantshipemblem guardian hangar heal
+heavy help hybrids interference invu item iteminfo jetcan joinalliance keepstar killmark killmarks laser lasers lco
+lesmis light loadallsys loadsys lp mailme maxagentstandings miner minerals miningreset miningstatus missioncomplete
+mnpc motd naughty npc npcclear npcminer npcmineraggro npcminerclear npcminerhaul npcminerpanic npcminerresume
+npcminerretreat npcminerstatus npctest npctest2 npcw online orbitals orca overlayrefresh pos probe probe2
+projectiles prop railgun red removeskill repairmodules reportdesync reprocesssmoke rocket rr secstatus session
+setalliance setcorpevermarks setevermarks setisk setlp setplex setstanding ship sigs sigscan skinr solar sov sovauto
+spawn spawncontainer spawnn spawnsite spawnwreck suicide supertitan supertitanshow sysjunkclear teal tele testclear
+tidi titansupershow torp trig trigspawn typeinfo unfit unload unspawn upwell upwellauto wallet war where who wnpc
+wormhole wormholes wreck yellow
+~~~
+
+Additional literal dispatch names absent from that list: `chowner`, `fireshow`, `gate`, `gateshowcase`, `giveskills`,
+`isk`, `removeskills` and `voidreplay`. This count uses the advertised list and literal dispatch names. It omits dynamically
+constructed aliases and subcommands. For implementation order, start with the native moon buttons, then fit/unload/online and
+skill-tool variants with existing owners. Skyhook states need a real Skyhook battle lifecycle and should follow that gameplay work.
+The public-QA route is a separate test-world policy decision.
+
+Audit inputs were disassembled as data. The build 3662168 archive SHA-256 is
+`37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`.
+The native entry points above were checked in `svc_slash.pyj`, the two chat handlers, `publicQaToolsClient.pyj`,
+`menusvc.pyj`, `structuremenu.pyj`, and the named menu/tool modules. The local EVE.js package has no Git revision.
+Its source fingerprints are:
+
+- `services/chat/chatCommands.js`: `e8d294cc1a971f7b1a5cb3b42c7a6d28ce0ffcac1885fdae811240f27b662805`.
+- `services/admin/slashService.js`: `614b6a2333427a9fe0a122bf0bebec69f6744fa2f0030ed2acdc32414c247e5e`.
+- `services/support/publicQaToolsServerService.js`: `055c40ac7be99ac798bc132803606853bd2a0a974b3ea8ab9091b97cf245f066`.
+- `services/structure/moonExtractionsService.js`: `b1661be2d68e60da6f2701a46d04d807a6d050a276e96b200ceacb7589479393`.
+
+**Automated validation:** The exact `DeveloperToolsTests.SlashDiscoveryReturnsNativeRoleFilteredCommandList` filter passed
+6 cases in 11.22 s. The combined `StructureGameMasterTests`, `MultifitCapabilityTests` and
+`DeveloperToolsTests.InvalidSkillGrantsLeaveSavedStateUnchanged` filter passed 17 cases in 13.79 s. The builds passed without
+warnings or errors. Missing routes and argument variants were classified by static comparison.
+
+**Live acceptance:** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks:** None.
+
+## Native GM extraction and travel commands
+
+The four native moon planner buttons send `/extraction advance mid|stop|ready|decay`. The authorized selected pilot supplies the refinery
+through the docked or control context. The resident owner checks that the pilot is still docked there, then advances the start, ready
+and auto-fracture deadlines together. The operation keeps the extraction length and yield and publishes the updated native planner
+event. The regular fracture path creates the ore field. The reference stop and decay previews place their deadlines one minute and
+five seconds ahead, respectively. [Manual moon extraction](structures.md#manual-moon-extraction)
+
+The QA warp vector tool can read the current position with `/getpos` and send `/warptopoint x y z` through the normal warp authority.
+`/stop` uses the flight stop operation. The GM travel handler accepts the supported self coordinate and offset forms
+(`/tr me pos=x,y,z`, `/tr me offset=x,y,z` and `/tr me me offset=x,y,z`). It resolves direct Upwell IDs to arrival positions
+and follows a docked pilot to their actual Upwell structure. The separate Move Me picker sends an exact solar system name through
+`publicQaToolsServer.MoveMeTo` and uses the existing authorized session handoff.
+
+The command parser accepts quoted arguments, so the stock skill wrapper's quoted `me` and numeric pilot IDs work for
+`/giveskill`. The character appearance picker can supply the current hangar as the fourth token in `/create`. The item store
+checks the specified hangar against the active ship in the same transaction. The parser and discovery response share their role
+registry. The [slash audit](#native-slash-command-audit) records the pinned client modules and EVE.js fingerprints.
+
+**Automated validation:** The exact `MoonExtractionTests.NativeMoonButtonsAdvanceOneSavedTimelineAndKeepTheExtractionYield` check
+passed in 18.74 s. The affected `TranslocationTests`, `DeveloperToolsTests`, `ItemSpawningTests`, `MoonExtractionTests` and
+`StructureGameMasterTests` filter passed 160 cases in 208.39 s. The solution build had zero warnings and errors.
+
+**Live acceptance:** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks:** Use the four GM buttons on a running refinery extraction and verify the planner countdown.
+
+## Native GM fitting and Skyhook commands
+
+`/fit me <type> [quantity] [flag=N]`, `/unload me <item|type|all>`, `/online me|activeShipID`, and
+`/getshipsetup me|shipID` use Eden's resident fitting and inventory owners. Fit takes matching cargo equipment if present
+and creates any missing modules. Ammunition uses a fitted slot and the ordinary magazine rules. The drone and fighter variants
+place stock in the matching bay within its capacity. Onlining follows skill, CPU and power checks. Unload returns equipment and
+loaded charges together to the docked hangar or ship cargo. The GM unload path preserves removed rigs. The reply from
+`getshipsetup` is the legacy `DNA:` string expected by the pinned DNA and Copycat tools.
+
+`/skyhook state <itemID> <state>` accepts the pinned six orbital states, 0 and 210–214, through the GM menu's Low GM or
+World Modifier gate. It edits the existing resident structure battle and publishes `skyhook_state`, `skyhook_timer` and
+`skyhook_damage` to in-space observers. The corporation directory uses the same state mapping.
+
+The [slash audit](#native-slash-command-audit) identifies the client menu and DNA call sites in build 3662168. The EVE.js
+261108.1 `fitModule.js`, `unfitModule.js`, `onlineModules.js`, `shipSetup.js`, and `planetOrbitalReinforcement.js`
+files supply the comparison behavior. [Fitting context](https://wiki.eveuniversity.org/Fitting_ships)
+
+**Automated validation:** The two exact stock fitting and Skyhook command checks passed in 20.36 s. The 26-case follow-up
+covered fitting application, ammunition restart, sovereignty boundaries, structure GM handlers, and exact slash discovery
+in 19.96 s. The solution build and formatting checks passed.
+
+**Live acceptance:** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks:** Exercise the Type Browser's Fit and Unload actions, then select a Skyhook operating state.
+
+## Native GM skill and desync commands
+
+High GMs can use `/giveskill <pilot> <skill|all|super> <level>`, `/removeskill <pilot> <skill|all>`,
+`/givestarterskills <pilot>`, and `/skillscopy <source> <destination>`. Pilot and skill selectors accept exact names,
+numeric IDs, and `me` for the current pilot. The two bulk grant presets select published skills or include unpublished
+catalog skills with a valid training rank. Starting skills come from the recipient's race. Copy grants the source's
+completed levels without reducing the recipient's existing progress. The regular grant path settles active training first.
+
+Skill removal settles earned training, clears the recipient's queue and records the native `skillEventSkillRemoved`
+history event 177. Build 3662168 `skillsvc.OnServerSkillsRemoved` deletes cached skills when `trainedSkillPoints` is negative
+and the virtual level is absent. Eden publishes that entry for previously reported skills plus the updated queue and brain.
+Changes share the resident transaction and persist through the existing skill checkpoints.
+
+The stock console's `/reportdesync` returns a pair of the visible ball motion map and the current Destiny tick. Each map
+entry carries three position and three velocity components. The command uses the session's filtered scene. The pinned
+`svc_console.pyj` consumer and EVE.js 261108.1 `reportDesync.js` confirm the reply format.
+
+**Automated validation:** The exact skill lifecycle and position/desync checks passed in 9.81 s. The 65-case
+`DeveloperToolsTests`, `FreeSkillPointTests` and position/desync follow-up passed in 45.38 s. The solution build
+and formatting checks passed.
+
+**Live acceptance:** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks:** Remove a previously displayed skill through the developer console and verify it leaves the skill list.
+
+## Native GM repair commands
+
+Low GMs and World Modifiers can use `/heal me` or `/heal <activeShipID>` to restore their active hull's shield, armor,
+structure and capacitor, repair fitted modules and crystals, and clear pending local repair cycles. `/heal me capac=1`
+restores capacitor alone. `/repairmodules` repairs fitted modules, and `/heal <ownedModuleID>` repairs one assembled module
+aboard the active ship or in its current docked hangar. The resident repair action commits before sending live Dogma and
+ship damage updates. Burned-out modules retain their offline state. The destructive `/heal <target> 0` form remains open.
+
+The pinned GM menu uses `/heal <id>` and the pinned Copycat tool uses `/heal me capac=1` and `/repairmodules`.
+The EVE.js 261108.1 `shipHealth.js` reference confirms these separate repair paths. Eden also accepts capacitor repair while
+docked for administrative use.
+
+**Automated validation:** The exact native GM repair lifecycle passed in 7.15 s. The broader repair, nanite and slash-discovery
+selection passed 304 cases in 155.89 s. Its one failure, `AllFiveStaticProfilesHaveImplementedHeatAndRetainExplicitHullDependencies`,
+also failed at the same admission assertion on unchanged `main` at `9f1f6f51`. The solution build and formatting checks passed.
+
+**Live acceptance:** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks:** Use Copycat's capacitor action and confirm armor and hull damage remain at their previous values.
+
+## Native GM Copycat ship cloning
+
+Build 3662168 `svc_copycat2.DoClonePerfect` checks `ROLE_WORLDMOD` while docked and sends `/copyship <activeShipID> 1`.
+Eden copies the owned docked hull into the same hangar with fresh IDs for the ship, fitted modules, ammunition and cargo.
+The resident action remaps inventory locations and weapon groups together. It copies item condition, mutations and the
+stored shield, armor, hull and capacitor values. Existing contract escrows, blueprints and foreign-owned contents reject the
+entire command. Current ship selection, pilot services and module cycles stay with their existing owners. The EVE.js
+261108.1 `copyShip.js` and `cloneDockedShipForCharacter` reference confirm the docked source and separate inventory tree.
+
+**Automated validation:** The exact Copycat lifecycle passed in 7.30 s and checked a checkpoint with independently owned
+IDs and matching fitted ammunition. The broader developer fitting, MultiFit and command discovery selection passed 29
+cases in 15.09 s.
+
+**Live acceptance:** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks:** Use Copycat's Clone Perfect and board the resulting ship to inspect the fitting.
+
+## Native slash implementation status
+
+The developer command registry is the source of truth for names and authenticated roles in discovery. The original
+structure command supports all four GM menu categories. Native follow-ups added moon extraction and Skyhook states,
+fitting, Copycat cloning and repairs, skill grant/removal/copy, self translocation, position/warp/stop, desync reporting,
+and the docked image picker's item destination. Public-QA has separate routes for the staff Move Me picker and the
+[staff MultiFit batch](fitting.md#native-multifit-create-missing).
+
+| Area | Open pinned-client commands or routes |
+| --- | --- |
+| Scene management | `/spawn`, `/spawnN`, `/entity deploy`, `/unspawn`, `/fetch`, `/chowner`, `/kill`, `/nuke` and destructive `/heal <target> 0` |
+| Dogma, skills and travel | `/dogma`, `/randomizeskills` and `/tr <pilotID> me noblock` or mass translocation |
+| World and moderation | Legacy `/pos` starbases, `/killright`, the direct bounty tools, `/baniskspammer` and `/gagiskspammer` |
+| QA aliases and feature tools | The remaining public-QA allowlist and feature-specific callers listed in the baseline audit |
+
+Scene commands need entity-family spawn, retirement and destruction owners. Legacy starbase commands target an older
+lifecycle. The stock client forwards the kill-right command and several QA presets without specifying their server grammar.
+
 ## Runtime TR destinations, November 8, 2026
 
 `slash.SlashCmd('/tr me <destinationID>')` now accepts positive signed 64-bit IDs. Alongside the existing solar systems, NPC stations and normalized catalog celestials, the resolver supports saved pilots, assembled ships outside containers, living NPCs, unexpired wrecks, nondepleted asteroids and deployed drones. A pilot destination uses that pilot's active ship. Docked pilot/ship destinations dock the caller in the same NPC station; space destinations use the resolved position and collision radius with Eden's existing 10 km clearance. The destination pilot, ship and contents are never moved or transferred. Existing authenticated GM/world-mod role and selected-pilot requirements remain in force. Arbitrary coordinates, names, extra flags, stored hulls, inventory-only items and unsupported structures remain outside the command.

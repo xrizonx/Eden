@@ -1,4 +1,5 @@
 using System.Globalization;
+using Eden.Gameplay.Sovereignty;
 using Eden.Gameplay.Structures;
 using Eden.Infrastructure.Registration;
 using Eden.Protocol.PilotSessions;
@@ -8,13 +9,24 @@ namespace Eden.Protocol.Structures;
 [Injectable]
 internal sealed class DeveloperStructureCommands(IStructureGameMaster structures, IStructureContacts contacts)
 {
+    internal PilotCallResult ExecuteSkyhook(PilotCallContext context, string[] command)
+    {
+        if (
+            command is not [_, var action, var idText, var stateText]
+            || !action.Equals("state", StringComparison.OrdinalIgnoreCase)
+            || !long.TryParse(idText, NumberStyles.None, CultureInfo.InvariantCulture, out long id)
+            || id <= 0
+            || !int.TryParse(stateText, NumberStyles.None, CultureInfo.InvariantCulture, out int rawState)
+            || !Enum.IsDefined((SkyhookState)rawState)
+        )
+        {
+            throw new InvalidDataException("Use /skyhook state <itemID> with state 0 or 210–214.");
+        }
+        return Apply(context, id, new StructureGameMasterCommand.SetSkyhookState((SkyhookState)rawState));
+    }
+
     internal PilotCallResult Execute(PilotCallContext context, string[] tokens)
     {
-        // Build 3662168 structuremenu.GetStructureMenu checks HasGMHRole before exposing these actions.
-        if ((context.Roles & (long)PilotRole.GameMasterHigh) == 0)
-        {
-            throw new InvalidDataException("Structure GM commands require the high game-master role.");
-        }
         if (
             tokens.Length is < 3 or > 4
             || !long.TryParse(tokens[2], NumberStyles.None, CultureInfo.InvariantCulture, out long id)
@@ -36,6 +48,11 @@ internal sealed class DeveloperStructureCommands(IStructureGameMaster structures
             ("abandontimer", not null) => new StructureGameMasterCommand.SetAbandonTimer(Remaining(value)),
             _ => throw Usage(),
         };
+        return Apply(context, id, command);
+    }
+
+    private PilotCallResult Apply(PilotCallContext context, long id, StructureGameMasterCommand command)
+    {
         structures.Execute(id, command);
         if (context.Flight.InBallpark)
         {

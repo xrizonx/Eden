@@ -9,7 +9,9 @@ public enum ItemSpawnDestination
     ShipCargo,
 }
 
-public sealed record ItemSpawnRequest(int TypeId, int Quantity, ItemSpawnDestination Destination);
+public sealed record ItemSpawnRequest(int TypeId, int Quantity, ItemSpawnDestination Destination, long? ExpectedHangarId = null);
+
+public sealed record HangarSpawnStack(int TypeId, int Quantity);
 
 public abstract record ItemSpawnResult
 {
@@ -21,6 +23,7 @@ public abstract record ItemSpawnResult
 public interface IPilotItemSpawning
 {
     ItemSpawnResult Create(long pilotId, long expectedShipId, ItemSpawnRequest request);
+    IReadOnlyList<InventoryChange> CreateHangarBatch(long pilotId, long expectedShipId, IReadOnlyList<HangarSpawnStack> stacks);
 }
 
 public static class ItemSpawnRules
