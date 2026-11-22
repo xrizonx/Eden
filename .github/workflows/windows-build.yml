@@ -133,6 +133,53 @@ jobs:
             -p:UseAppHost=true
           if ($LASTEXITCODE -ne 0) { throw 'Windows benchmark publish failed.' }
 
+      - name: Smoke-test native Windows server and benchmark
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $server = Join-Path $env:GITHUB_WORKSPACE 'dist/Eden-win-x64/Eden.Server.exe'
+          $benchmark = Join-Path $env:GITHUB_WORKSPACE 'dist/Eden-win-x64-benchmarks/Eden.Benchmarks.exe'
+          $testRoot = Join-Path $env:RUNNER_TEMP 'eden-native-smoke'
+          New-Item -ItemType Directory -Force -Path $testRoot | Out-Null
+          try {
+            $catalog = Join-Path $testRoot 'catalog.sqlite'
+            & $server --create-catalog $catalog
+            if ($LASTEXITCODE -ne 0) { throw 'Self-contained Eden.Server.exe failed the catalog creation smoke test.' }
+            if (-not (Test-Path -LiteralPath $catalog -PathType Leaf)) { throw 'Native server did not create a catalog.' }
+            & $benchmark --list flat
+            if ($LASTEXITCODE -ne 0) { throw 'Self-contained Eden.Benchmarks.exe failed to list benchmarks.' }
+          }
+          finally {
+            Remove-Item -LiteralPath $testRoot -Recurse -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Bundle portable Windows runtimes for Python and PowerShell tools
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $runtimes = Join-Path $env:GITHUB_WORKSPACE 'dist/tool-runtimes'
+          $pythonHome = (& python -c 'import sys; print(sys.base_prefix)').Trim()
+          $pythonTarget = Join-Path $runtimes 'python'
+          New-Item -ItemType Directory -Force -Path $pythonTarget | Out-Null
+          foreach ($folder in @('Lib', 'DLLs')) {
+            Copy-Item -LiteralPath (Join-Path $pythonHome $folder) -Destination (Join-Path $pythonTarget $folder) -Recurse
+          }
+          foreach ($file in @('python.exe', 'python3.dll', 'python311.dll', 'vcruntime140.dll', 'vcruntime140_1.dll', 'LICENSE.txt')) {
+            $source = Join-Path $pythonHome $file
+            if (Test-Path -LiteralPath $source -PathType Leaf) {
+              Copy-Item -LiteralPath $source -Destination (Join-Path $pythonTarget $file)
+            }
+          }
+          $pythonExe = Join-Path $pythonTarget 'python.exe'
+          & $pythonExe -c 'import ctypes, hashlib, sqlite3, urllib.request, zipfile; print("Portable Python OK")'
+          if ($LASTEXITCODE -ne 0) { throw 'Bundled Python runtime failed its relocation check.' }
+
+          $pwshTarget = Join-Path $runtimes 'powershell'
+          Copy-Item -LiteralPath $PSHOME -Destination $pwshTarget -Recurse
+          $pwshExe = Join-Path $pwshTarget 'pwsh.exe'
+          & $pwshExe -NoProfile -NonInteractive -Command 'if ($PSVersionTable.PSVersion.Major -lt 7) { exit 1 }'
+          if ($LASTEXITCODE -ne 0) { throw 'Bundled PowerShell runtime failed its relocation check.' }
+
       - name: Verify and package Windows distribution
         shell: pwsh
         run: |
@@ -141,12 +188,19 @@ jobs:
             'Eden.Server.exe',
             'Eden.Server.dll',
             'coreclr.dll',
+            'hostfxr.dll',
+            'hostpolicy.dll',
+            'Eden.Server.deps.json',
+            'Eden.Server.runtimeconfig.json',
             'wwwroot/_framework/blazor.web.js'
           )) {
             $fullPath = Join-Path $publishDir $relativePath
             if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
               throw "Missing published file: $relativePath"
             }
+          }
+          if (-not (Get-ChildItem -LiteralPath $publishDir -Filter 'e_sqlite3.dll' -File -Recurse | Select-Object -First 1)) {
+            throw 'The self-contained server is missing its native SQLite dependency.'
           }
           Copy-Item docs/windows-ci.md (Join-Path $publishDir 'BUILD-NOTES.md')
           $archive = Join-Path $env:GITHUB_WORKSPACE 'dist/Eden-win-x64.zip'
@@ -183,6 +237,10 @@ jobs:
             -Destination (Join-Path $build 'server') -Recurse
           Copy-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'dist/Eden-win-x64-benchmarks') `
             -Destination (Join-Path $build 'benchmarks') -Recurse
+          foreach ($runtime in @('python', 'powershell')) {
+            Copy-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE "dist/tool-runtimes/$runtime") `
+              -Destination (Join-Path $build $runtime) -Recurse
+          }
           $testBin = Join-Path $env:GITHUB_WORKSPACE 'tests/Eden.Protocol.Tests/bin/Release/net10.0'
           if (-not (Test-Path -LiteralPath (Join-Path $testBin 'Eden.Protocol.Tests.dll'))) {
             throw 'Compiled test assembly is missing.'
@@ -193,6 +251,9 @@ jobs:
             'build/windows-x64/server/Eden.Server.exe',
             'build/windows-x64/benchmarks/Eden.Benchmarks.exe',
             'build/windows-x64/tests/Eden.Protocol.Tests.dll',
+            'build/windows-x64/python/python.exe',
+            'build/windows-x64/python/python311.dll',
+            'build/windows-x64/powershell/pwsh.exe',
             'tools/Setup-Catalog.ps1',
             'tools/DevelopmentClient.ps1',
             'tools/catalog/build.py',
@@ -246,7 +307,9 @@ jobs:
             foreach ($required in @(
               'build/windows-x64/server/Eden.Server.exe',
               'build/windows-x64/benchmarks/Eden.Benchmarks.exe',
-              'build/windows-x64/tests/Eden.Protocol.Tests.dll'
+              'build/windows-x64/tests/Eden.Protocol.Tests.dll',
+              'build/windows-x64/python/python.exe',
+              'build/windows-x64/powershell/pwsh.exe'
             )) {
               if (-not $entries.ContainsKey($required) -or $entries[$required].Length -eq 0) {
                 throw "Compiled output missing/empty in ZIP: $required"
@@ -257,7 +320,7 @@ jobs:
           "Verified all $($tracked.Count) tracked files byte-for-byte inside the final ZIP."
           $digest = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
           "$digest  Eden-win-x64-complete.zip" | Set-Content -Path "$archive.sha256" -Encoding ascii
-          "Packaged $($tracked.Count) tracked files and compiled Windows server, benchmarks and tests."
+          "Packaged $($tracked.Count) tracked files, compiled Windows binaries and portable developer tool runtimes."
 
       - name: Upload complete Windows source and tools kit
         uses: actions/upload-artifact@v4
