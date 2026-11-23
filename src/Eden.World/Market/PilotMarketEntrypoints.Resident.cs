@@ -164,12 +164,7 @@ internal sealed partial class PilotMarketStore
         live.Economy.Inspect(static world =>
         {
             var settings = world.Set<SavedWorldEconomy>().Single();
-            return new WorldEconomySettings(
-                settings.TestingMarket,
-                settings.TestingGrants,
-                settings.InstitutionalStock,
-                world.Settings.FreshUniverse
-            );
+            return new WorldEconomySettings(settings.TestingMarket, settings.TestingGrants, settings.InstitutionalStock);
         });
 
     private static long ResidentObserve(LiveWorld live, long pilotId) => live.Economy.Inspect(world => world.MarketHead(pilotId));
@@ -258,18 +253,20 @@ internal sealed partial class PilotMarketStore
         using var world = live.Economy.Begin(new(pilots: [pilotId]));
         using CatalogDbContext catalog = new(database.CatalogPath);
         var pilot = Pilot(world, pilotId);
-        var station = Station(catalog, pilot.ActiveShip.StationId);
-        if (pilot.ActiveShip.Position is null && HasMarket(catalog, station))
+        // Ship.StationId still identifies the last NPC station while docked at an Upwell structure.
+        var localStation = pilot.ActiveShip.StructureId is null ? Station(catalog, pilot.ActiveShip.StationId) : null;
+        int stationId = localStation?.Id ?? 0;
+        if (pilot.ActiveShip.Position is null && localStation is not null && HasMarket(catalog, localStation))
         {
             using var seed = Eden.Infrastructure.Diagnostics.SessionPerformance.Phase("market.seedLocal");
-            Seed(world, catalog, station, typeId, includeDemand: scope is null);
+            Seed(world, catalog, localStation, typeId, includeDemand: scope is null);
         }
-        int system = pilot.ActiveShip.Position?.SystemId ?? station.SolarSystemId;
+        int system = MarketSystem(world, catalog, pilot.ActiveShip);
         int region = catalog.RequireSystem(system).RegionId;
         var kind = MarketKind(world);
         if (world.Settings.Economy.StandardMarket)
         {
-            SeedStandardRegion(world, catalog, region);
+            SeedStandardOrders(world, catalog, region, typeId is int type ? [type] : null);
         }
         bool progressive = RegionalMarketStore.Enabled(world);
         if (progressive)
@@ -283,7 +280,7 @@ internal sealed partial class PilotMarketStore
                 .Distinct()
                 .ToArray();
             var hub = RegionalMarketCatalog.Read(catalog).Hubs.GetValueOrDefault(region);
-            foreach (int known in knownStations.Append(hub?.Station.Id ?? station.Id).Distinct().Where(id => id != station.Id))
+            foreach (int known in knownStations.Append(hub?.Station.Id ?? stationId).Distinct().Where(id => id != 0 && id != stationId))
             {
                 SeedInstitutional(world, catalog, catalog.RequireStation(known));
                 regional.Advance(world, catalog, region, known, Now, typeId, includeDemand: scope is null);
@@ -299,7 +296,7 @@ internal sealed partial class PilotMarketStore
         }
         query = scope switch
         {
-            MarketScope.Station => query.Where(o => o.StationId == station.Id && !o.Bid),
+            MarketScope.Station => query.Where(o => o.StationId == stationId && !o.Bid),
             MarketScope.System => query.Where(o => o.SystemId == system && !o.Bid),
             MarketScope.Region => query.Where(o => !o.Bid),
             null => query,
@@ -316,7 +313,12 @@ internal sealed partial class PilotMarketStore
                 && o.Issued + (long)o.DurationDays * TimeSpan.TicksPerDay > Now
                 && (progressive ? o.Kind is NpcMarketKind.Regional or NpcMarketKind.Institutional : o.Kind == kind)
                 && InScope(o)
-            )
+            );
+        if (scope.HasValue)
+        {
+            npcOrders = BestAskPerType(npcOrders, static order => (order.TypeId, order.PriceCents, order.Id));
+        }
+        var result = npcOrders
             .Select(o => new MarketOrder(
                 o.Id,
                 o.StationId,
@@ -332,8 +334,8 @@ internal sealed partial class PilotMarketStore
                 DurationDays: o.DurationDays,
                 Range: o.Range,
                 MinimumVolume: o.MinimumVolume
-            ));
-        var result = (scope.HasValue ? BestAskPerType(npcOrders) : npcOrders).ToArray();
+            ))
+            .ToArray();
         var personal = world
             .Set<SavedPersonalOrder>()
             .AsNoTracking()
@@ -344,7 +346,7 @@ internal sealed partial class PilotMarketStore
         }
         personal = scope switch
         {
-            MarketScope.Station => personal.Where(o => o.StationId == station.Id && !o.Bid),
+            MarketScope.Station => personal.Where(o => o.StationId == stationId && !o.Bid),
             MarketScope.System => personal.Where(o => o.SystemId == system && !o.Bid),
             MarketScope.Region => personal.Where(o => !o.Bid),
             _ => personal,
@@ -353,7 +355,7 @@ internal sealed partial class PilotMarketStore
         IEnumerable<MarketOrder> combined = result.Concat(personalRows.Select(o => o.Snapshot()));
         if (scope.HasValue)
         {
-            combined = BestAskPerType(combined);
+            combined = BestAskPerType(combined, static order => (order.TypeId, order.PriceCents, order.Id));
         }
         var book = combined.OrderBy(o => o.Id).ToArray();
         long expires = Math.Min(
@@ -376,12 +378,12 @@ internal sealed partial class PilotMarketStore
             }
         }
         world.Commit();
-        return new(pilotId, pilot.ActiveShipId, station.Id, system, region, Array.AsReadOnly(book), expires, activeUntil);
+        return new(pilotId, pilot.ActiveShipId, stationId, system, region, Array.AsReadOnly(book), expires, activeUntil);
 
         bool InScope(EconomyNpcMarketOrder order) =>
             scope switch
             {
-                MarketScope.Station => order.StationId == station.Id && !order.Bid,
+                MarketScope.Station => order.StationId == stationId && !order.Bid,
                 MarketScope.System => order.SystemId == system && !order.Bid,
                 MarketScope.Region => !order.Bid,
                 null => true,
@@ -389,20 +391,18 @@ internal sealed partial class PilotMarketStore
             };
     }
 
-    private static IEnumerable<MarketOrder> BestAskPerType(IEnumerable<MarketOrder> orders)
+    private static IEnumerable<T> BestAskPerType<T>(IEnumerable<T> orders, Func<T, (int Type, long Price, long Id)> key)
     {
-        Dictionary<int, MarketOrder> best = [];
+        Dictionary<int, (T Order, long Price, long Id)> best = [];
         foreach (var order in orders)
         {
-            if (
-                !best.TryGetValue(order.TypeId, out var current)
-                || (order.PriceCents, order.Id).CompareTo((current.PriceCents, current.Id)) < 0
-            )
+            var (type, price, id) = key(order);
+            if (!best.TryGetValue(type, out var current) || (price, id).CompareTo((current.Price, current.Id)) < 0)
             {
-                best[order.TypeId] = order;
+                best[type] = (order, price, id);
             }
         }
-        return best.Values;
+        return best.Values.Select(static row => row.Order);
     }
 
     private void ResidentCheckStation(Eden.World.Runtime.LiveWorld live, long pilotId, int stationId)
@@ -431,7 +431,7 @@ internal sealed partial class PilotMarketStore
         using var world = live.Economy.Begin();
         using CatalogDbContext catalog = new(database.CatalogPath);
         var pilot = Pilot(world, pilotId);
-        int system = pilot.ActiveShip.Position?.SystemId ?? Station(catalog, pilot.ActiveShip.StationId).SolarSystemId;
+        int system = MarketSystem(world, catalog, pilot.ActiveShip);
         int region = catalog.RequireSystem(system).RegionId;
         var now = clock.GetUtcNow().UtcDateTime;
         long end = now.ToFileTimeUtc();

@@ -2,6 +2,650 @@
 
 [Protocol index](../protocol.md) / [Documentation index](../README.md)
 
+## NPC health reinforcement triggers — November 23, 2026
+
+A mission definition can start an independent wave when applied damage reduces a specific earlier NPC's shield, armor,
+or hull across an authored remaining-health fraction. The target must be a guaranteed singleton of the declared type in
+the declared source wave and room. A fraction of one means first damage to that layer. A fraction of zero means depletion.
+One hit can cross several thresholds, including a fatal hit. The authored wave order controls settlement when several
+thresholds cross on the same hit.
+
+The resident damage action spawns the reinforcement and records its members before kill settlement. Turrets and drones
+use that action for targets with pending health triggers. The members persist through checkpoints and prevent a repaired
+NPC from starting the same wave again. Health-triggered waves preserve the
+kill-triggered progression cursor and must spawn before they can satisfy a required clear. The mechanic is exercised in
+an original synthetic encounter. Player mission reports establish the use of health-based reinforcement in this class of
+encounter. [EVE University report](https://wiki.eveuniversity.org/Rogue_Drone_Harassment_(Level_4))
+
+**Automated validation**
+
+Both `MissionHealthWaveTests` cases passed in 12 seconds. The combined filter included `MissionReinforcementTests`,
+`MissionStructureTests`, `MissionGateTests`, `LiveCombatObjectTests`, and `ResidentDroneTests`. All 73 cases passed in
+64.16 seconds after an 8.19-second warning-free solution build. The mission content, catalog, and formatting Python
+suites passed 19, eight, and nine checks. Formatting and whitespace checks passed.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+**Optional maintainer checks**
+
+None.
+
+## Timed mission reinforcements — November 23, 2026
+
+Mission definitions can schedule a wave after a positive delay from the first arrival in its room. The resident mission
+owner records the wall-clock deadline with the initial room state. Revisiting the room keeps that deadline. Each timed
+wave settles independently of the room's kill-triggered progression. A required timed wave must arrive and be cleared
+before it can satisfy a gate or combat objective. A gate can open with an optional timed wave still pending.
+
+The simulation uses the resident deadline index to settle due waves during combat and on the server's scheduled tick.
+Spawned members and removal of the pending deadline commit together and persist through the same checkpoint. An overdue
+wave can settle after restart. Optional reinforcements can still arrive while the mission remains accepted. Closing the
+mission clears its pending waves. The feature is exercised with original synthetic encounter profiles.
+
+**Automated validation**
+
+Five synthetic cases passed in 14.98 seconds after a 12.05-second feature build. They cover first arrival, restart,
+discarded transactions, same-frame observer visibility, expiry, required and optional gate clears, and overlapping timed
+and kill-triggered waves.
+
+The affected filter added gate and deadline behavior, warm resident observation, and world initialization. It passed
+84 tests in 66.64 seconds after a 1.71-second feature build. The mission content, catalog, and formatting Python suites
+passed 19, eight, and nine checks. The solution and formatter passed.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+**Optional maintainer checks**
+
+None.
+
+## Rogue Drone Harassment — November 23, 2026
+
+The level-two definition 1219 uses dungeon 311 and admits twins 1221, 1572, and 1573. Level three definition 1222 uses
+dungeon 312 and admits twins 1223, 1574, and 1575. Each level uses the pinned lobby, two gates, and room-local scenery.
+The dungeons use generic faction 500021. All spawned actors use the reported Rogue Drone faction 500025 and its pinned
+mission NPC types. Declared spawn ranges select anchors from the matching room.
+
+Level two requires all eleven regular guards in the first combat pocket and the lone Wrecker Alvum in the final pocket.
+Level three requires all fifteen regular guards, then both of the first two groups in the final pocket. That selects the
+stricter objective variant reported by players. The lone Bomber Alvum in the separate third group is optional. The optional
+Strain Infester occurrence and its distribution, as well as group-specific aggro, remain open. The EVE.js offer evidence
+was consulted for the mission family. The encounter is built from the pinned catalog and the reports below.
+
+- [EVE University level two, revision 191890](https://wiki.eveuniversity.org/index.php?title=Rogue_Drone_Harassment_(Level_2)&oldid=191890) · [EVE-Survival level two, May 22, 2013](https://eve-survival.org/?wakka=RogueDroneHarassment2)
+- [EVE University level three, revision 201909](https://wiki.eveuniversity.org/index.php?title=Rogue_Drone_Harassment_(Level_3)&oldid=201909) · [EVE-Survival level three, July 5, 2023](https://eve-survival.org/?wakka=RogueDroneHarassment3)
+
+**Automated validation**
+
+The solution built with zero warnings or errors in 26.67 seconds. The exact resident filter
+`FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionContentTests.RogueDroneHarassmentClearsTheFirstPocketAndItsReportedFinalTargets`
+passed both levels in 16.86 seconds after a 2.15-second feature build.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+**Optional maintainer checks**
+
+Complete level three with the final Bomber Alvum still alive.
+
+## Level-four Mordus Headhunters — November 23, 2026
+
+Reviewed mission 2561 and admitted its catalog twins 2562 and 2564 after matching their full encounter payload. Build 3662168
+supplies dungeon 991, faction 500018, lobby room 14936, and combat rooms 14937 and 14938. The two acceleration gates are
+649927 and 649979. Both player reports direct pilots to clear the first combat pocket and kill the third group in pocket two.
+Eden enforces the first clear at the second gate. All 12 members of the final objective group must be defeated. Its battleship
+mix includes one Mordus Mammoth (type 16037) and two Mordus Sequestors, an explicit Eden selection from the reported roster.
+[EVE University revision 231829](https://wiki.eveuniversity.org/index.php?title=The_Mordus_Headhunters_(Level_4)&oldid=231829) ·
+[EVE-Survival report, October 16, 2017](https://eve-survival.org/wikka.php?wakka=MordusHeadhunters4)
+
+Group ranges select room-local anchors. Spawns use Eden's shared mission aggression and loot rules. Report-specific group
+aggro and uncertain loot distributions remain outside this admission. The older-build EVE.js mission packs were checked for
+comparison. The room, gate, and actor bindings come from Eden's pinned catalog and the cited player reports. Lower-level
+variants remain blocked while their timed waves and variant-dependent objectives are unresolved.
+
+**Automated validation**
+
+The solution built with zero warnings or errors in 29.85 seconds. The exact resident test
+`FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionContentTests.LevelFourMordusHeadhuntersRequiresTheFirstPocketAndOnlyTheMammothGroupInTheSecond`
+passed in 8.97 seconds. The expanded mission content, layout, spawn clearance and encounter checks passed 29 tests in
+31.22 seconds. The mission-content, catalog and formatting Python suites passed 19, eight and nine checks.
+The combined Blockade and Mordus manifests passed 32 focused tests in 54.96 seconds after a 15.93-second feature build.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+**Optional maintainer checks**
+
+Approach the second gate before clearing pocket one, then complete pocket two by destroying the Mammoth group while the
+other groups remain alive.
+
+## Stargate Campers and guarded structures — November 23, 2026
+
+Six mission definitions use the pinned build 3662168 geometry and the encounter requirements in the reports.
+The Stargate Campers use the catalog stargate as their arrival anchor. Neither the stargate nor the decorative
+sentries are objective targets. The complexes retain an empty entry room and two acceleration gates. The second
+gate unlocks when the required ships in its source room are destroyed.
+
+| Mission and dungeon | Layout and requirements | Evidence |
+| --- | --- | --- |
+| Eliminate the Stargate Campers level 2, 2256/2257, dungeon 785 | Room 6618 enters at object 165480. Kill three DED Soldiers 3rd Class, three DED Special Ops Piranhas and one DED Special Ops Panther. | [EVE University 191678](https://wiki.eveuniversity.org/index.php?title=Eliminate_the_Stargate_Campers_(Level_2)&oldid=191678), [EVE-Survival 2012-07-14](https://eve-survival.org/?wakka=EliminateStargatecampers2ded) |
+| Eliminate the Stargate Campers level 3, 2250/2251, dungeon 780 | Room 6713 enters at object 167636. Kill five DED frigates and three DED cruisers. | [EVE University 191679](https://wiki.eveuniversity.org/index.php?title=Eliminate_the_Stargate_Campers_(Level_3)&oldid=191679), [EVE-Survival 2012-07-14](https://eve-survival.org/?wakka=EliminateStargatecampers3ded) |
+| The Small Armory level 3, 1256, dungeon 338 | Rooms 3330, 3331 and 3332. Gates 63950 and 63952. Clear the first combat pocket's ships and destroy Small Armory object 63988, type 16215. | [EVE University 203906](https://wiki.eveuniversity.org/index.php?title=The_Small_Armory&oldid=203906), [EVE-Survival 2012-07-14](https://eve-survival.org/?wakka=SmallArmory3) |
+| Ritualist Raids level 4, 1398, dungeon 413 | Rooms 19092, 19093 and 19094. Gates 845141 and 845144. Clear the first combat pocket's ships. Destroy Cathedral object 845167, type 16727, and six destroyers and two battleships in its room. | [EVE University 222184](https://wiki.eveuniversity.org/index.php?title=Ritualist_Raids&oldid=222184), [EVE-Survival 2014-10-18 and 2009-03-21 player report](https://eve-survival.org/wikka.php?show_comments=1&wakka=RitualistRaid4) |
+
+The Stargate Campers reports omit range, so Eden uses its 25 km placement hint. The first Armory pocket uses
+the reported upper bound of three frigates in group three. Ritualist Raids uses the EVE-Survival count of nine
+destroyers in the first combat pocket. Its 2009-03-21 report confirms the cruise batteries can survive the gate
+passage. EVE.js Security Missions v1.1.9 uses a provisional kill-all objective for the Armory and the Stargate
+Campers. Its Ritualist Raids template identifies the structure objective. Eden binds completion to both the
+cathedral and the final required ships. Optional structure loot and per-group aggro timing are outside this batch.
+
+**Automated validation.** Tool and solution restore succeeded. The first two-method feature filter passed all
+seven cases in 21.06 seconds, with a 20.85-second build. The affected filter then passed **17 tests in 40.88
+seconds** after a warning-free 1.80-second solution build. The cases cover gate eligibility, final completion
+in both target orders, optional guards, checkpoints for the four DED offers and catalog combat profiles.
+
+```text
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionContentTests.StargateCampersRequireEveryReportedDedShip
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionContentTests.GuardedSiteRequiresFirstPocketAndEveryFinalObjective
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionContentTests.ExpandedContentLoadsEveryDefinitionAndCorrectsNuisanceFactionRosters
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionContentTests.LevelThreeGuristasScoreRequiresTheGateGuardsAndRadioTelescopeGroup
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionLayoutTests.EveryExistingMissionRetainsNativeSceneryAndRoomLocalSpawnAnchors
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionEncounterTests.EveryAuthoredNpcAlternativeHasACompletePinnedCombatProfile
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionEncounterTests.EachAdmittedCombatLevelSpawnsTheReportRosterAndHasWorkingCatalogProfiles
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionSpawnClearanceTests.EveryCombatWaveAndHullVariantSpawnsOutsideSolidScenery
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionNpcWeaponTests.EveryMissionHullRequiresItsDeclaredMissileEffectBeforeEnablingMissiles
+```
+
+The manifest, audit and fixture regenerated byte-for-byte. Eight Python catalog tests, 19 mission admission
+tests and nine formatting policy tests passed, along with the format and whitespace checks. The full .NET suite
+was excluded.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** None.
+
+## Reported security mission targets — November 23, 2026
+
+Build 3662168 supplies the mission IDs, levels, room geometry and fixed sentry placements. The reports identify
+which groups complete the objective. The four missions use Eden's existing offer, combat, tracker and settlement paths.
+
+| Mission and dungeon | Pinned layout | Required kills | Evidence |
+| --- | --- | --- | --- |
+| The Blood Raider Spies, level 4, 1065 / 228 | Entrance 3536, gate 70448, fight in 3535 | Three Corpior Clerics or Friars and three Corpatis Exorcists in the third group | [EVE University 208031](https://wiki.eveuniversity.org/index.php?title=The_Blood_Raider_Spies_(Level_4)&oldid=208031), [EVE-Survival 2017-04-15](https://eve-survival.org/?wakka=BloodRaiderSpies4) |
+| Attack the Angel Hideout, level 2, 1084 / 240 | Ungated deadspace room 2389 | Three Gistii Outlaws or Thugs, two Gistii Ambushers or Raiders, and one Gistum Predator | [EVE University 191574](https://wiki.eveuniversity.org/index.php?title=Attack_the_Angel_Hideout&oldid=191574), [EVE-Survival 2015-02-04](https://eve-survival.org/?wakka=AttackTheAngelHideout2an), [Japanese mission observations](https://wikiwiki.jp/eveonlinejp/Mission/Lv2) |
+| The Seven's Brothel, level 2, 909 / 209 | Normal-space room 13938, Tower Sentry Drone I | Kruul or Sarrah and a Rogue Mercenary Thorn | [EVE University 232779](https://wiki.eveuniversity.org/index.php?title=The_Seven%27s_Brothel&oldid=232779), [EVE-Survival 2017-10-16](https://eve-survival.org/?wakka=SevensBrothel2) |
+| The Seven's Prison Facility, level 3, 910 / 210 | Normal-space room 6860, two Angel I sentries and one Angel II | Olufami, Elena Gazky or Schmidt and a Seven Assassin or Thug | [EVE University 205377](https://wiki.eveuniversity.org/index.php?title=The_Seven%27s_Prison_Facility&oldid=205377), [EVE-Survival 2017-10-16](https://eve-survival.org/?wakka=SevensPrisonFacility3) |
+
+The EVE.js security mission packs v1.1.9 for levels 2–4 use provisional kill-all completion for Attack the Angel
+Hideout, The Seven's Prison Facility and The Blood Raider Spies. Eden uses the required groups from the cited
+reports. Blood Raider Spies levels 1–3 remain blocked because the reports use an unresolved spy alias for the
+required hulls. The Brothel uses the directly reported Rogue Mercenary Thorn, since the other escort name
+does not resolve in the pinned catalog. Optional structure loot and report-specific aggro timing are outside this
+batch. Named Angel ships display their catalog hull names.
+
+**Automated validation.** Tool and solution restore and a warning-free solution build passed. The initial exact
+`SecurityMissionRequiresItsReportedTargetsAcrossCheckpoint` filter passed all four cases in 15.68 seconds.
+After the ungated deadspace binding was confirmed, the eight-method affected filter passed **23 tests in
+30.75 seconds**, with a **5.86-second** feature build. The checks exercised the offer, room membership, optional
+guards, objective progress across checkpoint reopen and one-time turn-in. They also covered layout, collision
+clearance, catalog combat profiles, and the previous spy objectives.
+
+```text
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionContentTests.SecurityMissionRequiresItsReportedTargetsAcrossCheckpoint
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionContentTests.ExpandedContentLoadsEveryDefinitionAndCorrectsNuisanceFactionRosters
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionContentTests.SpyBlitzRequiresEveryReportedTargetAndPreservesOptionalGuardsAcrossCheckpoint
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionLayoutTests.EveryExistingMissionRetainsNativeSceneryAndRoomLocalSpawnAnchors
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionEncounterTests.EveryAuthoredNpcAlternativeHasACompletePinnedCombatProfile
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionEncounterTests.EachAdmittedCombatLevelSpawnsTheReportRosterAndHasWorkingCatalogProfiles
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionSpawnClearanceTests.EveryCombatWaveAndHullVariantSpawnsOutsideSolidScenery
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionNpcWeaponTests.EveryMissionHullRequiresItsDeclaredMissileEffectBeforeEnablingMissiles
+```
+
+The manifest, audit CSV and catalog fixture regenerated byte-for-byte. All eight Python catalog tests,
+19 mission admission tests and nine formatting policy tests passed, along with the format and whitespace checks.
+The full .NET suite was excluded.
+The integrated manifest also passed 19 focused tests in 51.94 seconds after a 19.38-second feature build.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** None.
+
+## Station Event agent availability — November 23, 2026
+
+Build 3662168's station Agents panel puts Event agents through its usual standings check. The selected pilot's
+mission journal can also mark an agent available. Neither input conveys whether Eden supports the assigned content.
+The reported Perimeter 2 - Moon 1 - Caldari Navy Assembly Plant list showed Furas Vaupero (3018583), Ichoro Hinalairos
+(3018667), Mika Etsuya (3018367), and Jali Tanaka (3018372) as available. The pinned catalog identifies all four as
+type 8 Event agents at station 60003754. Ichoro has no mission assignment and the other three have unsupported chains.
+
+The signed login adapter wraps `dockedUI.agents.find_available_and_unavailable_agents` and asks
+`agentMgr.GetAvailableEventAgents(agentIDs)` once per station-list refresh with Event rows. The selected-pilot route
+returns the integer IDs with an unexpired offer or accepted mission, or an eligible new assignment. Eden reads
+the resident mission and access state under its owner, using the same standing, supported-content and one-time
+lifecycle gates as requests. At exact expiry, availability reads return unavailable without closing the mission.
+Conversations hide the request action when an Event agent cannot issue an assignment. The station panel keeps its
+native row rendering, sorting and replay countdowns.
+
+Inspected `dockedUI/agents.pyj`, `agents/agents.pyj`, and `userentry.pyj` in the original build-3662168 archive,
+SHA-256 `37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`. The staged station module matches
+the original byte-for-byte. EVE.js 261108.1's `agentMissionRuntime.js`, SHA-256
+`f9039040331e109b166e9e73d916e11b58c16f13b652d40ba1fa0c4838daf7fa`, documents how replay timers affect
+station availability. The [UniWiki agent guide](https://wiki.eveuniversity.org/Agent#COSMOS_agents) describes the
+one-time COSMOS lifecycle.
+
+### Automated validation
+
+The exact `DataCenterMissionTests.EventAgentAvailabilityRequiresPlayableContentAndUsesThePilotsOneTimeAssignment`
+filter passed after the fix. The regression covers unsupported and standing-gated agents, active offers, exact
+expiry without mutation, terminal conversations and per-pilot isolation. The focused run passed **30/30** in
+**41.50 seconds** with an **8.50-second** build. It covered Data Center lifecycle, agent info and directory reads,
+Agency Storyline offers, login, and the signed station hook against the isolated native classifier in the pinned
+Python 2 runtime. Solution build, formatting, documentation and whitespace checks passed. The TRX and exact filters
+are saved in `artifacts/event-agent-availability-20261123/`.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+After reconnecting, open the Agents tab at Perimeter 2 - Moon 1 - Caldari Navy Assembly Plant and check that the
+four reported Event agents appear under **Not available to you** and offer no mission request in conversation.
+
+## Epic arc chains — November 22, 2026
+
+Build 3662168 contains **227 stages** in the **nine epic arcs** displayed by the native Epic Journal. The arcs use
+47 catalog agents, including 22 existing space contacts. The exporter checks all graph edges, assigned agents,
+failure targets, and the 129,600-minute replay interval. The twelve deprecated one-minute tutorial graphs are
+hidden by the client and remain outside the manifest. The build audit admits **915 of 2,892** mission records.
+[Epic arc guide](../missions.md#epic-arcs) · [Catalog audit](../data/mission-support-3662168.csv)
+
+### Catalog and client evidence
+
+The exporter uses the user's installed `client/epicarcs`, `client/missions`, `client/npccharacters`, `client/agentsinspace`
+and dungeon datasets. The manifest stores graph and objective bindings, with original Eden encounter rosters.
+Native response checks used the original client archive SHA-256
+`37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`. Consulted EVE.js 261108.1
+`epicArcStatusService.js` SHA-256 `d9acab8ddfa7f940af34e4a44386614d3eb873b216d7836eb57ed340881c7cdb`
+and `agentMissionRuntime.js` SHA-256 `f9039040331e109b166e9e73d916e11b58c16f13b652d40ba1fa0c4838daf7fa`.
+[EVE University arc mechanics, revision 231647](https://wiki.eveuniversity.org/index.php?title=Epic_arcs&oldid=231647)
+
+- `GetMyEpicArcStatus` returns arc and mission integer keys with native KeyVal time fields. Closed attempts have a quit
+  time and an empty offer marker. `GetMessagesForEpicArcMissions` serves cached nested localization-ID dictionaries.
+- Branch options use offer-scoped actions in `DoAction`. Selection and next-offer creation commit together.
+  Agent handoffs finish at the destination contact and queue an Epic Journal invalidation before the ordinary mission
+  updates. Replay uses the last terminal timestamp and shows only the current run in the journal.
+- Container deliveries, gates, mining, analyzers and ship losses use resident transactions. Timed catalog credits and
+  item rewards settle with completion. Faction rewards use the branch's catalog target, without derived faction changes.
+  For configured objectives, destruction of required cargo fails the stage if no owned copy survives. A recovery
+  step can reopen the earlier acquisition mission.
+
+Eden requires pilots to visit issuing contacts for acceptance and most turn-ins, and to accept the chosen branch's
+next offer. Epic arc pockets use owner-scoped gates. Encounter compositions, some room links, and objectives whose
+private scripts are unavailable use Eden implementations. ORE and AIR simplify scripted environmental and module
+lessons, and AIR issues fit supplies directly. The audit measures coverage of the authored mission graphs.
+
+### Automated validation
+
+- A read-only runtime catalog audit loaded **227 mission profiles**, **nine graphs**, **47 agent contacts**
+  including **22 in space**, and **67 NPC profiles** from the installed build-3662168 catalog.
+- The solution build passed in 29.95 seconds with zero warnings and errors. The epic manifest and mission audit regenerated
+  deterministically. All **19** mission content checks passed in 0.75 seconds.
+- The exact native delivery and analyzer tests covered one-time cargo deposits, gate or objective progress,
+  checkpoint reopen, and a single reinforcement spawn.
+- The exact `EpicArcProgressionTests.BranchSettlementSurvivesCheckpointAndReplaysOnlyAfterNinetyDays` case passed
+  in 11.14 seconds. The final filtered run covered epic arcs, career agents, the agent directory, mission protocol,
+  ordinary chains and gates, hacking, and focused mining and salvage cases. It passed **165/165** in 153.14 seconds
+  with no skips. The full filter and TRX are in `artifacts/epic-arc-missions-20261122`.
+- Formatting, documentation link checks, and `git diff --check` passed.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+None.
+
+## Career agent chains — November 22, 2026
+
+Eden admits all **180 career stages** for the **100 active career agents** in build 3662168. The five divisions
+each have four empire variants, for **20 authored sequences**. The build's mission audit now admits **688 of 2,892**
+records. [Playable objectives](../missions.md#career-agents) · [Complete catalog audit](../data/mission-support-3662168.csv)
+
+### Source evidence
+
+The exporter reads the exact agent assignments from `client/npccharacters.agent.storyLineMissions` and orders them by the
+stage in `sde/missions`. It checks the expected cardinality at the agent, sequence and stage levels. The pinned mission,
+dungeon and blueprint records supply station contacts, topology, item quantities, rewards and available blueprint recipes.
+The original archive used for the client call checks has SHA-256
+`37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`.
+
+| Division | Reviewed report |
+| --- | --- |
+| Enforcer | [Cash Flow for Capsuleers, oldid 215464](https://wiki.eveuniversity.org/index.php?title=Enforcer_(Career_Agent)&oldid=215464) |
+| Soldier of Fortune | [Ten training missions, oldid 224310](https://wiki.eveuniversity.org/index.php?title=Soldier_of_Fortune&oldid=224310) |
+| Explorer | [Five training missions, oldid 221957](https://wiki.eveuniversity.org/index.php?title=Explorer&oldid=221957) |
+| Industrialist (Entrepreneur) | [Balancing the Books, oldid 214335](https://wiki.eveuniversity.org/index.php?title=Industrialist_(Entrepreneur)&oldid=214335) |
+| Industrialist (Producer) | [Making Mountains of Molehills, oldid 229156](https://wiki.eveuniversity.org/index.php?title=Industrialist_(Producer)&oldid=229156) |
+
+The older EVE.js 261108.1 comparison includes career content pack 1.4.4, `careerAgentMissions.js` SHA-256
+`bf8a9180bc9a9753d9a39f621271900c8ed93edd088e8dd5f1d08c66b6eb042e`, and `careerAgentChains.json` SHA-256
+`ceb0fd7e10dd61d67a98a9e3831e5f6577623366c00136d3c54078d1a7efd3d0`. It corroborates encounter roles and progression.
+The pinned catalog supplies Eden's bindings.
+
+### Resident progression and client calls
+
+- Turn-in applies the objective, item and ISK rewards, standings, and next offer in the same resident transaction.
+  Checkpoints retain chain position, site progress and issued gifts. Career completions grant personal rewards, no LP,
+  and no ordinary storyline credit. The last stage grants the catalog's direct 1.5% faction increase.
+- The client primes `agentMgr.GetCompletedCareerAgentIDs` with a list of IDs and receives an integer-keyed Boolean
+  dictionary. Entries become true after completing that agent's terminal stage. Briefing and detail dictionaries use
+  None for an indefinite expiry, and journal row tuples use zero. The conversation hides the request action for a
+  closed chain.
+- The module lessons require the correct owned target and a valid tackle activation or a paid remote repair cycle.
+  The approved loss objectives settle through ship-loss persistence. Training ore, salvage and hacking use the native
+  mining, salvager and analyzer paths. The civilian shuttle copies use pinned manufacturing recipes.
+- The Explorer entry point uses the normal scanner. Data, relic and gas sites require 100% probe resolution. The
+  agent tracker supplies the proof and next steps without a warp bookmark that bypasses scanning. The gas pocket
+  uses the reusable key; the data and relic proofs require a successful analyzer board.
+
+Eden authors encounters and triggers for these objectives using the reported roles, catalog objects and native modules.
+Enforcer uses cleared waves to advance part seven. Its scripted antagonist escape, recurring gate damage,
+optional contraband and some NPC reactions are omitted. The warehouse stage requires destruction of the warehouse.
+Soldier of Fortune accepts clearing the entire enemy fleet as an alternate completion in the second ship-loss lesson.
+Concurrent ship damage can delay an electric-cloud pulse. Explorer uses a short, repeatable training board, grants
+sixteen core scanner probes, and omits Rulie's speech and optional gas harvesting. Career ISK payouts use Eden's
+mission reward rules. Blueprint copies have the observed ME 5 and TE 2 and their catalog run counts.
+
+### Automated validation
+
+- `dotnet restore --artifacts-path artifacts/feature-tests` and `dotnet build --no-restore --artifacts-path artifacts/feature-tests`
+  passed. The solution build took 12.04 seconds with zero warnings and errors.
+- `Test-Feature.ps1` passed the exact
+  `FullyQualifiedName=Eden.Protocol.Tests.Agents.CareerMissionTests.SoldierRetriesTheFailedStageAfterDowntimeWithItsCompletedPredecessor`
+  filter in 12.11 seconds, including rejection before 11:00 UTC and acceptance of the same stage at downtime.
+- The final filtered run passed **195/195** in 100.48 seconds with no skips. It covered all four career test classes,
+  ordinary mission chains, protocol and structure objectives, agent directory, hacking and probes, and exact ordinary
+  mining, salvage, tackle, remote repair and Guristas Score cases. The results and exact filter are under
+  `artifacts/career-agent-missions-20261122`.
+- Regenerating the career manifest, fixture and audit admitted 180 career definitions and kept the 446-definition
+  ordinary manifest byte-identical. The mission content Python suite passed **19/19** in 0.44 seconds.
+  `Format.ps1 -Check`, local documentation links and `git diff --check` passed.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+None.
+
+## Mission gap expansion — November 22, 2026
+
+The build-3662168 audit now admits **508 of 2,892** catalog mission records. This milestone adds **55** playable definitions
+and accounts for **16** existing militia encounters previously missing from the admitted total of 437. Nine ordinary security
+missions join the manifest. Paragon and research offers have their own catalog admission and stay out of ordinary
+agent rotations. The [content guide](../missions.md) describes the playable flows and the [audit](../data/mission-support-3662168.csv)
+records the remaining blockers. Career, epic-arc, non-Data-Center COSMOS, Anomic, and level-five combat still need
+separate mission content or lifecycles.
+
+### Content and client evidence
+
+| Family | Mission IDs | Source revisions |
+| --- | --- | --- |
+| The Score | 2391, 2407, 2416, 2449, 2470 | EVE University oldids 192048, 209646, 192046, 192055, 223423 |
+| The Roving Rogue Drones and The Drone Infestation | 1237, 1214 | EVE University oldids 203054, 230772 |
+| Smuggler Interception | 2542, 2546 | EVE University oldids 231043, 191943 |
+| Mineral Acquisition and The Special Delivery | 2792–2795, 2804 | EVE University oldids 213371, 213400 |
+
+The older EVE.js 261108.1 security packs, level one 1.1.10 and levels two and three 1.1.9, provide a second comparison.
+Eden uses the report's required groups for The Score and both reported transports for Sansha Smuggler Interception.
+The pinned dungeon records supply the layouts, gate and structure IDs. Level-two Drone Infestation still needs a
+verified trigger for its optional reinforcement. [The Score level-three report](https://wiki.eveuniversity.org/index.php?title=The_Score_(Guristas_Pirates)_(Level_3)&oldid=223423)
+
+Paragon uses the 41 build-3662168 `HeraldryMission` records for a single packaged hull with no standing reward.
+The other 37 Heraldry records request ammunition, a singleton hull, or grant standing rewards. The twelve pinned
+IRIS identities use agent type 13 and corporation 1000419. Eden quotes the authored clone-grade amount when the offer
+is created, then uses that saved amount at turn-in. Completion atomically consumes the hull, credits personal and
+eligible corporate EverMarks, retires other active IRIS offers, and starts a character-wide 23-hour cooldown. The
+wallet uses the existing loyalty balance and `OnLPChange` / `OnCorpLPChange`. [CCP Paragon patch notes](https://www.eveonline.com/news/view/patch-notes-version-20-10) ·
+[CCP corporation EverMarks](https://www.eveonline.com/news/view/feedback-and-iteration-factional-warfare) ·
+[EVE University Paragon report](https://wiki.eveuniversity.org/Paragon)
+
+The original `code.ccp` SHA-256 is `37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`.
+`evemissions.client.mission` renders type-13 loyalty points as EverMarks. The stock Agent Finder uses the existing
+directory type, the journal uses `UI/Agents/MissionTypes/Heraldry`, and `Agents.GetAgentTimers` calls the bound
+`GetReplayTimestamp(characterID)`. Eden returns the saved absolute replay deadline there and the remaining ticks
+in the conversation's `missionCantReplay` field. `offer_removed` retires the other dialogs and refreshes the journal.
+EVE.js `agentMgrService.js` and its EverMarks wallet modules were checked for comparison. The pinned archive owns
+the dialogue and replay wire contract.
+
+The same archive's `agentDialogueUtil.GetMissionObjectiveHTML` reads numeric `researchPoints` and rounds only for display.
+The stock journal appends research rows on a scoped refresh. Eden follows the scoped mission event with a full research
+journal invalidation so the project list and mission tracker both refresh. The five templates run through all 244 pinned
+level-one through level-four R&D agents. The courier uses the existing station route with a nearest-reachable-station
+fallback where necessary. Podion's two agents use Futzchag, two jumps away. The alternating assignments and deterministic
+12–23-hour delay are Eden policy. Scheduled invitation mail remains open. EVE.js `researchRuntime.js` comparison SHA-256
+`d6e8e398bb3ff9ba1f0711ba86ba1dcca4707cd935d287c9760a8a8bdd0c6ee8`.
+[Research missions report](https://wiki.eveuniversity.org/index.php?title=Research_missions&oldid=216855)
+
+### Standing settlement
+
+Regular mission quits and accepted expirations apply direct agent and corporation losses once. Declining is free when
+four hours have elapsed since that agent's last free decline. A repeat decline within the window applies a smaller loss.
+Offered missions can expire without a loss. The pinned `AgentDialogueWindow.GetMissionTimeText` consumes `-1` for the
+generic decline warning and positive remaining ticks for the countdown. The ordinary penalty baseline comes from
+two recorded Tranquility outcomes in the EVE.js build-3396210 reference. Eden uses **4.08959% agent / 0.35054%
+corporation** for quit and accepted expiry, and **1.74096% agent / 0.14922% corporation** for repeat decline, applied
+toward −10. These are Eden-wide baselines based on Gone Berserk (2504) and The Disgruntled Employee (921).
+Paragon and R&D closures carry no direct penalty. Militia keeps its separate rules.
+
+Standard storyline faction gains also apply capped, single-hop derived changes. Eden uses the incoming relationship
+toward the issuing faction, the pinned faction `sizeFactor` ratio, and a cap in the direction of change. The 390
+relationship rows came from the factual Tranquility `standingMgr.GetNPCNPCStandings` cache recorded in the EVE.js input dated August 22, 2026.
+The local EVE.js input was `tools/DatabaseCreator/staticTables/npcStandingsAuthority/data.json`, SHA-256
+`63d9b8146a3fa07f79ed01e721160bcd835b18483f16218f761add0166501b3e`. Eden's pinned `client/factions` SHA-256 is
+`43fd274f2f85f8a221dff3f21dcd30dcfc6d8939b2f6124a1a145f68c52f8dfb`. Data Center, failure, and militia derived changes
+remain outside this rule. The pinned standing history uses event types 74/75 for failure/decline and 82/83 for derived
+changes. New direct mission transactions put the mission-name localization ID in `int_1`, as consumed by
+`eveFormat.FmtStandingTransaction`. [CCP standing mechanics](https://support.eveonline.com/hc/en-us/articles/203217152-Standings) ·
+[EVE University derived standings](https://wiki.eveuniversity.org/NPC_standings#Derived_standings)
+
+### Automated validation
+
+The solution build passed with zero warnings or errors. The catalog setup, formatting policy, and mission admission
+suites passed 36 Python checks. CSharpier checked 3,073 files and the 140-character policy passed.
+
+The integrated filter selected the `Eden.Protocol.Tests.Agents` namespace, `MilitiaMissionTests`,
+`CorporationLoyaltyTests`, `LoyaltyWalletServiceTests`, and `CharacterInteractionHistoryTests`. It passed 890 of 892
+cases in 845.09 seconds. Both failures came from the existing Blockade replay. The suite ran before the replay fixture
+and expiry-notification follow-ups, which were validated separately below.
+
+The exact Blockade departure method reproduced both inherited failures on `2ae11e20`. The non-resident variant
+called resident-only warp, and the resident fixture lacked its pinned warp capacitor profile. The replay now uses
+the resident world and the existing capacitor fixture. Its exact method passed in 11 seconds.
+
+The final expiry follow-up ran 20 cases in 81.02 seconds with
+`MissionStandingTests.AcceptedFailureSettlesDirectStandingsOnceAcrossCheckpoint`, `ParagonMissionTests`, `MissionTrackerTests`,
+`MilitiaMissionTests.DecliningAndExpiringCountOnlyOncePerMission`, and
+`DataCenterMissionTests.EveryTerminalStatePermanentlyClosesTheAssignmentAcrossCheckpoint`. It checks closure through
+the existing read paths and verifies that journal-triggered standing losses publish after the resident commit.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+- Turn in a packaged hull to IRIS and open a second IRIS conversation to check the shared cooldown and EverMarks wallet.
+- Start an R&D project and complete Mineral Acquisition. Confirm the journal and project balance refresh together.
+- In the level-three Guristas Score, clear the first combat pocket and confirm the gate and radio-telescope objective.
+
+## Level-three Blockade variants — November 23, 2026
+
+Four more Blockade missions now use the five-wave runtime in their build-3662168 pockets. Required kills are
+specific reinforcement triggers and the final objective. Other defenders can survive. Tower types and anchors
+come from the catalog.
+
+| Mission ID | Faction | Dungeon / room | Fixed tower type | Final objective |
+| --- | --- | --- | --- | --- |
+| 2933 | Angel Cartel | 1944 / 12174 | 17606 Minmatar | One Gistatis Tribunus |
+| 2934 | Guristas | 1946 / 12189 | 17612 Caldari | Five Pithatis Death Dealers or Revolters |
+| 2935 | Sansha | 1947 / 12188 | 17609 Amarr | One Centatis Daemon |
+| 2937 | Blood Raiders | 1945 / 12179 | 17609 Amarr | Five Corpatis Exorcists or Phantoms |
+
+The [Angel report](https://eve-survival.org/?wakka=Blockade3an) identifies an opening destroyer, a singleton
+battlecruiser in each following wave, and the Tribunus as the objective. The roster stays within the ranges in
+[University revision 205299](https://wiki.eveuniversity.org/index.php?title=The_Blockade_(Angel_Cartel)_(Level_3)&oldid=205299).
+Eden designates one reported destroyer and presents Legionnaire, Praefectus, and Tribunus as the three singleton
+battlecruisers. The report's Gistatis Seizer spelling resolves to no catalog type, so the second reinforcement
+uses another listed alternative, Praefectus.
+
+The [Guristas report](https://eve-survival.org/?wakka=Blockade3gu) names the first trigger, Pithior Renegade.
+The next three are selected by highest pinned bounty among the reported battlecruisers: Pithatis Assassin,
+Death Dealer, and Assassin. Both that report and
+[University revision 214891](https://wiki.eveuniversity.org/index.php?title=The_Blockade_(Guristas_Pirates)_(Level_3)&oldid=214891)
+require five battlecruiser kills in the last wave. The third reinforcement uses the existing 100 km placement
+hint for a Blockade wave without a reported distance.
+
+The [Sansha player reports from October 2009 and September 2010](https://eve-survival.org/?show_comments=3&wakka=Blockade3sa)
+record Centior Devourer, Centatis Wraith, Centatis Devil, and Centatis Wraith as the triggers. The later pilot
+recorded completion with three of four final Centatis Daemons still alive. Eden designates one of those four.
+The roster follows the 2009 report, resolving its unqualified Enslaver to the native Centii Enslaver. The
+main report gives distances for the room, represented by the midpoint where it lists two different group distances.
+The university page title says level three, but its level field says four.
+
+The [Blood Raider report](https://eve-survival.org/?wakka=Blockade3br) names Corpior Devoter, Corpatis Fanatic,
+Corpatis Fanatic, and Corpatis Shade as its reinforcement triggers. The first reinforcement follows
+[University revision 191981](https://wiki.eveuniversity.org/index.php?title=The_Blockade_(Blood_Raiders)_(Level_3)&oldid=191981),
+which lists one Fanatic separate from the other battlecruisers. The University report also identifies the final
+battlecruiser group as the completion requirement.
+
+The compared EVE.js security pack targets older builds, recorded in [the earlier layout comparison](#mission-layout-corrections--november-9-2026).
+Eden binds the reports to its own catalog. Upper reported counts and deterministic alternatives select one
+example per mission. Rare enemies and asteroid traps remain future work. The Serpentis reports leave the final objective and one
+reinforcement trigger ambiguous. That variant and the DED twins remain blocked.
+
+**Automated validation:** Tool and solution restore and a warning-free solution build passed (24.62 seconds).
+The exact `BlockadeVariantsSpawnEachReinforcementOnceAndFinishOnReportedTargets` filter passed seven tests in 32.23 seconds.
+Each case defeats only the four triggers and checked final targets. The first expanded theory exposed a test
+assumption about ordinary escort flags in lower-level cases. It now checks the explicit completing leader when
+present and the required final group otherwise.
+
+The affected mission matrix passed 23 tests in 41.33 seconds after a 4.73-second build. Its filter combined:
+
+```text
+FullyQualifiedName~Eden.Protocol.Tests.Agents.MissionEncounterTests
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionContentTests.BlockadeVariantsSpawnEachReinforcementOnceAndFinishOnReportedTargets
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionContentTests.ExpandedContentLoadsEveryDefinitionAndCorrectsNuisanceFactionRosters
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionLayoutTests.EveryExistingMissionRetainsNativeSceneryAndRoomLocalSpawnAnchors
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionSpawnClearanceTests.EveryCombatWaveAndHullVariantSpawnsOutsideSolidScenery
+```
+
+Nineteen mission compiler, eight catalog setup, and nine formatting policy tests passed. Formatting verification
+and byte-for-byte regeneration passed. The audit admits 922 of 2,892 records.
+
+**Live acceptance:** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks:** Verify that the level-three Guristas objective completes only when the fifth
+battlecruiser in the last wave dies, with earlier defenders still present.
+
+## The Blockade variants — November 23, 2026
+
+Three Security missions now bind reported reinforcements to their single build-3662168 pockets. One designated
+ship in each of the first four waves advances the encounter once. The final leader completes the objective even if
+the tower and earlier defenders survive. Fixed towers retain their catalog positions. All three are ordinary combat
+offers.
+
+| Mission ID | Variant | Dungeon / room | Fixed tower type | Reinforcement triggers in order | Completion target |
+| --- | --- | --- | --- | --- | --- |
+| 2925 | Guristas level 1 | 1940 / 12183 | 17608 Gallente | Pithi Plunderer or Wrecker, Infiltrator, Despoiler or Saboteur, Saboteur or Despoiler | Pithi Plunderer |
+| 2926 | Sansha level 1 | 1941 / 12184 | 17606 Minmatar | Centii Plague, Ravener, Savage, Slavehunter | Centii Plague |
+| 2940 | Guristas level 2 | 1956 / 13988 | 17612 Caldari | Pithior Nihilist, Pithum Silencer, Pithum Silencer, Pithum Ascriber | Pithum Eraser |
+
+The selected examples come from dated EVE-Survival reports and their indexed EVE University counterparts. For Guristas L1,
+the [2017 report](https://eve-survival.org/?wakka=Blockade1gu) gives named triggers and completion.
+[University revision 191985](https://wiki.eveuniversity.org/index.php?title=The_Blockade_(Guristas_Pirates)_(Level_1)&oldid=191985)
+shows a smaller third wave, consistent with variation between runs. For Sansha L1,
+[University revision 191987](https://wiki.eveuniversity.org/index.php?title=The_Blockade_(Sansha%27s_Nation)_(Level_1)&oldid=191987)
+corroborates the five-wave example. The [Survival report and observations](https://eve-survival.org/?show_comments=3&wakka=Blockade1sa)
+identify the final Plague and describe the pocket as normal space. For Guristas L2, the
+[Survival report](https://eve-survival.org/?wakka=Blockade2gu) names the unique example's triggers.
+[University revision 193403](https://wiki.eveuniversity.org/index.php?title=The_Blockade_(Guristas_Pirates)_(Level_2)&oldid=193403)
+identifies the objective as the leader, the final example's only cruiser. Native type names correct spelling in both reports.
+Eden uses one reported sequence per variant and its existing placement hints where later waves lack distances.
+
+The local EVE.js level-one security pack marks the compared templates as provisional. Its release and fingerprints are
+recorded in [the earlier layout comparison](#mission-layout-corrections--november-9-2026). The report and pinned catalog
+define these additions. Mission 2924 retains its original Eden Guristas reconstruction in the Angel-tagged dungeon
+1938 so outstanding offers keep their original encounter. The native Angel roster for that ID needs a save-compatible
+transition. The other blocked Blockade IDs, including the DED twins, remain outside this batch. Mining-triggered
+hazards, optional rare spawns, and structure loot still require separate gameplay support.
+
+**Automated validation:** Tool and solution restore and a warning-free solution build passed (24.42 seconds).
+The exact `BlockadeVariantsSpawnEachReinforcementOnceAndFinishOnTheLeader` filter passed 3 tests in 13.81 seconds.
+The final focused run passed 19 tests in 24.02 seconds after a 7.15-second build, with the following clauses:
+
+```text
+FullyQualifiedName~Eden.Protocol.Tests.Agents.MissionEncounterTests
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionContentTests.BlockadeVariantsSpawnEachReinforcementOnceAndFinishOnTheLeader
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionContentTests.ExpandedContentLoadsEveryDefinitionAndCorrectsNuisanceFactionRosters
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionLayoutTests.EveryExistingMissionRetainsNativeSceneryAndRoomLocalSpawnAnchors
+FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionSpawnClearanceTests.EveryCombatWaveAndHullVariantSpawnsOutsideSolidScenery
+```
+
+The initial expanded run exposed a stale admitted-count assertion in the layout test, corrected in the final run.
+Nineteen mission compiler, eight catalog setup, and nine formatting policy tests passed. Formatting verification and
+byte-for-byte regeneration of the mission manifest, audit and fixture passed. The audit admits 918 of 2,892 records.
+
+**Live acceptance:** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks:** Run one of the new Blockade variants and confirm that killing only the four triggers
+and final leader completes the objective while the stasis tower remains active.
+
+## Bounded mission site placement — November 22, 2026
+
+The offer builder multiplied the global mission sequence by 10 billion metres on two axes. At sequence 95,202 the
+regression fixture placed the new site about 8,997 AU from its nearest celestial. New dungeons cycle through a fixed
+three-dimensional set of slots within 0.1 AU of an anchor in the mission's system. The catalog supplies the first
+planet, then the first available celestial or station, with the system origin as a fallback. Militia missions use
+their war-zone destination for this lookup. The offer saves its coordinates once for its bookmark, warp and rooms.
+
+EVE.js `server/src/services/agent/agentMissionRuntime.js` (`F9039040331E109B166E9E73D916E11B58C16F13B652D40BA1FA0C4838DAF7FA`)
+also derives a bounded offset from a destination-system celestial. Eden's spacing and limit are server policy.
+The pinned build 3662168 `WarpToBookmark` disassembly shows the client forwarding the mission location to `WarpToLocation`.
+The local catalog audit found celestial anchors in 8,089 systems, with the farthest selected anchor 45.28 AU from its
+system origin. EVE University documents the warpable location in the assigned system.
+[EVE University security missions](https://wiki.eveuniversity.org/Security_missions)
+
+### Automated validation
+
+`FullyQualifiedName=Eden.Protocol.Tests.Agents.MissionProtocolTests.LargeWorldMissionSequenceKeepsNativeBookmarkNearSystemCelestialAcrossCheckpoint`
+reproduced the distance on the old code, then passed in 8.46 seconds. It exercises offer creation, acceptance, the native
+journal bookmark and the resident checkpoint/reopen path. The militia mission test checks placement beside a planet
+in a different system from the agent.
+
+The solution build passed. The targeted filter passed 99 cases in 1 minute 21 seconds across `MissionProtocolTests`,
+`MissionGateTests`, `MissionEncounterTests`, `MiningMissionTests`, `MilitiaMissionTests`, `MissionChainTests` and
+`MissionPersistenceTests`. The catalog setup and formatting policy suites passed 17 Python checks.
+The formatter encountered archived dependency files in the ignored `.artifacts` tree. A rerun with that tree
+excluded passed CSharpier and the line-width check.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+Request a new security mission and check its bookmark distance from the surrounding celestials.
+
 ## Data Center family and one-time space agents — November 15, 2026
 
 This milestone implements a complete native family through shared capabilities: **50** Keeping Crime In Check
@@ -508,6 +1152,64 @@ No full .NET suite was requested or run. Native rendering, input and gameplay fe
 
 **Optional maintainer checks:** Inspect native spy hull names and objective progress; complete a level-four Sansha
 group-3 blitz with the other groups alive.
+
+## Higher-level Guristas and Serpentis Spies — November 23, 2026
+
+Two previously blocked security missions now use the existing resident encounter and checkpoint paths.
+Both retain an empty gate lobby, then populate the combat pocket on arrival. Both use generic encounter aggro and display
+the catalog ship names in the overview.
+
+| Mission | Dungeon and room bindings | Completion |
+| --- | --- | --- |
+| Level-three Guristas Spies, 893 | Dungeon 215, lobby 2715, gate 53039, pocket 2714, entry 53027 | Three Pithatis Enforcers. Three Pithior Anarchists and one Pithatis Assaulter are optional. |
+| Level-four Serpentis Spies, 899 | Dungeon 224, lobby 3534, gate 70431, pocket 3533, entry 70406 | Four Corelior destroyers, two Corelatis Captains, one Corelatis Captain Sentry and one Core Port Admiral. All seven fixed towers are optional. |
+
+The [Guristas University report, revision 192011](https://wiki.eveuniversity.org/index.php?title=The_Guristas_Spies_(Level_3)&oldid=192011)
+and [EVE-Survival report, July 14, 2012](https://eve-survival.org/wikka.php?wakka=GuristaSpies3) agree that the three
+first-group spies are required. [EVE Info's player reports](https://eveinfo.com/missions/125/the-guristas-spies) describe
+Ferox variants with 135,000 ISK bounties, matching the pinned Pithatis Enforcer (24014), and identify the second group's
+Pithatis Assaulter. The pinned dungeon retains its entry gate even though EVE-Survival describes a direct warp.
+
+The [Serpentis EVE-Survival report, October 16, 2017](https://eve-survival.org/wikka.php?wakka=SerpentisSpies4) places one
+ship group about 135–140 km from the beacon. The pinned tower anchor puts that group at about 137 km and the pinned pocket
+contains seven sentries matching the report. [EVE Info's player reports](https://eveinfo.com/missions/282/serpentis-spies)
+identify the Corelatis Captain (24026) and Captain Sentry (24027) behind the battlecruiser display labels.
+The [University report, revision 192060](https://wiki.eveuniversity.org/index.php?title=The_Serpentis_Spies_(Level_4)&oldid=192060)
+includes an extra Mordu group and places the Serpentis group at a Minmatar station ruin. Dungeon 224 has one ship anchor and
+no such ruin, so the placement and roster follow the single-group EVE-Survival report.
+
+The corresponding local EVE.js level-three and level-four packs agree on the dungeon IDs and leave these custom names
+unresolved. The comparison used the local packs and input builds recorded in
+[mission layout corrections](#mission-layout-corrections--november-9-2026).
+Level-four Guristas and level-one Serpentis stay blocked on timed reinforcements. Level-one Sansha still needs the spy type
+and exact completion objective.
+
+### Automated validation
+
+The initial exact spy completion filter passed 14 cases in 30.55 seconds. Tool and solution restore and the full solution
+build passed with zero warnings in 17.77 seconds. The expanded focused run passed 23 cases in 51.88 seconds. It covered
+each new mission with optional guards untouched and cleared, objective and reward consistency after resident reopen,
+complete combat profiles, native scenery and the seven fixed tower positions. The selected methods under
+`Eden.Protocol.Tests.Agents` were:
+
+- `MissionContentTests.SpyBlitzRequiresEveryReportedTargetAndPreservesOptionalGuardsAcrossCheckpoint`
+- `MissionContentTests.ExpandedContentLoadsEveryDefinitionAndCorrectsNuisanceFactionRosters`
+- `MissionEncounterTests.EveryAuthoredNpcAlternativeHasACompletePinnedCombatProfile`
+- `MissionLayoutTests.FixedBatteriesUseTheirOwnRoomCatalogPositions`
+- `MissionLayoutTests.EveryExistingMissionRetainsNativeSceneryAndRoomLocalSpawnAnchors`
+
+The regenerated audit contains 917 admitted records. The first mission admission check still expected both new IDs to be
+blocked. After updating those assertions, the catalog setup, formatting policy and mission admission Python suites passed
+8, 9 and 19 tests respectively in 2.71, 0.07 and 1.57 seconds. Formatting verification and `git diff --check` passed.
+The full .NET test suite was outside this check.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+- Run the two Eden encounters and verify the mission tracker completes while the optional guards are alive.
 
 ## Level-three combat content and Sansha outposts — November 15, 2026
 

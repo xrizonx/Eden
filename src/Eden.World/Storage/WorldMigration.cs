@@ -17,7 +17,7 @@ namespace Eden.World.Storage;
 
 internal static class WorldMigration
 {
-    internal const int CurrentVersion = 216;
+    internal const int CurrentVersion = 220;
 
     public static void Open(
         WorldDbContext world,
@@ -39,10 +39,10 @@ internal static class WorldMigration
         {
             var settings = setup.Draft.Settings;
             var supply = settings.DevelopmentSupply;
-            economy = new(supply.TestingMarket, supply.TestingGrants, supply.InstitutionalStock, settings.FreshUniverse);
+            economy = new(supply.TestingMarket, supply.TestingGrants, supply.InstitutionalStock);
         }
         // Every step receives the original version, even after historical PRAGMA writes.
-        LegacyWorldMigration.Initialize(world, version, economy?.FreshUniverse == true);
+        LegacyWorldMigration.Initialize(world, version);
         // An approved setup can resume after the first migration transaction has already committed.
         InitialEconomyMigration.Initialize(world, version, setup is { NewWorld: true } && version != 0 ? null : economy, economics);
         Eden.World.Market.StandardMarketSchema.Upgrade(world);
@@ -106,7 +106,8 @@ internal static class WorldMigration
         CorporationCalendarSchema.Upgrade(world);
         RemoteRepairSchema.Upgrade(world);
         WorldConfigurationSchema.Upgrade(world);
-        WorldConfigurationStore.Seed(world, catalog, clock, economy?.FreshUniverse == true);
+        Eden.World.Modding.ModStateSchema.Upgrade(world);
+        WorldConfigurationStore.Seed(world, catalog, clock);
         if (
             !world
                 .Database.SqlQueryRaw<string>("SELECT name AS Value FROM pragma_table_info('WorldPilotHostility')")
@@ -115,6 +116,12 @@ internal static class WorldMigration
         {
             // Existing hostility retains its expiry without inventing a recent attack.
             world.Database.ExecuteSqlRaw("ALTER TABLE WorldPilotHostility ADD COLUMN LastAttackAt INTEGER NOT NULL DEFAULT 0");
+        }
+        if (version < 219)
+        {
+            // Market and lowsec builds both wrote version 218. Reconcile the columns for either predecessor.
+            CrimewatchSchema.UpgradeSecurityPenalties(world);
+            CrimewatchSchema.UpgradeMilitiaFriendlyFire(world);
         }
         DroneCombatPersistence.Upgrade(world);
         DroneDelegationPersistence.Upgrade(world);
@@ -216,6 +223,10 @@ internal static class WorldMigration
         KillRightSchema.Upgrade(world);
         LauncherSchema.Upgrade(world);
         Eden.World.Characters.PersonalSettingsSchema.Upgrade(world);
+        Eden.World.Skills.PersonalSkillPlanSchema.Upgrade(world);
+        Eden.World.Skills.ExpertSystemSchema.Upgrade(world);
+        Eden.World.Docking.ShipSkinLicenseSchema.Upgrade(world);
+        Eden.World.Docking.AppliedShipSkinSchema.Upgrade(world);
         if (version < 155)
         {
             world.Database.ExecuteSqlRaw(
@@ -242,6 +253,14 @@ internal static class WorldMigration
         }
         world.Database.ExecuteSqlRaw(
             "CREATE TABLE IF NOT EXISTS WorldMapStatistics(Id INTEGER PRIMARY KEY CHECK (Id=1), Payload TEXT NOT NULL)"
+        );
+        world.Database.ExecuteSqlRaw(
+            """
+            CREATE TABLE IF NOT EXISTS WorldActivityRewardTick(
+                PilotId INTEGER NOT NULL REFERENCES WorldPilot(Id) ON DELETE CASCADE,
+                DueAt INTEGER NOT NULL, SkillPoints INTEGER NOT NULL CHECK (SkillPoints >= 0),
+                Bounties TEXT NOT NULL, PRIMARY KEY (PilotId,DueAt));
+            """
         );
         if (version < DevelopmentMarketOrderMigration.Version)
         {

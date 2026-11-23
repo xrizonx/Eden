@@ -7,6 +7,8 @@ namespace Eden.World.Catalog;
 
 public sealed partial class CatalogDbContext
 {
+    internal const int PlanetCelestialGroup = 7;
+
     internal double? SystemContentSecurity(int systemId) =>
         writable ? Read(CatalogData.Client.Solarsystemcontent, (long)systemId)?.Security : Definitions.SystemContentSecurity(systemId);
 
@@ -19,6 +21,9 @@ public sealed partial class CatalogDbContext
             : Definitions.StationsInSystem(id);
 
     internal IReadOnlyDictionary<int, int> StaticGateSystems() =>
+        (!writable ? Definitions.RuntimeStaticGateSystems : null) ?? ReadStaticGateSystems();
+
+    private IReadOnlyDictionary<int, int> ReadStaticGateSystems() =>
         (
             from gate in Set<Stargate>()
             join body in Set<Celestial>() on gate.Id equals body.Id
@@ -106,6 +111,10 @@ public sealed partial class CatalogDbContext
 
     internal IReadOnlyDictionary<int, SpacePosition> FirstCelestialPositions()
     {
+        if (!writable && Definitions.RuntimeFirstPositions is { } prepared)
+        {
+            return prepared;
+        }
         var celestials = Set<Celestial>();
         var firstIds = celestials.GroupBy(body => body.SolarSystemId).Select(group => group.Min(body => body.Id));
         return celestials
@@ -126,4 +135,24 @@ public sealed partial class CatalogDbContext
                 .CelestialRows(Set<Celestial>().Where(body => body.SolarSystemId == id).OrderBy(body => body.Id))
                 .ToImmutableArray()
             : Definitions.CelestialsInSystem(id);
+
+    internal IEnumerable<CatalogCelestialDefinition> PlanetBodies(int[] systems) =>
+        !writable && Definitions.RuntimePrepared
+            ? systems
+                .Distinct()
+                .SelectMany(system => Definitions.CelestialsInSystem(system).AsEnumerable())
+                .Where(body => body.GroupId == PlanetCelestialGroup && body.Radius > 0)
+                .OrderBy(body => body.Id)
+            : ReadPlanetBodies(systems);
+
+    private IEnumerable<CatalogCelestialDefinition> ReadPlanetBodies(int[] systems) =>
+        CatalogProvider
+            .CelestialRows(
+                Set<Celestial>()
+                    .Where(body =>
+                        body.GroupId == PlanetCelestialGroup && body.Radius > 0 && EF.Parameter(systems).Contains(body.SolarSystemId)
+                    )
+                    .OrderBy(body => body.Id)
+            )
+            .AsEnumerable();
 }

@@ -10,7 +10,6 @@ using Eden.Gameplay.Dogma;
 using Eden.Gameplay.Drones;
 using Eden.Gameplay.Flight;
 using Eden.Gameplay.Loot;
-using Eden.Gameplay.Market;
 using Eden.Gameplay.Mining;
 using Eden.Gameplay.Skills;
 using Eden.Gameplay.Thermal;
@@ -70,11 +69,6 @@ internal sealed partial class LiveReadModels(LiveWorld owner, WorldDatabase data
         "WorldFreeSkillPoints"
     );
     private readonly ResidentSnapshot<long, long> _extraction = new("resident.extraction", "WorldSkillExtraction");
-    private readonly ResidentSnapshot<long, IReadOnlyList<LoyaltyBalance>> _loyalty = new(
-        "resident.loyalty",
-        "WorldPilot",
-        "WorldLoyaltyWallet"
-    );
     private readonly ResidentSnapshot<long, FrozenDictionary<DogmaAttributeId, double>> _fits = new(
         "resident.fit",
         "WorldFitRevision",
@@ -92,7 +86,7 @@ internal sealed partial class LiveReadModels(LiveWorld owner, WorldDatabase data
     );
 
     internal IReadOnlyList<AutoMiningModule> AutoMiningModules(long pilot, long ship, Func<IReadOnlyList<AutoMiningModule>> load) =>
-        Read(_autoMiningModules, (pilot, ship), load);
+        ReadSkillDependent(_autoMiningModules, (pilot, ship), pilot, load);
 
     private readonly ResidentSnapshot<(long Pilot, long Ship, MiningFamily Family), AutoMiningHold> _autoMiningHolds = new(
         "resident.autoMiningHold",
@@ -104,7 +98,7 @@ internal sealed partial class LiveReadModels(LiveWorld owner, WorldDatabase data
     );
 
     internal AutoMiningHold AutoMiningHold(long pilot, long ship, MiningFamily family, Func<AutoMiningHold> load) =>
-        Read(_autoMiningHolds, (pilot, ship, family), load);
+        ReadSkillDependent(_autoMiningHolds, (pilot, ship, family), pilot, load);
 
     private readonly ResidentSnapshot<int, IReadOnlyList<StaticSpaceObject>> _asteroids = new("resident.asteroids");
     private readonly ResidentSnapshot<(int System, MiningFamily Family, long Catalog), MiningSiteView> _miningSites = new(
@@ -156,13 +150,30 @@ internal sealed partial class LiveReadModels(LiveWorld owner, WorldDatabase data
 
     internal static LiveReadModels? Find(string path) => LiveWorld.Find(path)?.Reads;
 
-    private T Read<TKey, T>(ResidentSnapshot<TKey, T> cache, TKey key, Func<T> load, long now = 0, Func<T, long>? expires = null)
+    private T Read<TKey, T>(
+        ResidentSnapshot<TKey, T> cache,
+        TKey key,
+        Func<T> load,
+        long now = 0,
+        Func<T, long>? expires = null,
+        long? skillPilot = null
+    )
         where TKey : notnull
     {
-        return owner.Run(() => ReadOwned<TKey, T>(cache, key, load, now, expires), nameof(Read));
+        return owner.Run(() => ReadOwned(cache, key, load, now, expires, skillPilot), nameof(Read));
     }
 
-    private T ReadOwned<TKey, T>(ResidentSnapshot<TKey, T> cache, TKey key, Func<T> load, long now = 0, Func<T, long>? expires = null)
+    private T ReadSkillDependent<TKey, T>(ResidentSnapshot<TKey, T> cache, TKey key, long pilot, Func<T> load)
+        where TKey : notnull => Read(cache, key, load, skillPilot: pilot);
+
+    private T ReadOwned<TKey, T>(
+        ResidentSnapshot<TKey, T> cache,
+        TKey key,
+        Func<T> load,
+        long now = 0,
+        Func<T, long>? expires = null,
+        long? skillPilot = null
+    )
         where TKey : notnull
     {
         using var phase = SessionPerformance.Phase(cache.Name);
@@ -173,19 +184,30 @@ internal sealed partial class LiveReadModels(LiveWorld owner, WorldDatabase data
         {
             return load();
         }
+        if (skillPilot is not null)
+        {
+            now = owner.SimulationTime;
+        }
         if (cache.TryRead(key, now, out var cached))
         {
             return cached;
         }
+        long? skillDeadline = skillPilot is long pilot ? SkillDeadline(pilot, now) : null;
         var value = load();
         cache.Publish(
             key,
             value,
             now,
-            expires?.Invoke(value) ?? long.MaxValue,
+            skillDeadline ?? expires?.Invoke(value) ?? long.MaxValue,
             checked(ResidentSnapshot<TKey, T>.MinimumEntries + owner.CapsuleerJobs.Count)
         );
         return value;
+    }
+
+    private long SkillDeadline(long pilot, long now)
+    {
+        using var ownership = owner.EnterPersistence("read expert skill expiry");
+        return owner.Economy.ExpertSkillDeadline(pilot, now);
     }
 
     internal LiveLearningState Learning(long pilotId) =>
@@ -220,11 +242,8 @@ internal sealed partial class LiveReadModels(LiveWorld owner, WorldDatabase data
 
     internal long Extraction(long pilot, Func<long> load) => Read(_extraction, pilot, load);
 
-    internal IReadOnlyList<LoyaltyBalance> Loyalty(long pilot, Func<IReadOnlyList<LoyaltyBalance>> load) =>
-        Read(_loyalty, pilot, () => Array.AsReadOnly(load().ToArray()));
-
     internal IReadOnlyDictionary<DogmaAttributeId, double> Fit(long pilot, Func<IReadOnlyDictionary<DogmaAttributeId, double>> load) =>
-        Read(_fits, pilot, () => load().ToFrozenDictionary());
+        ReadSkillDependent(_fits, pilot, pilot, () => load().ToFrozenDictionary());
 
     internal IReadOnlyList<StaticSpaceObject> Asteroids(int system, Func<IReadOnlyList<StaticSpaceObject>> load) =>
         Read(_asteroids, system, () => Array.AsReadOnly(load().ToArray()));
@@ -336,16 +355,20 @@ internal sealed partial class LiveReadModels(LiveWorld owner, WorldDatabase data
         _missionSites.ObserveValues(
             changes,
             (_, view, change) =>
-                change.Table != "WorldAsteroid"
-                || change.Id == 0
-                || MissionMiningRules.IsDeposit(change.Id)
-                    && view.Sites.Any(s => s.Private && s.Id == MissionMiningRules.MissionId(change.Id))
+                change.Table switch
+                {
+                    "WorldAsteroid" => change.Id == 0
+                        || MissionMiningRules.IsDeposit(change.Id)
+                            && view.Sites.Any(s => s.Private && s.Id == MissionMiningRules.MissionId(change.Id)),
+                    "WorldHackingContainer" => MissionContainerRules.IsContainer(change.Id)
+                        && view.Sites.Any(s => s.Private && s.Objects.Any(o => o.Id == change.Id)),
+                    _ => true,
+                }
         );
         ObserveMissionTracking(changes);
         _learning.Observe(changes, (pilot, change) => change.Table != "WorldPilot" || pilot == change.Id);
         _points.Observe(changes, (pilot, change) => pilot == change.Id);
         _extraction.Observe(changes, (pilot, change) => pilot == change.Id);
-        _loyalty.Observe(changes, (pilot, change) => !change.Resident || pilot == change.Id);
         _fits.Observe(changes, (pilot, change) => change.Table == "WorldAccount" || pilot == change.Id);
         _autoMiningModules.Observe(changes, (key, change) => change.Table != "WorldFitRevision" || key.Pilot == change.Id);
         _autoMiningHolds.Observe(
@@ -396,7 +419,6 @@ internal sealed partial class LiveReadModels(LiveWorld owner, WorldDatabase data
         _learning.Clear();
         _points.Clear();
         _extraction.Clear();
-        _loyalty.Clear();
         _fits.Clear();
         _defenseProfiles.Clear();
         _asteroids.Clear();

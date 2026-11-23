@@ -1,4 +1,5 @@
 using Eden.Data.World.Drones;
+using Eden.Gameplay.Capsuleers;
 using Eden.Gameplay.Combat;
 using Eden.Gameplay.Docking;
 using Eden.Gameplay.Dogma;
@@ -68,7 +69,7 @@ internal sealed partial class LiveCombatRuntime
         {
             return false;
         }
-        if (owner.Economy.Inspect(world => world.TetherProtected(shipId, now)))
+        if (owner.Economy.TetherProtected(shipId, now))
         {
             return true;
         }
@@ -104,6 +105,10 @@ internal sealed partial class LiveCombatRuntime
             return true;
         }
         var attributes = npc.Attributes;
+        if (npc.Role == NpcRole.Sentry && ship.Position.DistanceTo(npc.Position) > NpcSentryRules.GridRange(attributes))
+        {
+            return false;
+        }
         if (
             attributes.TryGetValue(DogmaAttributeId.MaxTargetRange, out double targetingRange)
             && targetingRange > 0
@@ -121,7 +126,12 @@ internal sealed partial class LiveCombatRuntime
         {
             return false;
         }
-        if (now >= aggression.ReadyAt && NpcPopulationRules.HasDirectWeapon(attributes) && DroneControllers().ContainsKey(shipId))
+        if (
+            npc.Role != NpcRole.Sentry
+            && now >= aggression.ReadyAt
+            && NpcPopulationRules.HasDirectWeapon(attributes)
+            && DroneControllers().ContainsKey(shipId)
+        )
         {
             if (!FireAtDrone(ship, npc, aggression, now, ref roll, out shot))
             {
@@ -141,7 +151,12 @@ internal sealed partial class LiveCombatRuntime
         {
             return true;
         }
-        var paid = LiveNpcCombatRules.Fire(ship, npc, velocity, now, roll);
+        double incomingDamage = RattingRules.IncomingDamageMultiplier(
+            npc.Role,
+            ship.AutonomousPilot,
+            database.Settings.Capsuleers.RatDamageReductionPercent
+        );
+        var paid = LiveNpcCombatRules.Fire(ship, npc, velocity, now, roll, incomingDamage);
         if (paid.Shot.Health.Remaining.Destroyed)
         {
             // The durable action settles capsule, insurance, inventory and report together.

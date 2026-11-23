@@ -1,4 +1,5 @@
 using Eden.Gameplay.Characters;
+using Eden.Gameplay.Exploration;
 using Eden.Gameplay.Flight;
 using Eden.Gameplay.Inventory;
 using Eden.Gameplay.Market;
@@ -33,6 +34,16 @@ public enum MissionKind
     Combat,
     Mining,
     Trade,
+    AgentHandoff,
+    Choice,
+}
+
+public enum MissionScanKind
+{
+    Anomaly = 1,
+    Data,
+    Relic,
+    Gas,
 }
 
 // Build 3662168 appConst factionsPirates and factionsWhoseStandingsAreNotAffectedBySkillBonuses.
@@ -113,9 +124,23 @@ public sealed record MissionOffer(
     public MissionRetrieval? Retrieval { get; init; }
     public bool CombatComplete { get; init; }
     public MissionBonus? Bonus { get; init; }
+    public long? DeclineCooldownEndsAt { get; init; }
     public int EnemyFactionId { get; init; }
     public bool HasShipRestrictions { get; init; }
     public MissionItemReward? ItemReward { get; init; }
+    public MissionItemReward? CareerGift { get; init; }
+    public MissionItemReward? CareerBonusItem { get; init; }
+    public bool NonExpiring => ExpiresAt == long.MaxValue;
+    public double? ResearchPoints { get; init; }
+    public bool RequiresScanner { get; init; }
+    public int? EpicArcId { get; init; }
+    public long? EpicArcTargetAgentId { get; init; }
+    public int? EpicArcTargetStation { get; init; }
+    public int? EpicArcTargetSystem { get; init; }
+    public int? EpicArcTargetTypeId { get; init; }
+    public SpacePosition? EpicArcTargetPosition { get; init; }
+    public int? EpicArcStandingFactionId { get; init; }
+    public IReadOnlyList<MissionItemReward> AdditionalGifts { get; init; } = [];
 }
 
 public sealed record MissionStandingChange(long SourceId, double Before, double After);
@@ -131,6 +156,8 @@ public sealed record MissionUpdate(
 )
 {
     public MissionOffer? Continuation { get; init; }
+    public IReadOnlyList<long> RetiredAgentIds { get; init; } = [];
+    public long? CorporationPointsAfter { get; init; }
 }
 
 public sealed record MissionSite(
@@ -148,6 +175,14 @@ public sealed record MissionSite(
     public bool Deadspace { get; init; } = true;
     public bool Private { get; init; }
     public StaticSpaceObject? PublicBeacon { get; init; }
+    public CombatAnomaly? CareerScanner { get; init; }
+    public MissionVisitPoint? CareerVisit { get; init; }
+    public MissionVisitPoint? CareerHazard { get; init; }
+}
+
+public sealed record MissionVisitPoint(SpacePosition Position, double Range, long ObjectId, double Radius = 0)
+{
+    public bool Contains(SpacePosition position, double shipRadius = 0) => Position.DistanceTo(position) - Radius - shipRadius <= Range;
 }
 
 public sealed record MissionGate(long Id, SpacePosition Position, float Radius, SpacePosition Destination, bool RequiresClear)
@@ -159,6 +194,16 @@ public sealed record MissionGate(long Id, SpacePosition Position, float Radius, 
 
 public interface IPilotMissions
 {
+    IReadOnlySet<long> CompletedCareerAgents(long pilotId, IReadOnlySet<long> agentIds);
+    IReadOnlyList<long> AvailableEventAgents(long pilotId, IReadOnlySet<long> agentIds);
+    IReadOnlyList<EpicArcProgress> ArcStatus(long pilotId) => [];
+    bool EpicArcAgentAvailable(long pilotId, long agentId) => false;
+    IReadOnlyList<EpicArcMessage> EpicArcMessages() => [];
+    IReadOnlyList<EpicArcChoice> EpicArcChoices(long pilotId, long agentId) => [];
+    MissionUpdate ChooseEpicArc(long pilotId, long agentId, long offerId, int missionId) =>
+        throw new InvalidDataException("This epic arc choice is unavailable.");
+    long? EpicArcReplayAt(long pilotId, long agentId) => null;
+    MissionUpdate? ArriveEpicArcAgent(long pilotId, long agentId) => null;
     IReadOnlyList<MissionTrackingEntry> Tracking(long pilotId);
     AgentAccess Access(long pilotId, long agentId);
     AgentServiceInformation Information(long pilotId, long agentId);
@@ -170,7 +215,10 @@ public interface IPilotMissions
     bool CanShareReward(long pilotId, long agentId, long offerId);
     MissionUpdate CompleteWithFleet(long pilotId, long agentId, long offerId);
     IReadOnlyList<MissionSite> Sites(int systemId);
+    IReadOnlyList<CombatAnomaly> TrainingSites(long pilotId, int systemId) =>
+        Sites(systemId).Where(site => site.PilotId == pilotId).Select(site => site.CareerScanner).OfType<CombatAnomaly>().ToArray();
     void Arrive(int systemId, SpacePosition position);
+    bool VisitCareerSite(long pilotId, int systemId, long missionId) => false;
     MissionGate Gate(long pilotId, long gateId);
     MissionGateActivation ActivateGate(long pilotId, long gateId, SpacePosition destination);
     SpacePosition WarpDestination(int systemId, SpacePosition origin, SpacePosition destination);
@@ -203,6 +251,8 @@ public static class MissionRules
     public const int NpcsPerMission = 1000;
     public const int MembersPerWave = 100;
     public const int ActionStride = 32;
+
+    public static bool IsSiteId(long id) => id > FirstSiteId && id < FirstNpcId;
 
     // Build 3662168 client/missions expirationTime is measured in minutes.
     // Non-expiring and longer special-agent lifecycles are not admitted here.

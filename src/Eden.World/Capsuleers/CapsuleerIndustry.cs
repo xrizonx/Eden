@@ -41,7 +41,8 @@ internal sealed partial class CapsuleerIndustry(
     PilotReprocessingStore refinery,
     PilotMarketStore market,
     PilotFittingStore fitting,
-    PilotPlanetaryIndustryStore planetary
+    PilotPlanetaryIndustryStore planetary,
+    CapsuleerCareerTraining careerTraining
 )
 {
     private static readonly CatalogDefinition<bool> s_ironCompatible = new(
@@ -86,12 +87,29 @@ internal sealed partial class CapsuleerIndustry(
             .Where(item => item.LocationId == station && item.FlagId == CorporationStorageRules.MarketDeliveriesFlag && !item.Singleton)
             .AsEnumerable();
 
-    private static OwnedItem[] Hangar(WorldAction world, long pilot, long station) =>
-        world
-            .Filter<OwnedItem>(item => item.OwnerId == pilot)
-            .Where(item => item.LocationId == station && item.FlagId == (int)InventoryFlag.Hangar)
-            .OrderBy(item => item.Id)
-            .ToArray();
+    private static OwnedItem[] Hangar(WorldAction world, long pilot, long station)
+    {
+        if (world is not EconomyTransaction resident)
+        {
+            return world
+                .Filter<OwnedItem>(item => item.OwnerId == pilot)
+                .Where(item => item.LocationId == station && item.FlagId == (int)InventoryFlag.Hangar)
+                .OrderBy(item => item.Id)
+                .ToArray();
+        }
+        var items = (EconomySet<OwnedItem, EconomyOwnedItem>)resident.Set<OwnedItem>();
+        var owned = items.IndexedKeys(nameof(OwnedItem.OwnerId), pilot);
+        var located = items.IndexedKeys(nameof(OwnedItem.LocationId), station);
+        var stacks = items.SelectIndexedRows(
+            owned.Count <= located.Count ? owned : located,
+            item => Matches(item.OwnerId, item.LocationId, item.FlagId),
+            item => Matches(item.OwnerId, item.LocationId, item.FlagId)
+        );
+        Array.Sort(stacks, static (left, right) => left.Id.CompareTo(right.Id));
+        return stacks;
+
+        bool Matches(long owner, long location, int flag) => owner == pilot && location == station && flag == (int)InventoryFlag.Hangar;
+    }
 
     // The operator contributes already-owned ISK only for the immediate shortfall. The corporate
     // and personal ledgers commit with the purchase or expense under the same resident owner.
@@ -171,6 +189,9 @@ internal sealed partial class CapsuleerIndustry(
         world
             .Filter<IndustryJob>(job => job.PilotId == pilot)
             .Where(job => job.Status == IndustryJobStatus.Installed && job.OutputCorporationId.HasValue);
+
+    internal static bool HasStationFactoryJob(EconomyTransaction world, long pilot, int station) =>
+        InstalledFactoryJobs(world, pilot).Any(job => job.StationId == station);
 
     internal bool Produce(
         EconomyTransaction world,
@@ -255,6 +276,11 @@ internal sealed partial class CapsuleerIndustry(
             return false;
         }
 
+        if (bids.Count > 0 && AssignedFactoryOrders(world, operatorPilot, now) is { Count: > 0 } assigned)
+        {
+            bids = bids.SelectMany(group => group).Where(order => !assigned.Contains(order.Id)).ToLookup(order => order.TypeId);
+        }
+
         var hangar = Hangar(world, pilot, location);
         listed.UnionWith(depot.Select(item => item.TypeId));
         var installed = jobs.Where(job => job.Status == IndustryJobStatus.Installed).ToArray();
@@ -268,7 +294,7 @@ internal sealed partial class CapsuleerIndustry(
                 job.Activity == IndustryActivity.Reaction
                 || catalog.FittingType(job.ProductTypeId)?.GroupId == StructureRules.FuelBlockGroup
             );
-        if (!world.Settings.FreshUniverse && (installed.Length == 0 || awaitingRefinery) && !listed.Contains(CapsuleerMinerTwoRules.Module))
+        if ((installed.Length == 0 || awaitingRefinery) && !listed.Contains(CapsuleerMinerTwoRules.Module))
         {
             var minerTwo = ProduceMinerTwo(world, catalog, operatorPilot, corporation, hangar, minerTwoBids, now, out minerTwoSupply);
             if (minerTwo.HasValue)
@@ -420,10 +446,6 @@ internal sealed partial class CapsuleerIndustry(
         if (rank <= 0)
         {
             return false;
-        }
-        if (world.Settings.FreshUniverse)
-        {
-            return PilotSkillReader.Level(world, catalog, pilot, skill.TypeId) >= skill.Level;
         }
         var trained =
             world.Set<PilotSkill>().Find(pilot, skill.TypeId)

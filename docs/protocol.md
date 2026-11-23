@@ -39,7 +39,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 | Topic | Coverage |
 | --- | --- |
 | [The Agency](protocol/agency.md) | Native activity directories, Agent Finder and mission cards. |
-| [Agent missions and research](protocol/agents.md) | Offers, objectives, standings, storylines, militia missions and R&D agents. |
+| [Agent missions and research](protocol/agents.md) | Offers, objectives, standings, storylines, career chains, epic arcs, militia missions and R&D agents. |
 | [Information modules and salvage](protocol/information.md) | Scanning, hacking, targeting, tractors and salvage. |
 | [Wormholes](protocol/wormholes.md) | Connections, mass and lifetime, Sleeper encounters and native system effects. |
 | [Abyssal Deadspace](protocol/abyssal.md) | Filaments, pocket timers, room encounters, ship loss and recovery. |
@@ -65,16 +65,30 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Agent missions and research
 
+- [NPC health reinforcement triggers](protocol/agents.md#npc-health-reinforcement-triggers--november-23-2026)
+- [Timed mission reinforcements](protocol/agents.md#timed-mission-reinforcements--november-23-2026)
+- [Rogue Drone Harassment](protocol/agents.md#rogue-drone-harassment--november-23-2026)
+- [Level-four Mordus Headhunters](protocol/agents.md#level-four-mordus-headhunters--november-23-2026)
+- [Station Event agent availability](protocol/agents.md#station-event-agent-availability--november-23-2026)
+- [Epic arc chains](protocol/agents.md#epic-arc-chains--november-22-2026)
+- [Career agent chains](protocol/agents.md#career-agent-chains--november-22-2026)
+- [Mission gap expansion](protocol/agents.md#mission-gap-expansion--november-22-2026)
+- [Level-three Blockade variants](protocol/agents.md#level-three-blockade-variants--november-23-2026)
+- [The Blockade variants](protocol/agents.md#the-blockade-variants--november-23-2026)
+- [Bounded mission site placement](protocol/agents.md#bounded-mission-site-placement--november-22-2026)
 - [Data Center family and one-time space agents](protocol/agents.md#data-center-family-and-one-time-space-agents--november-15-2026)
 - [Resident trade objectives and item rewards](protocol/agents.md#resident-trade-objectives-and-item-rewards--november-15-2026)
 - [Mission branch integration](protocol/agents.md#mission-branch-integration--november-15-2026)
 - [Mission spawn clearance and storyline settlement](protocol/agents.md#mission-spawn-clearance-and-storyline-settlement--november-15-2026)
 - [Resident mission-chain progression](protocol/agents.md#resident-mission-chain-progression--november-15-2026)
 - [Verified spy objectives](protocol/agents.md#verified-spy-objectives--november-15-2026)
+- [Higher-level Guristas and Serpentis Spies](protocol/agents.md#higher-level-guristas-and-serpentis-spies--november-23-2026)
 - [Level-three combat content and Sansha outposts](protocol/agents.md#level-three-combat-content-and-sansha-outposts--november-15-2026)
 - [Retribution outpost missions](protocol/agents.md#retribution-outpost-missions--november-15-2026)
 - [Singleton mission cargo](protocol/agents.md#singleton-mission-cargo--november-14-2026)
 - [Catalog mission deadlines](protocol/agents.md#catalog-mission-deadlines--november-14-2026)
+- [Reported security mission targets](protocol/agents.md#reported-security-mission-targets--november-23-2026)
+- [Stargate Campers and guarded structures](protocol/agents.md#stargate-campers-and-guarded-structures--november-23-2026)
 - [Avenge a Fallen Comrade](protocol/agents.md#avenge-a-fallen-comrade--november-14-2026)
 - [Timed mission bonuses](protocol/agents.md#timed-mission-bonuses--november-14-2026)
 - [Resident mission sites and research agents](protocol/agents.md#resident-mission-sites-and-research-agents)
@@ -140,20 +154,23 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Autonomous capsuleers
 
+- [Unattended capsuleer simulation](protocol/capsuleers.md#unattended-capsuleer-simulation--november-23-2026)
+- [Ship state after gate transfers](protocol/capsuleers.md#ship-state-after-gate-transfers)
+- [Population inspector](protocol/capsuleers.md#population-inspector)
+- [Pilot creation and offscreen admission under load](protocol/capsuleers.md#pilot-creation-and-offscreen-admission-under-load)
+- [Unvisited systems in Established Universe](protocol/capsuleers.md#unvisited-systems-in-established-universe)
+- [Bot PvP fit progression and rat damage](protocol/capsuleers.md#bot-pvp-fit-progression-and-rat-damage)
+- [Activity-funded PvP ships](protocol/capsuleers.md#activity-funded-pvp-ships)
+- [Demand-driven bot work](protocol/capsuleers.md#demand-driven-bot-work)
+- [Queue recovery at 10,000 pilots](protocol/capsuleers.md#queue-recovery-at-10000-pilots)
 - [Autonomous pilot creation under load](protocol/capsuleers.md#autonomous-pilot-creation-under-load)
 - [Bot population limits and work regions](protocol/capsuleers.md#bot-population-limits-and-work-regions)
 - [Bot roster and activity controls](protocol/capsuleers.md#bot-roster-and-activity-controls)
 - [Bot activity settings](protocol/capsuleers.md#bot-activity-settings)
 - [Bot data and relic exploration](protocol/capsuleers.md#bot-data-and-relic-exploration)
 - [Bot wreck salvage and trade](protocol/capsuleers.md#bot-wreck-salvage-and-trade)
-- [Fresh-world frontier patrols](protocol/capsuleers.md#fresh-world-frontier-patrols)
-- [Fresh-world replacement markets](protocol/capsuleers.md#fresh-world-replacement-markets)
-- [Fresh-world corporate careers](protocol/capsuleers.md#fresh-world-corporate-careers)
-- [Fresh-universe hauling and bounty careers](protocol/capsuleers.md#fresh-universe-hauling-and-bounty-careers)
 - [First bot career ships](protocol/capsuleers.md#first-bot-career-ships)
 - [Earned bot career training](protocol/capsuleers.md#earned-bot-career-training)
-- [Fresh-universe starter industry](protocol/capsuleers.md#fresh-universe-starter-industry)
-- [Additional fresh-universe founder cohorts](protocol/capsuleers.md#additional-fresh-universe-founder-cohorts)
 - [Regional procurement for bot corporations](protocol/capsuleers.md#regional-procurement-for-bot-corporations)
 - [Dynamic paid ship replacement](protocol/capsuleers.md#dynamic-paid-ship-replacement)
 - [Autonomous Miner II production](protocol/capsuleers.md#autonomous-miner-ii-production)
@@ -194,6 +211,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 - [Batched population startup](protocol/capsuleers.md#batched-population-startup--november-10-2026)
 - [Simulated-pilot target lock retention](protocol/capsuleers.md#simulated-pilot-target-lock-retention-november-9-2026)
 - [Nullsec transit encounters](protocol/capsuleers.md#nullsec-transit-encounters)
+- [Independent nullsec expeditions](protocol/capsuleers.md#independent-nullsec-expeditions)
 - [Stalled gate traffic and belt pursuit](protocol/capsuleers.md#stalled-gate-traffic-and-belt-pursuit)
 - [Temporary gate camps](protocol/capsuleers.md#temporary-gate-camps)
 - [Nullsec PvP roams](protocol/capsuleers.md#nullsec-pvp-roams)
@@ -238,7 +256,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Capital ships and jump logistics
 
-- [Fresh-world Rhea acquisition](protocol/capital-logistics.md#fresh-world-rhea-acquisition)
+- [Standard market Rhea acquisition](protocol/capital-logistics.md#standard-market-rhea-acquisition)
 - [Dreadnoughts and force auxiliaries](protocol/capital-logistics.md#dreadnoughts-and-force-auxiliaries)
 - [Carrier launch decks and light attack fighters](protocol/capital-logistics.md#carrier-launch-decks-and-light-attack-fighters)
 - [Fighter rocket and torpedo salvos](protocol/capital-logistics.md#fighter-rocket-and-torpedo-salvos)
@@ -293,6 +311,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 - <a id="persistent-home-stations-and-docked-clone-transfer"></a>[Persistent home stations and docked clone transfer](protocol/characters.md#persistent-home-stations-and-docked-clone-transfer)
 - <a id="catalog-agent-directory-and-saved-agents"></a>[Catalog agent directory and saved agents](protocol/characters.md#catalog-agent-directory-and-saved-agents)
 - <a id="persistent-personal-jump-clones"></a>[Persistent personal jump clones](protocol/characters.md#persistent-personal-jump-clones)
+- [Pochven NPC clone bays](protocol/characters.md#pochven-npc-clone-bays)
 - <a id="persistent-account-redemption"></a>[Persistent account redemption](protocol/characters.md#persistent-account-redemption)
 - <a id="persistent-unallocated-skill-points"></a>[Persistent unallocated skill points](protocol/characters.md#persistent-unallocated-skill-points)
 - [Skill-point queue call latency, November 13, 2026](protocol/characters.md#skill-point-queue-call-latency-november-13-2026)
@@ -307,6 +326,9 @@ scope tested at the time. Add new findings to the owning topic page and link the
 - <a id="skill-training-queue-november-2-2026"></a>[Skill training queue, November 2, 2026](protocol/characters.md#skill-training-queue-november-2-2026)
 - [World skill training speed, November 21, 2026](protocol/characters.md#world-skill-training-speed-november-21-2026)
 - <a id="local-skill-plan-gateway-november-2-2026"></a>[Local skill-plan gateway, November 2, 2026](protocol/characters.md#local-skill-plan-gateway-november-2-2026)
+- [Persistent personal skill plans](protocol/characters.md#persistent-personal-skill-plans)
+- [Resident Expert Systems](protocol/characters.md#resident-expert-systems)
+- [Direct Expert System redemption](protocol/characters.md#direct-expert-system-redemption)
 - <a id="character-creation-and-first-spawn-november-2-2026"></a>[Character creation and first spawn, November 2, 2026](protocol/characters.md#character-creation-and-first-spawn-november-2-2026)
 - <a id="initial-corvette-fitting"></a>[Initial corvette fitting](protocol/characters.md#initial-corvette-fitting)
 
@@ -340,6 +362,8 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Combat and NPC populations
 
+- [Server killboard](protocol/combat.md#server-killboard)
+- [NPC identities for encounter waves](protocol/combat.md#npc-identities-for-encounter-waves)
 - [Aggression box indicators](protocol/combat.md#aggression-box-indicators--november-15-2026)
 - [Missile impact timing and damage application](protocol/combat.md#missile-impact-timing-and-damage-application)
 - [NPC weapon capability correction](protocol/combat.md#npc-weapon-capability-correction--november-15-2026)
@@ -356,6 +380,8 @@ scope tested at the time. Add new findings to the owning topic page and link the
 - [Smartbombs, November 12, 2026](protocol/combat.md#smartbombs-november-12-2026)
 - [CONCORD overview color during attacks, November 9, 2026](protocol/combat.md#concord-overview-color-during-attacks--november-9-2026)
 - [CONCORD criminal response, November 9, 2026](protocol/combat.md#concord-criminal-response--november-9-2026)
+- [Lowsec unlawful aggression penalties](protocol/combat.md#lowsec-unlawful-aggression-penalties)
+- [Bounty and activity SP ticks](protocol/combat.md#bounty-and-activity-sp-ticks)
 - [Silent bounty SP rewards, November 9, 2026](protocol/combat.md#silent-bounty-sp-rewards-november-9-2026)
 - [NPC bounty skill point rewards, November 9, 2026](protocol/combat.md#npc-bounty-skill-point-rewards-november-9-2026)
 - [NPC population template exclusion and resident spawn pools, November 8, 2026](protocol/combat.md#npc-population-template-exclusion-and-resident-spawn-pools-november-8-2026)
@@ -472,6 +498,10 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Faction Warfare
 
+- [Battlefield rally points, friendly fire and defender loot](protocol/faction-warfare.md#battlefield-rally-points-friendly-fire-and-defender-loot)
+- [Aldranette–Nennamaila militia patrols](protocol/faction-warfare.md#aldranettenennamaila-militia-patrols)
+- [Dynamic faction warfare patrols](protocol/faction-warfare.md#dynamic-faction-warfare-patrols)
+- [Resident faction warfare capture and combat eligibility](protocol/faction-warfare.md#resident-capture-and-combat-eligibility)
 - [Theaters of War shipcaster reads, November 21, 2026](protocol/faction-warfare.md#theaters-of-war-shipcaster-reads--november-21-2026)
 - [Faction Warfare militia missions, ranks and combat statistics, November 20, 2026](protocol/faction-warfare.md#militia-missions-ranks-and-combat-statistics--november-20-2026)
 - [Faction Warfare Advantage and battlefields, November 20, 2026](protocol/faction-warfare.md#advantage-and-battlefields--november-20-2026)
@@ -484,9 +514,14 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Fitting and module families
 
+- [Dragging loaded charges between fitting slots](protocol/fitting.md#dragging-loaded-charges-between-fitting-slots)
+- [Module online state in space](protocol/fitting.md#module-online-state-in-space)
+- [Trained skills in fitting simulation](protocol/fitting.md#trained-skills-in-fitting-simulation)
+- [Multifit rig checkbox on packaged ships](protocol/fitting.md#multifit-rig-checkbox-on-packaged-ships-november-22-2026)
 - [Multifit exhausted-stack notifications](protocol/fitting.md#multifit-exhausted-stack-notifications-november-17-2026)
 - [heat during resident ship transitions](protocol/fitting.md#heat-during-resident-ship-transitions)
 - [T2 subcapital hull admission, November 9, 2026](protocol/fitting.md#t2-subcapital-hull-admission-november-9-2026)
+- [Marauder Bastion modules](protocol/fitting.md#marauder-bastion-modules)
 - [Multifit item-creation capability, November 9, 2026](protocol/fitting.md#multifit-item-creation-capability-november-9-2026)
 - [Native MultiFit Create Missing](protocol/fitting.md#native-multifit-create-missing)
 - [CPU and power-grid skill budgets, November 9, 2026](protocol/fitting.md#cpu-and-power-grid-skill-budgets-november-9-2026)
@@ -527,6 +562,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 - [Apply a simulated fitting to the active ship](protocol/fitting.md#apply-a-simulated-fitting-to-the-active-ship)
 - [Bulk and corporation saved fittings, November 11, 2026](protocol/fitting.md#bulk-and-corporation-saved-fittings--november-11-2026)
 - <a id="personal-saved-fitting-plans-november-6-2026"></a>[Personal saved fitting plans (November 6, 2026)](protocol/fitting.md#personal-saved-fitting-plans-november-6-2026)
+- [Grouped turrets on the target bracket](protocol/fitting.md#grouped-turrets-on-the-target-bracket)
 - <a id="persistent-weapon-grouping"></a>[Persistent weapon grouping](protocol/fitting.md#persistent-weapon-grouping)
 - <a id="shield-boosters-and-physical-skillbooks-november-2-2026"></a>[Shield boosters and physical skillbooks, November 2, 2026](protocol/fitting.md#shield-boosters-and-physical-skillbooks-november-2-2026)
 - <a id="fitting-defense-rate-selector-november-2-2026"></a>[Fitting defense-rate selector, November 2, 2026](protocol/fitting.md#fitting-defense-rate-selector-november-2-2026)
@@ -578,10 +614,12 @@ scope tested at the time. Add new findings to the owning topic page and link the
 ### Inventory and ship ownership
 
 - [Inactive ship transfers and move-rule audit](protocol/inventory.md#inactive-ship-transfers-and-move-rule-audit-november-15-2026)
+- [Crystal damage in inventory](protocol/inventory.md#crystal-damage-in-inventory)
 - [Container stacking and fitting](protocol/inventory.md#container-stacking-and-fitting-november-15-2026)
 - [Container item menus](protocol/inventory.md#container-item-context-menus-november-15-2026)
 - [Resident cargo container access](protocol/inventory.md#resident-cargo-container-access-november-15-2026)
 - [Criminal loot and lawful recovery](protocol/inventory.md#criminal-loot-and-lawful-recovery-november-14-2026)
+- [NPC wreck ownership from damage](protocol/inventory.md#npc-wreck-ownership-from-damage)
 - [Loot abandonment and theft](protocol/inventory.md#loot-abandonment-and-theft-november-14-2026)
 - [Direct player trading](protocol/inventory.md#direct-player-trading)
 - [Targeted stack merging, November 9, 2026](protocol/inventory.md#targeted-stack-merging-november-9-2026)
@@ -594,6 +632,8 @@ scope tested at the time. Add new findings to the owning topic page and link the
 - <a id="personal-ship-insurance"></a>[Personal ship insurance](protocol/inventory.md#personal-ship-insurance)
 - <a id="native-inventory-stack-division"></a>[Native inventory stack division](protocol/inventory.md#native-inventory-stack-division)
 - <a id="persistent-ship-dirt-and-native-cleaning"></a>[Persistent ship dirt and native cleaning](protocol/inventory.md#persistent-ship-dirt-and-native-cleaning)
+- [First-party ship SKIN licenses](protocol/inventory.md#first-party-ship-skin-licenses)
+- [First-party ship SKIN application](protocol/inventory.md#first-party-ship-skin-application)
 - <a id="persistent-cargo-and-hangar-items-november-2-2026"></a>[Persistent cargo and hangar items, November 2, 2026](protocol/inventory.md#persistent-cargo-and-hangar-items-november-2-2026)
 - <a id="partial-stack-capacity-recovery-november-2-2026"></a>[Partial-stack capacity recovery, November 2, 2026](protocol/inventory.md#partial-stack-capacity-recovery-november-2-2026)
 - <a id="venture-ownership-boarding-and-mining-holds"></a>[Venture ownership, boarding and mining holds](protocol/inventory.md#venture-ownership-boarding-and-mining-holds)
@@ -603,9 +643,12 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Mining, industry and markets
 
-- [Market presets on fresh worlds and demand batching](protocol/industry.md#market-presets-on-fresh-worlds-and-demand-batching)
+- [Browsing industry facilities from any station](protocol/industry.md#browsing-industry-facilities-from-any-station)
+- [Regional market location while docked at Upwell structures](protocol/industry.md#regional-market-location-while-docked-at-upwell-structures)
+- [Market preset changes and demand batching](protocol/industry.md#market-preset-changes-and-demand-batching)
 - [Development market supply for bots](protocol/industry.md#development-market-supply-for-bots)
 - [Standard market and unified economy settings](protocol/industry.md#standard-live-order-market-and-unified-economy-settings-november-16-2026)
+- [Standard market preparation during bot jobs](protocol/industry.md#standard-market-preparation-during-bot-jobs)
 - [container industry workflows](protocol/industry.md#container-industry-workflows-november-15-2026)
 - [job facility lookups](protocol/industry.md#job-facility-batch-lookups-november-15-2026)
 - [Bulk industry-job delivery](protocol/industry.md#bulk-industry-job-delivery--november-11-2026)
@@ -628,6 +671,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 - [Modulated ore mining and crystals, November 9, 2026](protocol/industry.md#modulated-ore-mining-and-crystals-november-9-2026)
 - [Catalog-wide station production, November 9, 2026](protocol/industry.md#catalog-wide-station-production-november-9-2026)
 - [Science integration on main, November 9, 2026](protocol/industry.md#science-integration-on-main-november-9-2026)
+- [Personal LP balances across system jumps](protocol/industry.md#personal-lp-balances-across-system-jumps)
 - [LP-wallet nearest-station lookup, November 9, 2026](protocol/industry.md#lp-wallet-nearest-station-lookup-november-9-2026)
 - [Production-driven market progression, November 8, 2026](protocol/industry.md#production-driven-market-progression--november-8-2026)
 - [LP-store Resource Wars presence read, November 8, 2026](protocol/industry.md#lp-store-resource-wars-presence-read-november-8-2026)
@@ -663,6 +707,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Modding
 
+- [Administration package uploads](protocol/modding.md#administration-package-uploads)
 - [Regional Express](protocol/modding.md#regional-express--november-15-2026)
 - [Client package retention](protocol/modding.md#client-package-retention--november-15-2026)
 
@@ -678,7 +723,9 @@ scope tested at the time. Add new findings to the owning topic page and link the
 - [Dynamic and scan-result bookmarks](protocol/navigation.md#dynamic-and-scan-result-bookmarks--november-11-2026)
 - [Star map statistics](protocol/navigation.md#star-map-statistics-november-20-2026)
 - [Native map navigation support](protocol/navigation.md#native-map-navigation-support-november-9-2026)
+- [Personal map visit history](protocol/navigation.md#personal-map-visit-history)
 - [Cloaking and standard micro-jump drives](protocol/navigation.md#cloaking-and-standard-micro-jump-drives-november-9-2026)
+- [Subcapital Micro Jump Field Generator](protocol/navigation.md#subcapital-micro-jump-field-generator)
 - [shorter gate transitions](protocol/navigation.md#shorter-gate-transitions-and-spread-arrivals--november-9-2026)
 - [Insider QA tab, November 21, 2026](protocol/navigation.md#insider-qa-tab-november-21-2026)
 - [Insider tools and reward destinations, November 9, 2026](protocol/navigation.md#insider-tools-and-reward-destinations-november-9-2026)
@@ -693,6 +740,8 @@ scope tested at the time. Add new findings to the owning topic page and link the
 - [Sovereignty information tab, November 8, 2026](protocol/navigation.md#sovereignty-information-tab-november-8-2026)
 - [Null-security system information, November 8, 2026](protocol/navigation.md#null-security-system-information-november-8-2026)
 - [Stargate handoff timing, November 14, 2026](protocol/navigation.md#stargate-handoff-timing-november-14-2026)
+- [Focused interdiction at NPC stargates](protocol/navigation.md#focused-interdiction-at-npc-stargates)
+- [Interdiction cleanup during session ticks](protocol/interdiction.md#interdiction-cleanup-during-session-ticks)
 - [Empty-space context menu latency](protocol/navigation.md#empty-space-context-menu-latency)
 - [Aligning and native autopilot, November 11, 2026](protocol/navigation.md#aligning-and-native-autopilot-november-11-2026)
 - [Direct station-to-space TR, November 8, 2026](protocol/navigation.md#direct-station-to-space-tr-november-8-2026)
@@ -749,7 +798,11 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Player Upwell structures
 
+- [Warp disruption and Upwell docking](protocol/structures.md#warp-disruption-and-upwell-docking)
 - [Structures gap audit](protocol/structures.md#structures-gap-audit)
+- [Cargo Deposit at dockable Upwell structures](protocol/structures.md#cargo-deposit-at-dockable-upwell-structures)
+- [Cargo Deposit at FLEX navigation structures](protocol/structures.md#cargo-deposit-at-flex-navigation-structures)
+- [Personal Deliveries at Upwell structures](protocol/structures.md#personal-deliveries-at-upwell-structures)
 - [Structure GM commands](protocol/structures.md#structure-gm-commands)
 - [Standup Focused Warp Disruptors](protocol/structures.md#standup-focused-warp-disruptors)
 - [Standup stasis webifiers](protocol/structures.md#standup-stasis-webifiers)
@@ -776,10 +829,14 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Session performance and resident state
 
-- [Bot CPU and the fresh-world population ceiling](protocol/performance.md#bot-cpu-and-the-fresh-world-population-ceiling)
-- [Fresh-world backlog during starter ore sales](protocol/performance.md#fresh-world-backlog-during-starter-ore-sales)
-- [Sustaining expanded fresh-world bot populations](protocol/performance.md#sustaining-expanded-fresh-world-bot-populations)
-- [Mature fresh-world market and checkpoint throughput](protocol/performance.md#mature-fresh-world-market-and-checkpoint-throughput)
+- [SQL-free gameplay and cold market preparation](protocol/performance.md#sql-free-gameplay-and-cold-market-preparation)
+- [Planetary sourcing and tether waits during bot trades](protocol/performance.md#planetary-sourcing-and-tether-waits-during-bot-trades)
+- [Session frames blocked by docked bot trades](protocol/performance.md#session-frames-blocked-by-docked-bot-trades)
+- [Bot CPU and the historical population ceiling](protocol/performance.md#bot-cpu-and-the-historical-population-ceiling)
+- [Bot backlog during starter ore sales](protocol/performance.md#bot-backlog-during-starter-ore-sales)
+- [Sustaining expanded bot populations](protocol/performance.md#sustaining-expanded-bot-populations)
+- [Mature bot market and checkpoint throughput](protocol/performance.md#mature-bot-market-and-checkpoint-throughput)
+- [Standard market bot throughput on HostCram](protocol/performance.md#standard-market-bot-throughput-on-hostcram)
 - [CPU profiling at 2,500 autonomous capsuleers](protocol/performance.md#cpu-profiling-at-2500-autonomous-capsuleers)
 - [Site history discovery and identity maxima](protocol/performance.md#site-history-discovery-and-identity-maxima-november-15-2026)
 - [Population validation during travel](protocol/performance.md#population-validation-during-travel-november-15-2026)
@@ -883,7 +940,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Sovereignty
 
-- [Fresh-world alliance and first-claim progression](protocol/sovereignty.md#fresh-world-alliance-and-first-claim-progression)
+- [Alliance Systems window](protocol/sovereignty.md#alliance-systems-window)
 - [Autonomous first claims](protocol/sovereignty.md#autonomous-first-claims)
 - [Bot home defense and upkeep](protocol/sovereignty.md#bot-home-defense-and-upkeep)
 - [Neutral hub deployment and Entosis capture, November 16, 2026](protocol/sovereignty.md#neutral-hub-deployment-and-entosis-capture--november-16-2026)
@@ -940,8 +997,10 @@ scope tested at the time. Add new findings to the owning topic page and link the
 ### World configuration
 
 - [First-start world setup](protocol/world-configuration.md#first-start-world-setup)
+- [Retired world profile](protocol/world-configuration.md#retired-world-profile)
 - [Administration settings with decimal-comma locales](protocol/world-configuration.md#administration-settings-with-decimal-comma-locales-november-20-2026)
 - [Optional data imports in server administration](protocol/world-configuration.md#optional-data-imports-in-server-administration)
+- [Resuming interrupted zKillboard imports](protocol/world-configuration.md#resuming-interrupted-zkillboard-imports)
 - [Custom gameplay switches](protocol/world-configuration.md#custom-gameplay-switches-november-15-2026)
 - [Published administration assets](protocol/world-configuration.md#published-administration-framework-assets-november-15-2026)
 - [Minimum corporation age for anchoring](protocol/world-configuration.md#minimum-corporation-age-for-anchoring-november-16-2026)

@@ -2,6 +2,369 @@
 
 [Protocol index](../protocol.md)
 
+## Unattended capsuleer simulation — November 23, 2026
+
+A production log from the November 23 incident showed active background jobs before the last player disconnected and almost
+no checkpoint generation change between 10:02 and 10:07 UTC. The world clock previously froze when the last selection lease
+ended. The live server now starts the resident bot clock from the saved elapsed time when its listeners come up. The scheduler
+wakes to admit existing jobs even with no selections, and eligible unvisited rosters can prepare in their existing bounded turns.
+Entering or leaving a system still changes only which grids need native scene presentation. The existing checkpoint cadence
+persists clock and job progress during unattended operation. Enable or disable this through **Run bots without players**.
+
+Unattended scheduling is Eden policy. The local EVE.js reference advances NPC work from its scene simulation tick in
+`server/src/space/runtime/scene/tick.js`. Eden continues to use the resident deadlines and catalog gate geometry for unobserved
+flights. [EVE University stargates](https://wiki.eveuniversity.org/Stargates)
+
+**Automated validation**
+
+The exact `Test-Feature.ps1` filter matched `SavedTrafficRunsBeforeTheFirstPlayerAndAfterTheLastLeavesAcrossRestart`,
+`SavedTrafficCrossesUnobservedSystemsAndResumesAfterRestart`, `UnattendedRuntimePreparesUnvisitedRostersWithoutAnObserver`,
+and both cases of `SettingsSaveUpdatesStatusAndKeepsControlsInteractiveAcrossRepeatedSaves`. All five passed in 16.03 seconds
+after an 8.07-second build. The replay checked a reciprocal route, zero native pilot contacts with no observers, and a resume
+from the saved clock and job across one simulated hour of downtime.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+**Optional maintainer checks**
+
+While nobody is logged in, refresh Population and compare one bot's location or progress across two checkpoints.
+
+## Ship state after gate transfers
+
+An incident reported a capsuleer `GateTransfer` with “The ship's system membership changed,” followed by
+maintenance failures and a client disconnect. Regression tests built from `50aa7128` reproduced the exception
+in both health and heat reads scoped to the departure system after a committed transfer.
+The health service now reads the current ship through the
+resident world when the scoped combat runtime cannot serve it. Heat reads resolve the current system under
+persistence coordination. A departing ship's clean combat cache is discarded so its next visit loads any damage or
+fitting changes made while away. Combat actions still require the ship to belong to the system executing the action.
+
+[EVE University stargates](https://wiki.eveuniversity.org/Stargates)
+
+**Automated validation**
+
+The solution built in 4.14 seconds without warnings or errors. Both new `GateCloakTests` passed and verified
+that heat can be read across a committed gate transfer and armor damage survives a return to the original system.
+The 30-second focused run passed 49 of 50 cases covering ship heat, gate cloak, capsuleer presentation, inbound
+gate traffic, offscreen nullsec expeditions, translocation, and system isolation. The shared-coordinator case of
+`PausedSystemCannotBlockAnotherSystemsCompleteWarmFrame` timed out in isolation on both `50aa7128` and the fix.
+All 17 Python policy cases and the repository formatting check passed.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+## Independent nullsec expeditions
+
+Eligible armed travelers can choose an independent expedition from a station using the build 3662168 catalog's
+reciprocal stargates, the world seed and the resident pilot's ship and work settings. The departure draw combines
+the seed, pilot and saved station visit. The picker favors multi-system nullsec routes and gives quieter eligible
+destinations more weight.
+
+Independent roams use the configured roam chance at the station departure. The existing 10% belt-ratting draw is
+independent and can provide belt work when a roam cannot launch. A ready roaming gang departs before the solo
+expedition check. Eden's default chances favor combat traffic, while existing saved preferences still apply.
+[EVE University small-gang fleet roles](https://wiki.eveuniversity.org/Fleet_and_Gang_Types)
+Belt expeditions need an actual belt. Roaming expeditions need an eligible PvP fit and use ordinary patrol grids.
+The return dock can be the starting station or a reachable refuge if work policy, docking access or local danger
+changes. Transit-only systems can be crossed. The active route and direction use the existing travel checkpoint.
+Gate crossings and activity effects use ordinary gameplay owners, including map statistics, ammunition, combat and bounties.
+
+The pinned catalog audit found asteroid counts for all 21,831 known-space nullsec belt anchors.
+EVE.js 261108.1 separates ordinary gate travel (`spaceRuntime/stargateJump.js`) from NPC station and structure docking
+(`npcStationDirectory.js` and `structureDockingService.js`). Eden's route uses its own catalog geometry and access rules.
+[CCP route calculation](https://developers.eveonline.com/docs/guides/route-calculation/) ·
+[EVE University sovereignty and NPC nullsec](https://wiki.eveuniversity.org/Sovereignty)
+
+**Automated validation**
+
+`IndependentTravelerResumesSeededStationlessNullsecExpeditionOffscreen` passed both resident cases in 11 seconds
+with a 6.03-second cached build. Each case launched two saved world seeds on the same graph and observed different
+destinations. In each mode one pilot resumed from the checkpoint, did its chosen work and returned in the same hull.
+The PvP case had no belts, and both crossed a transit-only system while the human remained elsewhere.
+
+The extended replay exercises a roaming departure outside the belt-ratting draw and a departure where both draws
+select work and reachable belts exist. The deterministic policy case sampled 1,000 eligible departures and selected
+743 roaming expeditions and 25 belt-ratting expeditions. The combat provisioning case verified that a snapshot fit
+with a mining laser yields to a generated combat fit. These cases and the route diversity check passed in 15.37
+seconds after a 4.52-second cached build.
+
+The legacy configuration restart test passed in 6.34 seconds after a 7.40-second build. It verified that saved
+roaming and combat-fit percentages survive import and that an absent unattended setting takes the enabled default.
+The shopping price and pirate reward assertions exposed by the wider selection reproduced on baseline `89d77c15`.
+`ExpeditionPathsDiversifyAcrossSeedsAndReplanAroundObservedThreats` covered three real gate branches across 32 draws
+and verified that the path picker avoids the reported threat.
+
+The solution built in 13 seconds with zero warnings or errors. The combined focus run passed 24 cases in 31 seconds
+using the two expedition replays, `CapsuleerMilitiaPatrolTests`, `MilitiaEnlistmentTests`,
+`EstablishedPilotBuysItsFirstPvpFitFromBountiesAndKeepsItAfterReopen`,
+`TravelerRatsUnobservedAndPausesWhenTheLastHumanLeaves`,
+`PopulationInspectorLinksResidentBotTrainingCorporationAndAllianceWork`,
+`MilitiaPatrolsAreOptInAndRoundTripThroughAdministration`, and
+`PopulationControlsRoundTripPreserveLegacyPreferencesAndValidateRanges`.
+The offscreen ratting replay advances the scheduled bounty payout before verifying the paid record after reopening.
+The Python catalog and formatting policy suites passed all 17 cases.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+## Population inspector
+
+The administrator Population page reads directory results and selected details from the resident world. Pilot details
+prefer the latest published routine and job, with retained resident records for dormant pilots. Corporation membership,
+skill queue entries, industry jobs, alliance bills and sovereignty claims come from their owning tables. Directory
+results are sorted and paginated after the resident read. Each linked detail has a direct URL and refreshes on request.
+
+The administration API exposes `GET /api/admin/population/directory?directory=Bots` with optional `search` and
+zero-based `page`, and detail endpoints under `/api/admin/population/bots/{id}`, `/corporations/{id}` and
+`/alliances/{id}` relative to the same population prefix. These reads require a current administrator session.
+
+EVE.js 261108.1 provides skill queue and corporation membership reference behavior in
+`server/src/services/skills/training/skillQueueState.js` and `server/src/services/corporation/allianceViewState.js`.
+Eden uses its own build 3662168 definitions and saved automation state for the inspector.
+[EVE University skill training](https://wiki.eveuniversity.org/Skills_and_Learning) · [Alliances](https://wiki.eveuniversity.org/Alliance)
+
+**Automated validation**
+
+The inspector test covers administrator access, direct links, current and dormant work, skill queues, organization
+membership, dues and sovereignty assignments. Warm reads assert zero SQL commands, connections and fitting calculations.
+The combined feature run passed 23 tests in 22.93 seconds using
+`PopulationInspectorLinksResidentBotTrainingCorporationAndAllianceWork`,
+`PopulationRequiresAdministratorAndReportsSavedCoverageWithoutAdvancingJobs`, `ResidentPopulationTests`,
+`CapsuleerCorporationTests` and `CapsuleerAllianceTests`.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+## Pilot creation and offscreen admission under load
+
+After `62f36b60` enabled unvisited-system preparation in Established Universe, the server repeatedly deferred
+systems with “This Abyssal module has no saved mutation.” The operator log reported 4,231 occurrences across 384
+systems. A copied traffic snapshot contains 417 profiles that reference known mutation output types. Killmail fittings
+contain equipment types and slots. Mutated equipment also requires the particular item's saved attribute rolls.
+
+Runtime snapshot loading verifies the saved checksum, then excludes fits that require missing mutations from new
+selections. An older compatible fit or generated traffic can fill the slot. Existing identity lookups retain their
+recorded fit. New imports reject these fits before reusing a cached validation result. The local EVE.js 261108.1
+reference exposes per-item dynamic attributes in `server/src/services/dogma/dynamicItemService.js`. Eden resolves the
+actual module types using the build 3662168 mutation catalog.
+
+An Established Universe scheduler previously required the due queue to empty before starting offscreen pilots.
+After advancing existing work, the scheduler can now admit one waiting pilot per 50 ms interval while the oldest
+deadline is less than 100 ms late. A drained queue still permits up to four starts per interval. Older backlogs get
+priority, and the existing pause, resume, and saved deadline rules apply.
+
+### Automated validation
+
+The exact filters for `ResidentPopulationSkipsLegacyAbyssalFitAndUsesTheCompatibleObservation`,
+`EstablishedOffscreenStartsContinueWhileRecentlyDueJobsAdvance`, and
+`LoginDrainsLocalJobsBeforeStartingBoundedBatchesOfOffscreenTravelers` passed all three cases in 9.06 seconds.
+They verify fallback to a compatible observation, paced starts alongside recently due work, pausing starts under an
+older backlog, and the original login and departure behavior.
+
+The broader `FullyQualifiedName~` filter joined `TrafficSnapshotTests`, `CapsuleerGlobalPopulationTests`,
+`CapsuleerBackgroundPreparationTests`, `CapsuleerPopulationRetryTests`, `CapsuleerPopulationSettingsTests`,
+`CapsuleerMaintenanceTests`, `MutaplasmidTests` and `InstalledSnapshotSelectsAndValidatesEveryCombatCapablePatrolHull`
+with `|`. All 109 cases passed in 94.06 seconds, including the test against the copied catalog and traffic snapshot.
+The solution built in 7.46 seconds with zero warnings or errors. Both Python policy suites, formatting, and the diff check passed.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+After updating the server, select a character and check **Offscreen pilots waiting to start** on **Performance**.
+
+## Unvisited systems in Established Universe
+
+The resident worker honors the unvisited-system preparation setting while a player has a selected character.
+It prepares occupied systems before eligible unvisited high-security station systems. Work-access rules and the
+active cap apply. Background batches defer while the oldest scheduled
+bot job is at least 250 ms late. The last player leaving pauses preparation.
+
+The worker uses the pinned build 3662168 system security and station catalog. EVE.js 261108.1 (build 3396210) was
+checked for its separate lazy on-arrival NPC spawns in `server/src/config/schema/npc.js`. No client calls change.
+[UniWiki NPC Mining Operations](https://wiki.eveuniversity.org/NPC_Mining_Operations) · [Population controls](../capsuleer-population.md#population-controls)
+
+### Automated validation
+
+The exact filters for `EstablishedPopulationPreparesUnvisitedSystemsWhileSomeonePlaysAndStopsAtTheCap` and
+`OnlyOccupiedSystemsArePreparedAndLeavingStopsPendingFounders` passed both cases in 10.49 seconds. The established
+replay covers occupied-system priority, pausing when the last player leaves, resuming into an unvisited system, the
+active cap and saved jobs after checkpoint reopen. The switch-off case prepares only the visited systems.
+
+The broader `FullyQualifiedName~` filter joined `CapsuleerBackgroundPreparationTests`, `CapsuleerPopulationRetryTests`,
+`CapsuleerPopulationSettingsTests`, `CapsuleerGlobalPopulationTests`, `ResidentPopulationTests`, `CapsuleerMiningFleetTests`,
+`CapsuleerInboundGateAcceptanceTests`, `CapsuleerPresentationTests`, `CapsuleerTrafficAcceptanceTests`, and the methods
+`PopulationControlsRenderAndSavePendingValuesThroughTheAuthenticatedEditor`,
+`PopulationRequiresAdministratorAndReportsSavedCoverageWithoutAdvancingJobs`,
+`SettingsSaveUpdatesStatusAndKeepsControlsInteractiveAcrossRepeatedSaves`. The historical selection also included a
+retired catalog-backed population case and passed 65 cases in 65.63 seconds. The solution built in 6.95 seconds
+with zero warnings or errors. The 8 catalog and 9 formatting policy tests, `Format.ps1 -Check`, and `git diff --check`
+passed. The full .NET suite was outside this run.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+With active bot slots available, select a character after updating and restarting the server, then refresh **Population**
+to check **Prepared systems** as the worker runs.
+
+## Bot PvP fit progression and rat damage
+
+With activity-funded PvP enabled, eligible bots save the exact hull, fitting slots and magazines from a supported
+zKillboard fit. Goal selection uses complete market stock at the current station or a reachable supplier. A pilot can
+commit to a goal before it can fly or afford it. At dock it uses the normal skillbook, unallocated SP and training
+queue services. Tight fits can prompt CPU, powergrid and rigging training. It buys the entire goal with liquid
+personal ISK above its starting grant once the full fit can stay online. Buying, fitting, loading, boarding and
+saving the next locally available goal share the resident transaction. The saved goal survives checkpoint reopen
+and retains its fitting when the imported snapshot refreshes.
+
+After the first purchase, the bot prefers the next available career stage, or more Tech II modules or more fitted
+slots at the same stage. It keeps flying its current ship until the upgrade is ready. It can rat between PvP sorties
+while working toward its goal. The original parked work ship remains available for the existing recovery path.
+When a market review finds no next goal, an eligible bot checks again after five minutes.
+
+**Rat damage reduction (%)** is a saved bot setting with a default of 25 and a range of 0–100. Normal pirate NPC
+weapon damage is multiplied by the remaining percentage against bot ships. The same rule applies to resident turret
+fire, settled turret and missile hits, and the bot's incoming-DPS estimate. Human pilots and other damage sources
+use their ordinary damage rules.
+
+UniWiki documents planning the skills for a whole fitting. The local EVE.js build 3396210 uses ownership and skill
+checks in `shipService.js` when boarding. Eden resolves the complete fit and damage against pinned build 3662168.
+[UniWiki fitting plans](https://wiki.eveuniversity.org/Guide_to_using_EVEMon) · [Population settings](../capsuleer-population.md)
+
+### Automated validation
+
+The exact `EstablishedPilotBuysItsFirstPvpFitFromBountiesAndKeepsItAfterReopen`,
+`ResidentPirateDamageIsReducedOnlyForBotShips`, `PirateDamageReductionCanMakeAnEncounterSurvivable`
+and `SettingsSaveUpdatesStatusAndKeepsControlsInteractiveAcrossRepeatedSaves` filters passed eight cases
+in 11.91 seconds, after an 8.91-second warning-free build. The upgrade case saved a Catalyst goal after an
+Incursus purchase, reopened, trained the missing hull skill, held the Incursus while the wallet was short,
+and then bought and boarded the Catalyst while keeping the original work ship.
+
+The affected ammunition supply, ratting, NPC aggression, missiles, gangs, traffic navigation, population
+settings, administration and bot filter passed 136 cases in 99.96 seconds. Eight catalog-backed cases were skipped
+in that run. Two were then exercised with the installed build-3662168 catalog.
+`NativeCombatKitsPayForManufactureAndBoardTwoCruisersABattlecruiserAndABattleship` passed. The courier and ratting
+replay hit a world-owner file lock during cleanup on the first run and passed the isolated retry in 29.93 seconds.
+The same cleanup failure reproduced on unchanged main at `575a08eb`. The catalog and formatting policy suites and
+formatting checks passed.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+None.
+
+## Activity-funded PvP ships
+
+New worlds use the Established Universe profile with the Standard market and **Buy PvP ships with activity
+income** enabled. Existing worlds load their saved profile and policy. Administrators can enable the setting for an
+existing save. The original purchase rules and validation are recorded below. Current pilots use the
+[saved progression goal](#bot-pvp-fit-progression-and-rat-damage). [Population settings](../capsuleer-population.md#activity-funded-pvp-ships)
+
+A pilot at an eligible NPC market in an active system can spend the liquid personal ISK above its saved starting cash.
+Ratting pays ordinary personal NPC bounties. Miners can sell surplus supported ore into existing orders after unloading
+and checking station production and assigned moon supply. Production contributes when the pilot's sales settle. Ambient
+gate and station travel has no payout of its own. Existing local work and cargo commitments take precedence. Purchase
+requires sufficient ISK and a quote for the complete fit from ordinary captured or player-listed orders. A hauler may
+visit a stocked NPC market on a nearby traffic route or at a reachable trade hub and return to its staging system.
+It rechecks price, stock and fittings on arrival. If the full fit is unavailable it can return in its work ship.
+
+The installed zKillboard traffic snapshot supplies supported combat hulls, full recorded module and rig slots, and loaded
+charge types. The fitting owner checks each pilot's current skills and the online fitting limits before purchase. Charging
+fills the native magazines. The source capture describes fitted slots and charges. Cargo, drones and unsupported slots
+are outside the snapshot fit. Among affordable fits available at a dock, a stable per-pilot choice favors fits that
+can deal damage. Support fits qualify where gangs can use them. The resident transaction buys, assembles, fits and
+loads the ship, then saves its identity alongside the parked work ship. Paid fits qualify for roams, camps and gangs
+under ordinary security and contact rules. Capsule recovery can reboard the parked work ship at the same station.
+
+EVE University documents earning ISK through mining, trade and ratting, and the regional market's station-based orders.
+The local EVE.js 261108.1 reference targets build 3396210. `doc/MARKET_SETUP.md` describes synthetic market seeding over
+ordinary market orders and `externalservices/market-server/README.md` describes order precedence. Eden's Standard market
+uses compatible captured orders and validated traffic fits from catalog build 3662168. [Making Money](https://wiki.eveuniversity.org/Making_Money) ·
+[Trading](https://wiki.eveuniversity.org/Market) · [Development catalog](../development-client.md#creating-and-recreating-the-databases)
+
+### Automated validation
+
+The two cases of `EstablishedPilotBuysItsFirstPvpFitFromBountiesAndKeepsItAfterReopen` passed in 11.08 seconds.
+A scripted kill funds an Incursus from exact zKillboard fit slots and Standard market stock. A cheaper Rifter stays
+listed because the pilot lacks the skill. The local replay covers a scheduled roam, ship loss and reboarding the
+parked work ship. The remote replay shops in highsec, checkpoints on the return trip, then resumes and roams from
+nullsec. The scripted bounty verifies settlement. Autonomous earning rates remain unmeasured.
+
+The combined filter covered capsuleer supply, traffic navigation, patrols, roaming gangs, traffic snapshots, Standard
+and starter markets, fitting apply and constraints, administration, world wipe and configuration. All 192 cases passed
+in 131.80 seconds of test-run time. After the shopping journey and import command refinements, the solution built in
+15.29 seconds with zero warnings and errors. The final 40-case run covered the bounty-funded replays, traffic navigation,
+first-start setup, optional data and world wipe in 29.53 seconds. The catalog and formatting policy suites and format
+check passed.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+Observe a pilot acquire a fit at a seeded station after earning ISK, then verify that its work ship is parked in the same
+station and the paid ship participates in a roam, camp or gang.
+
+## Demand-driven bot work
+
+At an NPC station, pilots in bot-led corporations review funded local buy orders, corporate replacement needs,
+stock already for sale or in the depot, and paid production already underway. A courier or combat pilot can take
+factory work when it has access to the product blueprint and can satisfy the job requirements. An operator with
+a paid job or a factory request stays available to complete it. Other pilots can collect reachable inputs through
+the existing corporate freight planner. An order with an active factory request keeps its operator. Production
+lists hulls, modules and ammunition individually through the native market and settles against funded orders.
+
+Pilots can board their own fitted mining or combat ship at the same station. They keep the old ship and its fit.
+Paid work in space, freight, active expeditions and other cargo commitments keep their existing worker. A switch
+records the incoming worker and its deadline in the resident world alongside the boarding transaction. Reopen
+restores that worker from the checkpoint using the original character, skills, wallet, and corporate membership.
+
+With activity-funded PvP disabled, discretionary corporate hunts require a usable combat fit and **two complete spare
+kits** in the pilot’s own local hangar. The calculation uses the fitted hull, modules, drones and ammunition. Funded bids and installed jobs count
+toward production coverage. Hunt readiness comes from owned inventory. Pilots can buy one unfunded shortage at a
+time through normal paid transactions, keeping working capital, or place a funded bid for a missing part. A pilot
+whose reserve falls can return to support work. A positive roam percentage enables these corporate decisions.
+Hunting uses existing null-security and observation rules, visible contacts, target selection, and ship-loss handling.
+
+When choosing a new higher-stage training goal, an established corporate pilot favors a complete kit it already
+owns, then a kit it can afford from current local listings. Supply timing and nearby orders can lead neighboring
+pilots toward different ships. The existing training and manufacturing systems settle the related skills, fees,
+materials and orders. This station-local path serves established corporate pilots with qualified ships they can reach.
+
+Reference checked against EVE.js 261108.1 (`miningNpcCatalog.js`, `npcBehaviorLoop.js`, and its market service
+README). Eden uses pinned build 3662168 and its own resident economic rules. [EVE University mining operations](https://wiki.eveuniversity.org/NPC_Mining_Operations) ·
+[CCP fitting requirements](https://support.eveonline.com/hc/en-us/articles/213287845-Fitting-Window) ·
+[CCP market orders](https://support.eveonline.com/hc/en-us/articles/203218932-Buy-and-Sell-Orders)
+
+The resident replays cover two decisions through the normal scheduler. A hauling pilot installs a paid batch,
+reopens with the same deadline, and fills a customer’s order. A miner boards its combat ship with two complete
+spares, reopens into a patrol, and returns to active mining after a spare gun is removed. The focused selection
+also covers factory demand, regional freight, the two-batch moon chain, replacement, observation handoffs,
+roaming combat and two historical replays with the pinned catalog. All 96 targeted cases passed in
+102.61 seconds. Live acceptance and dedicated-server capacity were outside this validation.
+
+## Queue recovery at 10,000 pilots
+
+On the historical 90-second workstation replay, the follow-up reduced the final overdue queue from 2,973 to 411 jobs.
+P95 age over the final 30 seconds fell from 1.290 to 0.209 seconds, while warm full-session frame p99 increased from
+18.73 to 28.74 ms. Both runs used the same save, a simulated player, and active market maintenance. Warm requests issued
+zero SQL commands, opened zero database connections and rebuilt zero fits.
+[Original comparison and workload](https://github.com/CJ-SPT/Eden/blob/c31ac05af42c133567e203bb6859799c19af3852/docs/protocol/capsuleers.md#queue-recovery-at-10000-pilots)
+
 ## Miner approach stalls
 
 In a November 22 dedicated-server checkpoint, 28 of 30 Ventures approaching ore were within 50 m outside the
@@ -35,98 +398,6 @@ Not performed; agent client testing is disabled.
 ### Optional maintainer checks
 
 Watch a previously stalled Venture resume mining and dock to unload after it fills its hold.
-
-## Fresh-world frontier patrols
-
-Fresh bounty hunters with a paid combat fit can rebase from high security to a nearby low-security station with
-a market and belts. They need an armed, combat-ready ship and enough personal ISK to cover a replacement fit at
-reference prices. Members of an active bot-led corporation can also choose a null-security destination when their
-reserve covers two fits. The planner checks reachable work systems, avoids remembered threats, and prefers routes
-with fewer lower-security jumps. The pilot follows the ordinary gates and docks before launching a local patrol.
-
-Lower-security belt composition and rewards are existing game rules. Eden uses the build 3662168 station, belt,
-and gate records. EVE.js `server/src/space/npc/beltRatRuntime.js` selects a rat profile from system security.
-The inspected snapshot has SHA-256 `82F911DE0BC228F8D9F00F1D43FA94F28260FA8F43EFA27833EB6D1F2A773C78`.
-[EVE University belt ratting](https://wiki.eveuniversity.org/Ratting)
-
-### Automated validation
-
-The pinned-catalog fresh careers replay passed in 76.17 seconds. After the paid replacement and recruitment
-checks, the fixture staged ammunition and savings for the frontier decision. The equipped hunter docked in
-low security while the human remained in the starter system. The population, traffic navigation and ratting
-filters passed 40 cases in 31 seconds. The replay covered low-security arrival.
-
-### Live acceptance
-
-Not performed; agent client testing is disabled.
-
-### Optional maintainer checks
-
-None.
-
-## Fresh-world replacement markets
-
-If a fresh courier or bounty hunter cannot assemble an affordable career fit locally, the pilot can travel to a
-station advertising the full kit within three traversable jumps. The route respects work restrictions and remembered
-threats. The return from a loss still starts in a corvette. At the supplier the pilot quotes the fit again and pays for
-the purchase at the destination. Retiring a superseded local bid refunds its escrow through the market owner.
-A pilot recovering from a recorded loss can also use a complete starter kit from its employer's station reserve.
-
-This is station-local settlement after actual gate travel, as described in [Trading](https://wiki.eveuniversity.org/Trading).
-The inspected EVE.js market proxy has SHA-256
-`F457CB1B181CEB570A5FA346C718D71A7CE7B84B8734C88CEE7F2546A8CE175B`. Eden uses its resident market,
-existing travel checkpoint and the paid career fit from build 3662168.
-
-### Automated validation
-
-The pinned-catalog `FreshCouriersAndRatsEarnTheirShipsAndPayToReplaceBothAfterLoss` method passed in 41.37 seconds.
-It supplied the courier's replacement kit only at a station in another region and verified the paid hull transaction
-there. The expanded market, replacement, corporate production, and recurring regional trade filter passed 28 cases
-in 47.49 seconds. The courier replay starts with finite fixture listings.
-
-### Live acceptance
-
-Not performed; agent client testing is disabled.
-
-### Optional maintainer checks
-
-None.
-
-## Fresh-world corporate careers
-
-A courier or bounty hunter in a paid career ship reviews ordinary corporation applications at dock. The courier
-delivers any outstanding mission cargo before reviewing membership, relocating or taking corporate freight. It can
-return to its distribution agent for paid work between corporate runs. A combat pilot in a paid hull uses the
-ordinary departure and resupply plans. A lost hull returns the pilot to corvette recovery and its entry fit.
-The current hull, organization and existing work checkpoints govern these decisions after restart.
-
-A fresh-world miner that has completed its starter trade and boarded a career ship can run paid NPC-station
-production for a bot-led corporation. The factory uses the existing funded orders, freight requests, active-time job
-deadlines and corporate sale settlement. Fresh operators must satisfy the catalog skill requirements before the
-factory spends money on a run. [Distribution mission rules](https://wiki.eveuniversity.org/Distribution_missions) ·
-[Corporation invitations](https://wiki.eveuniversity.org/Recruiting_corporation_members)
-
-The pinned build 3662168 supplies the career fits and manufacturing inputs. The inspected EVE.js
-`server/src/services/career/careerMissionSources.js` snapshot records rewards in the mission-completion checkpoint.
-Its SHA-256 is `D762CF77D7A6644F2D67630941EC1AADF3F36BFF18C443D77F61E51B9C9C3501`.
-
-### Automated validation
-
-- The pinned-catalog courier and bounty replay passed in 33.50 seconds. It followed both paid hull purchases,
-  recovery after loss, and acceptance of ordinary invitations.
-- The pinned-catalog Venture and corporate production methods passed independently in 2 minutes 51 seconds and
-  34.86 seconds. The corporate fixture starts with a funded charter, a qualified miner and owned inputs. The
-  scheduler installed and delivered Iron Charge S and filled a funded customer order.
-- The focused selection passed 309 cases in 313.48 seconds. It covered the remaining fresh-universe cases,
-  corporation recruitment, hauling, mining, recurring regional trade, and admitted courier deliveries.
-
-### Live acceptance
-
-Not performed; agent client testing is disabled.
-
-### Optional maintainer checks
-
-None.
 
 ## Autonomous pilot creation under load
 
@@ -174,7 +445,7 @@ the previously documented SQL-trigger case `MaintenanceUsesPricePriorityAndRejec
 All 17 Python policy checks passed, along with formatting and the new documentation links.
 
 ```text
-(FullyQualifiedName~CapsuleerBackgroundPreparationTests|FullyQualifiedName~CapsuleerGlobalPopulationTests|FullyQualifiedName~CapsuleerPopulationSettingsTests|FullyQualifiedName~ResidentPopulationTests|FullyQualifiedName~AsteroidFieldTests|FullyQualifiedName~ResourceRenewalTests|FullyQualifiedName~NpcRestingOrderTests|FullyQualifiedName~ResidentMarketHistoryTests|FullyQualifiedName~IndustrialDemandTests|FullyQualifiedName~FreshPopulationPreparesUnvisitedWorkSystemsWhileSomeonePlaysAndStopsAtTheCap)&FullyQualifiedName!~MaintenanceUsesPricePriorityAndRejectsDuplicateConsumptionAfterRollback
+(FullyQualifiedName~CapsuleerBackgroundPreparationTests|FullyQualifiedName~CapsuleerGlobalPopulationTests|FullyQualifiedName~CapsuleerPopulationSettingsTests|FullyQualifiedName~ResidentPopulationTests|FullyQualifiedName~AsteroidFieldTests|FullyQualifiedName~ResourceRenewalTests|FullyQualifiedName~NpcRestingOrderTests|FullyQualifiedName~ResidentMarketHistoryTests|FullyQualifiedName~IndustrialDemandTests)&FullyQualifiedName!~MaintenanceUsesPricePriorityAndRejectsDuplicateConsumptionAfterRollback
 ```
 
 ### Live acceptance
@@ -197,10 +468,8 @@ stargate paths still cross transit-only systems. The local EVE.js build 3396210 
 `server/src/space/runtime/spaceRuntime/stargateJump.js` (SHA-256 prefix `6E84A01FB47C541A`) handles gate
 transfers and arrivals. The work access layer is Eden policy.
 
-Fresh-universe couriers and bounty hunters use dedicated saved roster slots. Startup reconciles those slots
-through the same suspension and reactivation path as the active cap. Eligible occupied systems can still prepare
-founders when optional unvisited-system preparation is disabled. The shipment switch gates loading trade goods
-through the shared freight loader. Loaded manifests continue through delivery.
+Eligible occupied systems can still prepare founders when unvisited-system preparation is disabled. The shipment
+switch gates loading trade goods through the shared freight loader. Loaded manifests continue through delivery.
 
 Automatic corporation formation and recruitment, alliance growth, and first-claim procurement and departures
 read independent settings. Existing bot applications and alliance admissions proceed on the usual schedules.
@@ -210,7 +479,7 @@ legacy revisions. [Administrator settings](../world-configuration.md#autonomous-
 **Automated validation**
 
 The solution build completed with zero warnings and errors. The exact-method filter passed 24 configuration,
-admission, routing, freight, corporation, alliance and fresh-universe cases in a 79.26-second run. It included
+admission, routing, freight, corporation, alliance and historical cases in a 79.26-second run. It included
 the installed build 3662168 catalog. The browser method passed its separate 40.77-second rerun with Firefox and
 Chromium, including the 390-pixel viewport and expanding Ambient traffic. Both Python policy suites
 passed all 17 checks. Formatting and local documentation links passed.
@@ -241,22 +510,18 @@ reciprocal gates. The local EVE.js build 3396210 reference handles validated gat
 `server/src/space/runtime/spaceRuntime/stargateJump.js` (SHA-256 prefix `6E84A01FB47C541A`). Eden's work-versus-transit
 distinction is server policy. [EVE University on the star map](https://wiki.eveuniversity.org/Star_Map)
 
-Fresh worlds prepare occupied systems first and rotate through eligible unvisited high-security station systems while
-someone has a selected character. Preparation uses the existing resident founder turn, with at most one new founder per
-turn. Each new pilot follows the normal fresh-universe starting equipment, economic and scheduling rules.
-
 **Automated validation**
 
 The exact-method filter covered resident founder and gate-visitor capacity, a restart with a lowered and restored cap,
-route selection and eight-jump flight through a transit-only corridor, the authenticated Blazor save, and a fresh-world
-replay with the pinned catalog. The replay reached the cap while the human stayed in the starter system, observed
+route selection and eight-jump flight through a transit-only corridor, the authenticated Blazor save, and a historical
+population replay with the pinned catalog. The replay reached the cap while the human stayed in the starter system, observed
 founders in unvisited systems within the work region, and reopened the same saved roster.
 
 The final solution build passed with zero warnings and errors. The focused filter passed **243** cases in
 **313.16 seconds**. It covered capsuleer population settings, global and background preparation, retry,
 traffic routes and navigation, inbound provisioning and runtime, ammunition supply, corporations, alliances,
 regional conflicts and pilot space activities. It also covered world settings, administration population and
-save interaction, configuration persistence, and the fresh-world population and profile methods.
+save interaction, configuration persistence, and the historical population replay.
 The filter omitted the previously recorded `ShoppingChoosesRealAffordableStockAndHonorsThreatMemory` theory.
 The smaller population, retry, inbound and configuration filter passed 57 cases in 50.61 seconds.
 Both Python policy suites passed all 17 checks. Formatting and local documentation link checks passed.
@@ -268,7 +533,7 @@ Not performed; agent client testing is disabled.
 **Optional maintainer checks**
 
 - Save a cap and a region override, restart, and check the active values under **Population**.
-- Select a character in a fresh world and refresh **Population** to see coverage grow as unvisited systems prepare.
+- Select a character and refresh **Population** to see coverage grow as unvisited systems prepare.
 
 ## Bot activity settings
 
@@ -465,11 +730,8 @@ including runner overhead. It covered ratting, traffic settings, inbound traffic
 startup. The pre-existing `ShoppingChoosesRealAffordableStockAndHonorsThreatMemory` theory was excluded. Both
 Python policy suites passed 17 checks, and formatting passed.
 
-The `FullyQualifiedName~Eden.Protocol.Tests.Industry.FreshUniverseTests` filter passed four cases in 166.86 seconds
-with `EDEN_FRESH_UNIVERSE_CATALOG` pointing to the installed build 3662168 catalog.
+The historical catalog-backed run passed four cases in 166.86 seconds. The preceding revision records the exact filter.
 
-```text
-(FullyQualifiedName~PilotSpaceActivitiesTests|FullyQualifiedName~RattingRulesTests|FullyQualifiedName~CapsuleerPopulationSettingsTests|FullyQualifiedName~CapsuleerInboundRuntimeTests|FullyQualifiedName~Eden.Protocol.Tests.Information.|FullyQualifiedName~WorldInitializationTests|FullyQualifiedName~FreshUniverseTests)&FullyQualifiedName!~ShoppingChoosesRealAffordableStockAndHonorsThreatMemory
 ```
 
 ### Live acceptance
@@ -479,67 +741,6 @@ Not performed; agent client testing is disabled.
 ### Optional maintainer checks
 
 - Watch a fitted combat bot finish a belt or anomaly sortie, stop near its wreck, and dock with recovered salvage.
-
-## Fresh-universe hauling and bounty careers
-
-The fresh profile can admit a courier and a bounty hunter alongside the existing miners. Each begins docked
-with zero ISK, the racial corvette, civilian equipment, and racial starting skills. Couriers need a basic
-level-one distribution agent at a market station and a reachable high-security destination. Bounty hunters
-need a high-security system with a station market and asteroid belts. They respect the belt-ratting setting
-and use the ordinary encounter assessment before fighting.
-
-The courier accepts a native offer that fits the corvette's hold, moves the mission package into that hold,
-flies to the destination, and completes the mission while docked. The agent service consumes the delivered
-cargo and records ISK and any time bonus in the normal wallet journal. A courier whose cargo is lost closes
-the delivery without collecting a reward. The hunter fits the civilian weapon, fights resident belt pirates,
-and earns the ordinary NPC bounty and skill-point reward on a kill.
-
-Both careers spend earned unallocated skill points through the existing allocator. Ship and fit prerequisites
-take priority, then work and foundation skills. The existing queue can train a missing level with time. Pilots
-buy or inject required skillbooks through their normal services. They purchase, fit, and board a Badger or
-Merlin from available market stock. Starter manufacturers can use locally sourced recipes to fill funded
-rookie orders after their first Miner I trade. A pilot who loses a paid ship uses the racial corvette recovery
-service, resumes earning, and can buy a replacement from the same market with personal ISK.
-
-Build 3662168 stores 125 m³ of cargo capacity on the Ibis item type. Mission 2912 asks for ten units of cargo
-type 16044 at 10 m³ per unit. The fresh courier selector checks total package volume. EVE.js records distribution
-mission completions in `server/src/services/career/careerMissionSources.js` and processes NPC bounty rewards in
-`server/src/services/bounty/npcBountySchedulerRuntime.js`. The inspected files have SHA-256 hashes
-`D762CF77D7A6644F2D67630941EC1AADF3F36BFF18C443D77F61E51B9C9C3501` and
-`DE742A68640C0B79E8C1FBF8AD44AAF652F8A962954BC7960322AF4110D5CAF3`.
-[EVE University distribution missions](https://wiki.eveuniversity.org/Distribution_missions) ·
-[CCP boarding and ejecting](https://support.eveonline.com/hc/en-us/articles/5166514480796-Boarding-and-Ejecting)
-
-### Automated validation
-
-`FullyQualifiedName=Eden.Protocol.Tests.Industry.FreshUniverseTests.FreshCouriersAndRatsEarnTheirShipsAndPayToReplaceBothAfterLoss`
-passed against the installed build 3662168 catalog in 38.66 seconds including runner overhead. The two pilots
-started with zero ISK and zero unallocated SP. Both purchased their first ships from ordinary finite sell orders.
-The replay applied a ship loss to each pilot, reopened the save, and withheld replacement stock until both earned
-again from their original careers in corvettes. Both then bought and boarded replacements. The combat pilot's
-bounty-earned SP allocation history survived the restart. The fixture uses a controlled pirate population and
-two finite lots at fixture prices. The replay measures earning and recovery with that supply. Independent
-acquisition and manufacturing of the seller's stock are outside the replay.
-
-The solution built without warnings in 10.26 seconds. The wider focused run passed 383 cases in 284.20 seconds,
-including runner overhead. It covered fresh progression, mission delivery and bonuses, ratting, inbound traffic,
-bounty SP, and the training queue. Both Python policy suites passed 17 checks, and formatting passed.
-
-```text
-(FullyQualifiedName~FreshUniverseTests|FullyQualifiedName~AgentDirectoryTests|FullyQualifiedName~PilotSpaceActivitiesTests|FullyQualifiedName~RattingRulesTests|FullyQualifiedName~CapsuleerInboundRuntimeTests|FullyQualifiedName~NpcSkillPointRewardTests|FullyQualifiedName~FreeSkillPointTests|FullyQualifiedName~PilotTrainingTests|FullyQualifiedName~MissionBonusTests|FullyQualifiedName~EveryAdmittedDeliveryCanBeOfferedTransportedReopenedAndPaidExactlyOnce)&FullyQualifiedName!~FailedAgentRemovalRollsBackEarlierPlayerContactDeletionInTheSameBatch&FullyQualifiedName!~ShoppingChoosesRealAffordableStockAndHonorsThreatMemory
-```
-
-The agent-contact rollback case and the overpriced shopping case failed the same way on main at `0787254e`.
-The final focused filter excludes the two affected methods.
-
-### Live acceptance
-
-Not performed; agent client testing is disabled.
-
-### Optional maintainer checks
-
-Observe a rookie courier's cargo and wallet through one delivery. Follow a rookie bounty hunter through a kill
-and check earned and applied skill points after it docks.
 
 ## Catalog-driven fleet supply and production
 
@@ -994,6 +1195,15 @@ The specialist uses a Deep Core Mining Laser I and the ordinary mining cycle, fi
 and new founder Ventures can receive a single starter laser while on their original hull. Subsequent trips use the owned
 fit. As with other mining in Eden, deep-core pollution clouds are outside the native simulation's current support.
 
+Before departing, the specialist checks the destination's catalog belts against the resident asteroid index and its
+crew's belt memory. A previously populated belt must still contain Mercoxit, and a recently stripped or threatened
+belt is skipped while the corresponding memory is active. The specialist can try local work until a destination belt
+is eligible. An unpopulated belt can still generate its deposits on arrival.
+
+In a read-only host checkpoint spot sample on November 23, 2026, running revision `2fefe2156`, six of 20 queued
+gate-transfer jobs belonged to Venture pilots. All six had the Mining career and an active Mercoxit expedition.
+The sample describes the queued jobs at that checkpoint. It provides no count of completed jumps or repeated crossings.
+
 The miner unloads at the staging station and lists one reprocessing portion from its mined inventory. The miner pays
 the normal broker fee and can post a lower ask if its wallet cannot fund the reference price. While that listing is
 open it can resume ordinary mining. A Miner II factory's Morphite shortfall can trigger a normal corporate purchase
@@ -1009,6 +1219,10 @@ reference identifies the same three grades (SHA-256 `8CA75BC0E2CA005F2E719D7ED9C
 [CCP Introduction to Mining](https://support.eveonline.com/hc/en-us/articles/23655785488668-Introduction-to-Mining)
 
 ### Automated validation
+
+`VentureLaunchesForMercoxitOnlyWhenSavedDepositsContainOre` runs the docked founder's departure with a viable and
+a depleted resident belt. The viable case starts its gate leg, while the depleted case skips the Mercoxit trip.
+Both cases and the existing restart and freight replay passed together in 19.55 seconds including the build.
 
 `BotsMineAndHaulMercoxitToTheMinerTwoFactoryAcrossRestarts` starts with no Mercoxit or Morphite sellers, reopens the
 world with the miner operating in a stationless system and again after a hauler buys the first half of a refining
@@ -1534,7 +1748,7 @@ and a seven-jump limit. Vacant profession slots, useful station services, tax, t
 produce the candidate score. The recruiter rechecks its authority and available role before offering. Acceptance separately
 checks capacity, departure permissions and current work, and uses the ordinary membership transition and notification path.
 Invitations from humans use that same review and departure logic. Bot CEOs buy ordinary ads from their treasury when there
-are roster openings and funds. Fresh worlds require the earned qualification and founding fee even for a system's first charter.
+are roster openings and funds.
 [EVE University recruitment](https://wiki.eveuniversity.org/Recruiting_corporation_members) ·
 [Native invitation contract](corporations.md#direct-invitations-and-corporation-window-reads-november-14-2026)
 
@@ -3305,7 +3519,7 @@ A warmed combined community frame took 0.76 ms with zero SQL commands, connectio
 
 ## Population and scheduling foundation — November 8, 2026
 
-The first increment of the [global population plan](../capsuleer-population.md) introduces schema 116. Source-system community records and unique community/career founder records register the existing miner and hauler. Migration preserves their original identities, ships, grant metadata, wallets and authoritative paid/travel progress. Registry reads return metadata without fits or native scene loading. Fresh-character provisioning registers founders in the same transaction. No additional global communities are provisioned in this increment.
+The first increment of the [global population plan](../capsuleer-population.md) introduces schema 116. Source-system community records and unique community/career founder records register the existing miner and hauler. Migration preserves their original identities, ships, grant metadata, wallets and authoritative paid/travel progress. Registry reads return metadata without fits or native scene loading. New-character provisioning registers founders in the same transaction. No additional global communities are provisioned in this increment.
 
 A saved human-active clock now runs from selected flight-session leases. Docked pilots count, transfers change the active-system set, and selection disposal releases presence even when chat transport is unavailable. Chat continues to present Local membership but no longer owns the activity clock. The clock counts overlapping humans once, preserves subsecond samples, pauses when the last selection leaves and resumes from a checkpoint without offline catch-up. Clock capture shares the resident generation with the relational image; detached projection and failed-save retry preserve later resident time. Maintenance uses this clock to admit the existing miner/hauler ticks.
 
@@ -4251,106 +4465,7 @@ stranded jobs and the local station before deployment.
 
 After deployment, observe a previously stranded capsule in KFIE-Z and confirm it docks at the local station.
 
-## Fresh-universe starter industry
-
-`--fresh-universe` saves an opt-in policy when creating a world. Humans and simulated capsuleers receive their
-racial corvette, the same civilian equipment and racial skills, and zero ISK. The profile starts without the
-development demo characters. New launcher accounts and the bot account have the same default clone grade.
-Bots can board a free recovery corvette through the same docked operation humans use.
-[Creation command](../development-client.md#creating-an-economy-world-without-testing-supply) ·
-[Corvette gameplay reference](https://wiki.eveuniversity.org/Corvettes)
-
-The resident market provides bounded, replenishing NPC ore bids and institutional skillbooks and blueprint originals.
-An eligible starter factory also sells the pinned Miner I blueprint original. The catalog's corporation sellers for
-that blueprint have no high-security station offering all three required services together. This added blueprint
-offer solves that local supply gap. Market orders for manufactured goods hold actual pilot inventory or funds, and
-delivering a job leaves the NPC finished-goods book empty. Build 3662168 supplies the Miner I blueprint (785),
-product (483), materials, Industry I prerequisite, and job duration. The profile uses existing market, industry,
-and fitting wire forms. [Manufacturing reference](https://wiki.eveuniversity.org/Manufacturing) ·
-[Trading reference](https://wiki.eveuniversity.org/Market)
-
-Two rookie pilots take complementary goals at an eligible station with a market, manufacturing, reprocessing,
-and ore for every recipe input. One mines and sells ore until it can post a funded Miner I buy order. The other
-follows that demand, buys the blueprint, mines the needed ore, pays to refine and manufacture, and sells the actual
-output through the same market that human pilots use. Inventory, market escrow, journal entries and job deadlines
-stay with the resident world and its checkpoint. Fresh-universe bot progression currently covers this local
-industrial cohort. The later milestones cover more careers, interregional sourcing and corporate development.
-
-Mining and paid NPC kill settlement both credit unallocated skill points through the existing rules. A qualifying
-mining cycle pays based on the pinned reference value of the collected ore. A qualifying kill pays based on its
-configured bounty and credits the pilot who scored the kill. This milestone established the pool and its sources.
-The subsequent [career training milestone](#earned-bot-career-training) allocates those points.
-
-### Automated validation
-
-The native catalog replay starts from an empty world at an eligible factory in system 30015042. It compares
-new human and bot packages, rejects an unfunded order, verifies the buyer earns the escrow by mining and selling,
-reopens with the bid still funded, and checks an actual Miner I job, refining and installation charges, tax,
-delivery and zero remaining escrow after another reopen. It also checks earned mining skill points across reopen.
-The combat-controller check verifies that a 1,000 ISK NPC kill credits two unallocated skill points once at
-the default rate.
-
-In the final run, the buyer funded a 14,178.17 ISK bid after 10m 04s of simulated active play. The first sale
-settled after 1h 12m 28s. These times describe one run with the pinned catalog and its local ore layout.
-
-```powershell
-$env:EDEN_FRESH_UNIVERSE_CATALOG = Join-Path $env:LOCALAPPDATA 'Eden/catalog.sqlite'
-.\tools\Test-Feature.ps1 -Filter 'FullyQualifiedName=Eden.Protocol.Tests.Industry.FreshUniverseTests.NewCorvettesEarnAndTradeTheFirstManufacturedMinerThroughFundedEscrow'
-```
-
-Tool restore, solution restore, and build passed with zero warnings or errors (8.45 seconds for the build).
-The affected .NET run finished in 3m 04s with 316 passes, two failures, and one skipped opt-in browser test.
-Both failures reproduced on unchanged base commit `4794edc0` in a 14.28-second focused rerun.
-`FailedPaymentRollsBackStockGoodsAndHistoryAndRetrySettlesOnce` failed while deleting the owned fixture world,
-and the overpriced case of `ShoppingChoosesRealAffordableStockAndHonorsThreatMemory` returned a route.
-The fresh profile, native economy loop, and bot kill SP checks passed. The catalog and formatting policy
-suites passed eight and nine Python tests respectively. Policy and formatting verification took 41.75 seconds.
-Diff checks and all 15 edited local Markdown links passed.
-
-The affected selection combined the following class filters via `FullyQualifiedName~`.
-
-```text
-FreshUniverseTests | CapsuleerProvisioningTests | CapsuleerBackgroundPreparationTests | CapsuleerInboundRuntimeTests
-CapsuleerMiningFleetTests | PilotSpaceActivitiesTests | CharacterCreationTests | WorldConfigurationTests
-WorldInitializationTests | AdministrationTests | PilotFleetTests | StarterMarketTests | RegionalMarketTests
-IndustrialDemandTests | IndustryTests | ReprocessingTests | MiningSkillPointRewardTests | NpcSkillPointRewardTests
-```
-
-### Live acceptance
-
-Not performed; agent client testing is disabled.
-
-### Optional maintainer checks
-
-In a fresh world, watch the starter factory's market for the first Miner I bid and its eventual fill.
-
-## Additional fresh-universe founder cohorts
-
-The fresh-universe population setting allows one to five founder cohorts per eligible system. Each cohort offers
-one producer miner, one buyer miner, one courier, and one bounty pilot where the corresponding starter work
-qualifies. The default is one. Founders still start in racial corvettes with zero ISK and progress through the
-existing mining, market, courier, and bounty paths. Courier cargo and rewards remain part of the existing mission
-lifecycle. [EVE University distribution missions](https://wiki.eveuniversity.org/Distribution_missions)
-
-After restart, the provisioning fingerprint revisits systems whose configured cohort count changed. Preparation
-continues through the resident one-founder transaction, with occupied systems prioritized and background systems
-visited in rotation while someone plays. The active pilot cap still limits admissions. Original role slots,
-pilot IDs, and ship IDs stay in place. Reducing the cohort count pauses extra pilots at restart. Increasing the
-count again restores their checkpointed jobs and identity.
-
-### Automated validation
-
-The focused expansion test starts with one cohort in a system eligible for all four roles, raises the cap to 17,
-then completes five cohorts. It checks 20 distinct founders, zero starting ISK, original identity retention, saved
-role assignments and jobs, and pause and resume across checkpoint and reload.
-
-### Live acceptance
-
-Not performed; agent client testing is disabled.
-
-### Optional maintainer checks
-
-Compare admitted and working pilots by role with due-job age during the dedicated server ramp.
+[Earlier capsuleer implementation records](https://github.com/CJ-SPT/Eden/blob/c31ac05af42c133567e203bb6859799c19af3852/docs/protocol/capsuleers.md)
 
 ## Earned bot career training
 
@@ -4368,28 +4483,14 @@ next training focus follow the pilot through checkpoint reopen and ship loss. A 
 The existing fitting and procurement systems govern ownership and boarding.
 
 Bots apply points through the same allocation, prerequisite and history rules as human pilots. They inject owned
-books or pay for missing skills using the normal direct purchase or station market. The starter factory crew keeps
-its operating money available through the first finished-goods trade. Later skillbook purchases use up to one quarter
-of the pilot's current wallet. The simulated capsuleer account is permanently Omega. Startup repairs older Alpha
+books or pay for missing skills using the normal direct purchase or station market. Skillbook purchases use up to
+one quarter of the pilot's current wallet. The simulated capsuleer account is permanently Omega. Startup repairs older Alpha
 records for that account, and the resident write boundary rejects a downgrade. Human accounts keep their saved clone
 grades. The local evejs reference `skillMgrService.js` was checked for separate free-pool and skill-application
 operations. Its SHA-256 is `64D7E60FC25C835CBB87C535BC10758AFADE4D17B23CE163BB8DED3C37451B5F`.
 Existing protocol calls serve both kinds of pilot.
 
 ### Automated validation
-
-The fresh build-3662168 replay started with two rookie corvettes and zero ISK. The scheduled miners spent
-mining SP on Mining, Industry and the Magic 14 while completing the first manufactured sale. The chosen
-ship, actual allocations, and journal survived reopen. A second fresh rookie's only SP came from a controlled
-pirate kill settlement. The bot spent it on a Covetor prerequisite. The producer used a second controlled
-bounty to pay 97,500 ISK for Reprocessing and then spent earned SP on the skill. Another test starts from a
-saved Alpha bot account, reopens it as Omega, rejects a resident downgrade, and checks a human Alpha account.
-
-The exact fresh-world filter was
-`FullyQualifiedName=Eden.Protocol.Tests.Industry.FreshUniverseTests.NewCorvettesEarnAndTradeTheFirstManufacturedMinerThroughFundedEscrow`.
-The earlier 196-case run passed 195 cases. The fresh-world refining assertion exposed a priority error that
-promoted a later goal's Industry target ahead of an already qualified Reprocessing goal. Retaining each
-goal's minimum prerequisite fixed the issue, and the exact replay passed in 29.60 seconds.
 
 Final tool restore, solution restore, and build passed with zero warnings or errors. All 161 affected
 .NET cases passed in 1m 06s. Both Python suites passed, with eight catalog and nine formatting-policy
@@ -4398,7 +4499,7 @@ cases. Formatting and documentation link checks passed. The build and verificati
 `FullyQualifiedName~`.
 
 ```text
-FreshUniverseTests | CloneGradeTests | FreeSkillPointTests | FreeSkillPointServiceTests | SkillPurchaseTests
+CloneGradeTests | FreeSkillPointTests | FreeSkillPointServiceTests | SkillPurchaseTests
 PilotSkillBookTests | PilotTrainingTests | MiningSkillPointRewardTests | NpcSkillPointRewardTests
 CapsuleerMiningFleetTests | CapsuleerInboundRuntimeTests
 ActualCombatFitCanClearAnOrdinaryPirateAndCannotCollectItsBountyTwice
@@ -4420,11 +4521,8 @@ goal from an earlier release is checked against the pilot's current stage. Earne
 hull prerequisites and the skills required by its working fit. Career and Magic 14 training continue.
 
 At the station, a qualified pilot checks personal inventory and shops for the missing hull, modules and charges.
-The bot pays with its own ISK through the resident market and uses a funded station buy order where it cannot
-make the missing part locally. A fresh-world miner completes its opening Miner I trade first. At the starter
-factory it can then use a paid institutional blueprint and local ore to manufacture the kit, including a Venture
-and Miner I. The factory sells blueprints and skills. Finished ships and equipment come from actual jobs or
-market counterparties. The fleet and fitting stores assemble the packaged hull, online the required modules,
+The bot pays with its own ISK through the resident market. Where a supported career part is missing, it can
+place a funded station buy order. The fleet and fitting stores assemble the packaged hull, online the required modules,
 load combat magazines, and board the owned ship. The docked worker keeps its old hull and uses the same
 undock and activity code for the new one.
 
@@ -4438,32 +4536,7 @@ The local evejs reference checks ship ownership and skills in `_activateShipById
 
 ### Automated validation
 
-`FreshUniverseTests.ZeroIskCorvetteEarnsBuildsFitsAndFliesItsVenture` creates a scratch resident world with the
-installed build 3662168 catalog and an uncontested starter belt. The buyer starts in a corvette with zero ISK,
-gets the first manufactured Miner I through a funded order, and earns the cost of a Venture blueprint by
-selling ore. It mines and refines the inputs, pays the manufacturing bill, delivers and boards the Venture,
-fits the traded Miner I, and reaches a belt. Reopening the checkpoint confirms the same active hull, fitted
-module, prior corvette ownership, completed job and paid blueprint trade. The fresh-world skill test also
-submits a saved Hulk goal for a corvette pilot and confirms the goal becomes a Venture.
-
-The final run funded the first order in 11 minutes 20 seconds, settled it after 1 hour 13 minutes, and reached a
-belt in the fitted Venture after 29 hours 30 minutes of simulated time. The solution built with zero warnings or
-errors. All 174 focused .NET tests passed in 6 minutes 59 seconds, and both Python policy suites passed.
-
-The `Test-Feature.ps1` filter matched these classes and methods by fully qualified name.
-
-```text
-FreshUniverseTests | CapsuleerMinerTests | CapsuleerHaulerTests | CapsuleerMiningFleetTests
-CapsuleerInboundRuntimeTests | StarterProductionTests | NpcSupplyTests | PilotFleetTests | ApplyFittingTests
-PilotSkillBookTests | PilotTrainingTests | MiningSkillPointRewardTests | NpcSkillPointRewardTests
-ActualCombatFitCanClearAnOrdinaryPirateAndCannotCollectItsBountyTwice
-DockedTravelerScoutsAColdCombatAnomalyAndUndocksOnTheSameTradeJob
-```
-
-The merge with player-structure factories passed 17 focused tests in 2 minutes 50 seconds. The filter covered
-`FreshUniverseTests`, `CapsuleerMinerTests`, `CloneGradeTests`, and
-`BotStagesAtAPlayerFactoryAndFinishesItsPaidJobAfterServicePauseAndRestart`. The Venture reached a belt
-after 30 hours 27 minutes of simulated time. The solution build, both Python policy suites and formatting checks passed.
+The original acquisition replay and its measured timings are in the earlier implementation record linked above.
 
 ### Live acceptance
 

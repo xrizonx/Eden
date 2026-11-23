@@ -21,13 +21,7 @@ internal sealed partial class PilotMarketStore
 
     private sealed record InstitutionalType(int TypeId, bool Bid);
 
-    private readonly record struct InstitutionalSupplier(
-        int CorporationId,
-        bool Hub,
-        bool RegionalHubSupply,
-        bool FreshUniverseMarket,
-        bool StarterIndustry
-    );
+    private readonly record struct InstitutionalSupplier(int CorporationId, bool Hub, bool RegionalHubSupply);
 
     private static readonly ConditionalWeakTable<CatalogProvider, Lazy<int[]>> HubSupplies = new();
 
@@ -36,14 +30,25 @@ internal sealed partial class PilotMarketStore
         ConcurrentDictionary<InstitutionalSupplier, Lazy<IReadOnlyList<InstitutionalOffer>>>
     > InstitutionalCatalogs = new();
 
-    internal void PrepareInstitutional(CatalogDbContext catalog, int stationId) =>
-        _ = InstitutionalOffers(catalog, catalog.RequireStation(stationId));
+    internal void PrepareMarketOffers(CatalogDbContext catalog, int stationId)
+    {
+        var station = catalog.RequireStation(stationId);
+        if (database.Settings.Economy.StandardMarket)
+        {
+            if (!database.MarketSnapshot.Ready)
+            {
+                _ = database.MarketSnapshot.RegionOrdersByType(station.RegionId);
+            }
+            return;
+        }
+        _ = InstitutionalOffers(catalog, station);
+    }
 
     internal void WarmMarketCatalog()
     {
         if (database.Settings.Economy.StandardMarket)
         {
-            _ = database.MarketSnapshot.Manifest;
+            WarmStandardMarket();
             return;
         }
         bool testing = Economy().TestingMarket;
@@ -68,10 +73,7 @@ internal sealed partial class PilotMarketStore
     private IReadOnlyList<InstitutionalOffer> InstitutionalOffers(CatalogDbContext catalog, CatalogStationDefinition station)
     {
         bool hub = RegionalMarketCatalog.Read(catalog).Hubs.GetValueOrDefault(station.RegionId)?.Station.Id == station.Id;
-        bool fresh = database.Settings.UsesFreshUniverseMarket();
-        bool starterIndustry =
-            fresh && CapsuleerProvisioningCatalog.StarterIndustry(catalog, station.SolarSystemId).HomeStationId == station.Id;
-        InstitutionalSupplier supplier = new(station.OwnerId, hub, database.Settings.Economy.RegionalHubSupply, fresh, starterIndustry);
+        InstitutionalSupplier supplier = new(station.OwnerId, hub, database.Settings.Economy.RegionalHubSupply);
         return InstitutionalCatalogs
             .GetValue(catalog.Definitions, _ => new())
             .GetOrAdd(supplier, key => new(() => LoadInstitutionalOffers(catalog, key)))
@@ -85,10 +87,7 @@ internal sealed partial class PilotMarketStore
         var trades = corporation?.CorporationTrades ?? [];
         // Hubs share the full catalog NPC sell assortment. Restricting this to
         // blueprints strands NPC-only inputs, skills and other seeded goods.
-        int[] suppliedTypes =
-            supplier.StarterIndustry ? [StarterIndustryRules.MinerBlueprint, StarterIndustryRules.VentureBlueprint]
-            : supplier.Hub && supplier.RegionalHubSupply ? HubInstitutionalSupplies(catalog)
-            : [];
+        int[] suppliedTypes = supplier.Hub && supplier.RegionalHubSupply ? HubInstitutionalSupplies(catalog) : [];
         var offered = trades
             .Where(t => t.Value != 0)
             .Select(t => new InstitutionalType(int.Parse(t.Key, CultureInfo.InvariantCulture), t.Value < 0))
@@ -133,13 +132,6 @@ internal sealed partial class PilotMarketStore
             var definition = typeDefinitions.GetValueOrDefault(typeId);
             var manufacturing = recipes.GetValueOrDefault(typeId.ToString(CultureInfo.InvariantCulture))?.Activities?.Manufacturing;
             bool bid = offer.Bid;
-            if (
-                supplier.FreshUniverseMarket
-                && (bid || type.CategoryId is not ((int)InventoryCategory.Blueprint or (int)InventoryCategory.Skill))
-            )
-            {
-                continue;
-            }
             if (
                 !RegionalMarketRules.CanUnlock((InventoryCategory)type.CategoryId, type.GroupId, true, true)
                 && type.CategoryId != (int)InventoryCategory.Blueprint

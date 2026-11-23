@@ -36,7 +36,7 @@ internal static class WorldSetupStore
                 bool newWorld = row.GetBoolean(0);
                 return new(
                     newWorld,
-                    row.IsDBNull(1) ? null : new(ConfigurationValidation.Decode(row.GetString(1)), row.GetString(2), newWorld)
+                    row.IsDBNull(1) ? null : new(ConfigurationValidation.Decode(row.GetString(1), saved: true), row.GetString(2), newWorld)
                 );
             }
         }

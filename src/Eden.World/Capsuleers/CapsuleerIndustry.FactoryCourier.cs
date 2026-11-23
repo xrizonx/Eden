@@ -37,20 +37,11 @@ internal sealed partial class CapsuleerIndustry
         {
             return null;
         }
-        var members = world.Filter<Pilot>(pilot => pilot.CorporationId == employer.Id).OrderBy(pilot => pilot.Id).ToArray();
-        if (members.Any(pilot => ActiveSupplyRun(live, pilot) is not null))
+        if (FactoryRequests(world, live, employer.Id, now) is not { } requests)
         {
             return null;
         }
-        var requests = members
-            .Select(member => (member.Id, Request: CurrentFactoryRequest(world, live, member.Id, employer.Id, now)))
-            .Where(entry => entry.Request is not null)
-            .ToArray();
-        if (
-            !world.Settings.FreshUniverse
-            && work is not null
-            && PlanPlanetaryCollection(world, catalog, courier, employer, work, requests, avoided, now) is { } planetary
-        )
+        if (work is not null && PlanPlanetaryCollection(world, catalog, courier, employer, work, requests, avoided, now) is { } planetary)
         {
             return planetary;
         }
@@ -164,6 +155,22 @@ internal sealed partial class CapsuleerIndustry
         return null;
     }
 
+    private static (long Id, FactorySupplyRequest? Request)[]? FactoryRequests(
+        EconomyTransaction world,
+        LiveWorld live,
+        int corporation,
+        long now
+    )
+    {
+        var members = world.Filter<Pilot>(pilot => pilot.CorporationId == corporation).OrderBy(pilot => pilot.Id).ToArray();
+        return members.Any(pilot => ActiveSupplyRun(live, pilot) is not null)
+            ? null
+            : members
+                .Select(member => (member.Id, Request: CurrentFactoryRequest(world, live, member.Id, corporation, now)))
+                .Where(entry => entry.Request is not null)
+                .ToArray();
+    }
+
     internal FreightManifest? PurchaseFactoryMaterials(
         EconomyTransaction world,
         CatalogDbContext catalog,
@@ -221,6 +228,33 @@ internal sealed partial class CapsuleerIndustry
         return new(result.Trades[0].OrderId, shipment.FactoryStationId, cargo);
     }
 
+    private static HashSet<long> AssignedFactoryOrders(
+        EconomyTransaction world,
+        DockedPilot pilot,
+        long now,
+        IEnumerable<Pilot>? members = null
+    )
+    {
+        if (LiveWorld.Find(world.WorldPath) is not { } live)
+        {
+            return [];
+        }
+        members ??= world.Filter<Pilot>(member => member.CorporationId == pilot.CorpId);
+        HashSet<long> orders = [];
+        foreach (var member in members)
+        {
+            if (
+                member.Id != pilot.PilotId
+                && CurrentFactoryRequest(world, live, member.Id, pilot.CorpId, now) is { Demand: { } demand } request
+                && request.StationId == pilot.StationId
+            )
+            {
+                orders.Add(demand.OrderId);
+            }
+        }
+        return orders;
+    }
+
     private static FactorySupplyRequest? CurrentFactoryRequest(
         EconomyTransaction world,
         LiveWorld live,
@@ -229,17 +263,42 @@ internal sealed partial class CapsuleerIndustry
         long now
     )
     {
-        if (world.Set<SavedCapsuleerAgent>().Find(manufacturer) is not { Career: CapsuleerCareer.Mining })
+        FactorySupplyRequest? request;
+        long? ship;
+        if (live.MinerCheckpoints.GetValueOrDefault(manufacturer)?.Work is { } mining)
+        {
+            request = mining.FactorySupply;
+            ship = mining.ShipId;
+        }
+        else if (live.HaulerCheckpoints.GetValueOrDefault(manufacturer)?.Work is { } flight)
+        {
+            request = flight.FactorySupply;
+            ship = flight.ShipId;
+        }
+        else if (world.Set<SavedCapsuleerAgent>().Find(manufacturer) is not { } agent)
         {
             return null;
         }
-        var work =
-            live.MinerCheckpoints.GetValueOrDefault(manufacturer)?.Work
-            ?? MinerCheckpoint.Read(world.Filter<SavedCapsuleerCommunity>(row => row.PilotId == manufacturer).SingleOrDefault()?.Progress);
+        else if ((CapsuleerCorporations.Organization(world, manufacturer).ActiveWorker ?? agent.Career) == CapsuleerCareer.Mining)
+        {
+            var miner = MinerCheckpoint.Read(
+                world.Filter<SavedCapsuleerCommunity>(row => row.PilotId == manufacturer).SingleOrDefault()?.Progress
+            );
+            request = miner?.FactorySupply;
+            ship = miner?.ShipId;
+        }
+        else
+        {
+            var traveler = HaulerCheckpoint.Read(
+                world.Filter<SavedCapsuleerHauler>(row => row.PilotId == manufacturer).SingleOrDefault()?.Progress
+            );
+            request = traveler?.FactorySupply;
+            ship = traveler?.ShipId;
+        }
         if (
-            work?.FactorySupply is not { } request
+            request is null
             || request.CorporationId != corporation
-            || world.Pilots.Find(manufacturer)?.ActiveShipId != work.ShipId
+            || world.Pilots.Find(manufacturer)?.ActiveShipId != ship
             || Employer(world, manufacturer, corporation) is null
         )
         {

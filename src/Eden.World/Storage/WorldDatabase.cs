@@ -8,6 +8,8 @@ namespace Eden.World.Storage;
 
 public sealed record WorldDatabase(string Path)
 {
+    internal bool GuardGameplaySql { get; set; }
+
     private Eden.World.Market.LiveMarketSnapshotCatalog? _marketSnapshot;
     public Eden.World.Market.LiveMarketSnapshotCatalog MarketSnapshot => _marketSnapshot ??= new(this);
     private Eden.World.Capsuleers.TrafficSnapshot? _traffic;
@@ -27,7 +29,7 @@ public sealed record WorldDatabase(string Path)
         try
         {
             using CatalogDbContext catalog = new(CatalogPath);
-            return Eden.World.Capsuleers.TrafficSnapshot.Read(path, Eden.World.Capsuleers.TrafficSnapshot.Fingerprint(catalog));
+            return Eden.World.Capsuleers.TrafficSnapshot.Read(path, Eden.World.Capsuleers.TrafficSnapshot.Fingerprint(catalog), catalog);
         }
         catch (Exception error)
             when (error is IOException or InvalidDataException or System.Text.Json.JsonException or Microsoft.Data.Sqlite.SqliteException)

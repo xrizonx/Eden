@@ -1,5 +1,6 @@
 using Eden.Gameplay.Combat;
 using Eden.Gameplay.Docking;
+using Eden.Gameplay.FactionWarfare;
 using Eden.Gameplay.Flight;
 using Eden.Gameplay.Market;
 
@@ -44,8 +45,12 @@ public sealed record HaulerProgress(
     public CapsuleerCareerPlan? CareerPlan { get; init; }
     public FreightManifest? Freight { get; init; }
     public CorporationSupplyRun? CorporationSupply { get; init; }
+    public FactorySupplyRequest? FactorySupply { get; init; }
     public FactoryPlanetaryProduction? PlanetaryProduction { get; init; }
     public SovereigntyExpedition? SovereigntyExpedition { get; init; }
+    public MilitiaPatrolProgress? MilitiaPatrol { get; init; }
+    public long MilitiaRetryAt { get; init; }
+    public string? MilitiaWaitingReason { get; init; }
     public int? HomeDefenseAllianceId { get; init; }
     public long PlanetaryRetryAt { get; init; }
     public long RegionalStockRetryAt { get; init; }
@@ -69,6 +74,32 @@ public sealed record HaulerProgress(
     public long[]? ReplacementOrderIds { get; init; }
     public long WarpReadyAt { get; init; }
     public int LastMotionStamp { get; init; } = int.MinValue;
+}
+
+public enum MilitiaPatrolPhase
+{
+    Travelling,
+    ApproachingGate,
+    EnteringSite,
+    Holding,
+    Returning,
+    Staging,
+}
+
+public sealed record MilitiaPatrolProgress(
+    long ShipId,
+    MilitiaFaction Faction,
+    int HomeStationId,
+    MilitiaPatrolSite Site,
+    MilitiaPatrolPhase Phase,
+    long ExpiresAt
+)
+{
+    public int StagingStationId { get; init; }
+    public ulong RouteDraw { get; init; }
+    public CapsuleerPvpFitGoal? StagingFit { get; init; }
+    public int SystemId => Site.SystemId;
+    public long SiteId => Site.Id;
 }
 
 public sealed record SovereigntyExpedition(

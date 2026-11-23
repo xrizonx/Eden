@@ -159,7 +159,7 @@ public sealed class TrafficPreparationTests(ITestOutputHelper output)
         fixture.Clock.Seconds += 1;
         var input = Assert.IsType<CapsuleerScheduler.PreparationInput>(scheduler.CapturePreparation());
         Assert.NotEqual(0, input.StationId);
-        Assert.Equal(!testingMarket, input.PrepareInstitutionalOffers);
+        Assert.Equal(!testingMarket, input.PrepareMarketOffers);
         using (live.EnterShared())
         {
             Assert.True(scheduler.PreparationCurrent(input));
@@ -173,22 +173,12 @@ public sealed class TrafficPreparationTests(ITestOutputHelper output)
         }
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void ResidentFreshTradesSkipLegacyJourneyPreparation(bool freshUniverse)
+    [Fact]
+    public void ResidentTradesPrepareTheirJourney()
     {
         using CapsuleerHaulerTests.Fixture fixture = new();
-        var configuration = fixture.Database.Configuration;
-        var active = configuration.Active!;
-        configuration.Install(
-            active with
-            {
-                Draft = active.Draft with { Settings = active.Draft.Settings with { FreshUniverse = freshUniverse } },
-            }
-        );
         long hauler = fixture.Founder().PilotId;
-        using var host = ServerServices.Build(fixture.Database, fixture.Clock, liveWorld: true, loadConfiguration: false);
+        using var host = ServerServices.Build(fixture.Database, fixture.Clock, liveWorld: true);
         var live = host.GetRequiredService<LiveWorld>();
         long miner = live.Economy.Inspect(world =>
             world.Set<SavedCapsuleerAgent>().Single(agent => agent.Career == CapsuleerCareer.Mining).PilotId
@@ -207,16 +197,60 @@ public sealed class TrafficPreparationTests(ITestOutputHelper output)
         Assert.Equal(hauler, input.Job.PilotId);
         Assert.Equal(CapsuleerAction.Trade, input.Job.Action);
         Assert.NotEqual(0, input.TrainingHull);
-        Assert.Equal(freshUniverse, input.FreshCareerTrade);
-        if (freshUniverse)
+        Assert.NotNull(input.Journey);
+    }
+
+    [Fact]
+    public void ResidentTradeLoadsSnapshotPvpFitsOutsideWorldOwnership()
+    {
+        using CapsuleerHaulerTests.Fixture fixture = new();
+        TrafficSnapshotTests.Install(fixture.Database, TrafficSnapshotTests.Profile());
+        Assert.Single(fixture.Database.Traffic.Profiles);
+
+        using var host = ServerServices.Build(fixture.Database, fixture.Clock, liveWorld: true);
+        var config = fixture.Database.Configuration.Active!;
+        var settings = config.Draft.Settings;
+        fixture.Database.Configuration.Install(
+            config with
+            {
+                Draft = config.Draft with { Settings = settings with { Capsuleers = settings.Capsuleers with { EarnedPvpShips = true } } },
+            }
+        );
+        var live = host.GetRequiredService<LiveWorld>();
+        using (var world = live.Economy.Begin())
         {
-            Assert.Null(input.Journey);
-            Assert.Null(input.Template);
+            long miner = world.Set<SavedCapsuleerAgent>().Single(agent => agent.Career == CapsuleerCareer.Mining).PilotId;
+            world.Add(new SavedCapsuleerSuspension { PilotId = miner });
+            world.Add(new SavedCapsuleerProvisioning { Id = 1, WorldSeed = 1 });
+            world.Commit();
         }
-        else
+        using var human = host.GetRequiredService<IHumanPresence>().Select(90000001, SourceSystem);
+        var scheduler = host.GetRequiredService<CapsuleerScheduler>();
+        _ = scheduler.CapturePreparation();
+        fixture.Clock.Seconds++;
+        var input = Assert.IsType<CapsuleerScheduler.PreparationInput>(scheduler.CapturePreparation());
+        Assert.Equal(CapsuleerAction.Trade, input.Job.Action);
+        Assert.Same(fixture.Database.Traffic, input.PvpSnapshot);
+
+        List<bool> owners = [];
+        using var trace = SessionPerformance.Begin(
+            "snapshot PvP fit preparation",
+            line =>
+            {
+                if (line.StartsWith("Performance traffic.loadSnapshotPvpFits:", StringComparison.Ordinal))
+                {
+                    owners.Add(live.IsEntered);
+                }
+            },
+            force: true
+        );
+        Assert.Equal(1, scheduler.RunMaintenance(1, 1, CancellationToken.None).Turn.Completed);
+        using (live.EnterShared())
+        using (CatalogDbContext catalog = new(fixture.Database.CatalogPath))
         {
-            Assert.NotNull(input.Journey);
+            CapsuleerIndustry.PrepareSnapshotPvpFits(catalog, fixture.Database.Traffic);
         }
+        Assert.Equal([false], owners);
     }
 
     [Fact]

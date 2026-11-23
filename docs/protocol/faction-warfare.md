@@ -1,5 +1,112 @@
 # Faction warfare
 
+## Battlefield rally points, friendly fire and defender loot
+
+Battlefield acceleration gates resolve the landing point for the defender, attacker or neutral entrant from the pinned
+build 3662168 dungeon. The four dungeons (9898–9901) identify three type 10124 beacons by localized object name ID.
+The faction landings are 90 km on either side of the center, with the neutral landing 50 km off-axis. Activation
+rechecks the destination and access before applying a suspect flag. Ordinary complex gates use their existing beacon.
+
+A first unlawful attack against a pilot of the same militia records the empire standing change as native event 225
+(`appLogConst.eventStandingCombatAggressionOwnFaction`). Both participants must be on the same active capture-room grid
+for the 2× penalty. An attack elsewhere applies 0.5×. Eden uses 2.5% of the distance to −10 as the base penalty.
+The committed ship-pair hostility suppresses duplicate standing losses within the active engagement. The standings
+change feeds the existing militia membership rules. [CCP friendly-fire policy](https://www.eveonline.com/news/view/standings-and-awoxing-update)
+
+Scout and Small complex defenders leave an empire small wreck containing one of the three opposing militia-store
+insignia grades. The pinned wrecks and tags match the four empires and the supported small weapon offers. Eden
+selects the grade deterministically from the NPC spawn identity. The same resident action settles the loss and
+creates the wreck. The normal ownership and cargo transfer rules apply when a pilot collects the tag.
+[CCP Scout and Small drops](https://www.eveonline.com/news/view/patch-notes-version-24-01)
+· [Eden LP offer snapshot](../../src/Eden.World/Market/loyalty-offers.json)
+
+**Automated validation.** The four-layout rally and gate filter passed 7 cases in 12 seconds. The two friendly-fire
+cases passed in 5 seconds. The four empire loot cases passed in 16.01 seconds, including transfer and checkpoint.
+A simulated native flight session at full safety saw the opposing militia affiliation, locked and fired, and took
+return fire. The related five cases passed in 7 seconds. The broader filter passed 170 of 171 tests in 57 seconds.
+The legacy fixture was corrected to recreate its real columns, and all three focused schema tests then passed in
+8.44 seconds, including both version 218 save layouts.
+
+The integration with main `2e88d56c` passed all 218 focused faction warfare, patrol, combat, wreck, Standard market,
+traffic preparation, and earned PvP fitting cases in 1 minute 22 seconds. Both version 218 save layouts also passed
+as an exact 7.46-second run. Schema 219 preserves resident hostility state and adds the market table and combat
+columns where missing. The solution built without warnings and both Python policy suites passed.
+
+## Dynamic faction warfare patrols
+
+The opt-in patrol planner reads current Frontline occupation and shared complexes from the resident warzone. Eligible
+pilots travel to a reachable staging station and enlist through ordinary militia rules. The patrol uses its own
+qualified fit, public gates, shared site and existing rewards. Its assignment remains with the pilot across checkpoints.
+The world and pilot seeds vary comparable options, with preference for reachable complexes that already have opposing
+patrols. The concurrent limit is two active patrols per faction across the warzone. A corporation's direct enlistment
+permissions and cooldown apply to its members. The planner checks the site, faction, ship and docking access as
+the patrol advances, and checks standing and corporation permissions again before enlisting. Human LP rules and
+ordinary combat and capture accounting also apply to bot-involved encounters.
+
+The client and catalog are pinned to build 3662168. EVE.js 261108.1 provides the behavioral references
+`fwCharacterEnlistmentMgrService.js` and `fwWarzoneSolarsystemService.js` for personal enlistment and warzone occupation.
+[CCP factional warfare](https://support.eveonline.com/hc/en-us/articles/203209072-Factional-Warfare) ·
+[CCP direct enlistment](https://www.eveonline.com/news/view/patch-notes-version-21-03) ·
+[EVE University faction warfare](https://wiki.eveuniversity.org/Faction_Warfare)
+
+**Automated validation**
+
+The resident replay `SeededPatrolChoicesVaryOnTheSameFrontAndFollowAChangedOccupation` reached different objectives
+on the same topology across world seeds, then returned and redeployed after the original objective lost Frontline
+status. `CorporationsControlDirectMilitiaEnlistmentAfterTravelToAValidOffice` passed both cases in five seconds,
+checking travel, the corporation's direct-enlistment policy and membership retention. The remaining militia patrol
+replays cover both empire warzones, real gate crossings, opposing fire, capture, and a checkpoint return.
+[Combined expedition and militia validation](capsuleers.md#independent-nullsec-expeditions)
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+## Aldranette–Nennamaila militia patrols
+
+The original implementation used the **Aldranette–Nennamaila militia patrols** setting in Player bots. The established
+population can commit up to two Gallente and two Caldari pilots to the initial front. Aldranette's FedMart station
+(60011014) and Nennamaila's Wiyrkomi Peace Corps station (60015126) satisfy the ordinary faction enlistment rules in
+build 3662168. Eligible pilots keep an existing qualified combat fit or shop for one from their earned wallet budget.
+Standing, docking, fitted equipment and per-site hull restrictions apply.
+
+Patrols choose a current Scout or Small complex in Aldranette. Caldari pilots use the reciprocal stargates and both
+sides enter through the public acceleration gate. They engage visible opposing militia pilots and local complex
+defenders through ordinary targeting, ammunition and damage. A surviving patrol can leave when its site completes,
+its assignment expires, the front changes, or the setting is disabled. Home docking follows current occupation.
+The sortie, navigation and active-time deadline travel with the existing bot checkpoint.
+
+Eligible bots affect the capture timer, system VP and militia activity statistics. Playable characters receive LP based
+on the number of eligible human participants. Bot-involved final blows still record actual losses and militia kills.
+Kill LP requires a human final attacker and human victim, with human assistants eligible under ordinary rules.
+[Resident capture and combat eligibility](#resident-capture-and-combat-eligibility)
+
+**Automated validation.** The two `CapsuleerMilitiaPatrolTests` replays passed in 11.05 seconds. With the only human
+selected elsewhere, two fitted bots enlisted, passed the gates and contested the same Scout complex. The first
+opposing railgun damage occurred after 96 simulated seconds. The second replay disabled patrols while a ship was
+in warp, reopened from the checkpoint, and verified its return in the original hull. The broader faction warfare,
+traffic, gangs, administration and earned-fit filter passed all 95 cases in 33 seconds. Both Python policy suites
+passed. The replays used controlled resident fixtures and did not launch the client.
+
+## Resident capture and combat eligibility
+
+Empire maintenance advances active complexes, battlefields and the related objectives. Protocol publishes and withdraws
+human flight presence as ships move, warp, dock or disconnect. The resident world adds eligible autonomous ships from
+its system index and rechecks the active ship, faction, cloak, hull and capture range. Each system takes a single progress
+sample per deadline, and a change of participants breaks the prior sample's continuity. Autonomous capture runs while
+at least one human has a selected pilot anywhere in the world. Pausing or reopening breaks continuity. Scanner and
+Destiny output read the committed results.
+
+Warmed player weapons use the committed militia affiliation directory for the same Crimewatch rights as transactional
+weapons. Enlistment and retirement take effect on the next legality check. Upwell tether eligibility reuses militia docking
+policy with live occupation and adjacency. Frontline, capsule and structure access rules apply to both tether acquisition
+and an existing tether's protection. [CCP militia combat](https://support.eveonline.com/hc/en-us/articles/203209072-Factional-Warfare)
+· [CCP Upwell rules](https://www.eveonline.com/news/view/patch-notes-version-20-10)
+
+**Automated validation.** The focused `MilitiaComplexTests|MilitiaObjectiveTests|ConcordTests` filter passed all
+37 cases in 22 seconds. New coverage exercises unattended bot capture, the global activity pause, a mixed player
+and bot contest, and an interrupted capture that reopens through a checkpoint. Native presentation was not exercised.
+
 ## Theaters of War shipcaster reads — November 21, 2026
 
 The empire warzone panel calls `shipCasterLandingPadMgr.GetFactionLandingPads(factionID)` and sorts the result before

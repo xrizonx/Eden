@@ -13,11 +13,16 @@
 - **Fleets and territory.** Form fleets, manage corporations and alliances, deploy Upwell structures, and contest sovereignty.
   [Fleets](#cooperative-fleets) · [Corporations](corporations.md) · [Structures](protocol/structures.md) · [Sovereignty](protocol/sovereignty.md)
 - **Faction Warfare.** Enlist a pilot, corporation or alliance. Run militia missions, earn ranks and LP, capture complexes and
-  battlefields, and contest infrastructure hubs in both warzones. [Faction Warfare](protocol/faction-warfare.md)
-- **Simulated capsuleers.** Encounter pilots that mine, haul, fight, explore and salvage. Fresh-world bots can earn career
-  ships, take corporate jobs, buy replacement fits, settle in frontier systems, and fund trained first sovereignty claims.
+  battlefields, and contest infrastructure hubs in both warzones. Optional militia bots select reachable Frontlines and
+  contest shared complexes. [Faction Warfare](protocol/faction-warfare.md#dynamic-faction-warfare-patrols)
+- **Simulated capsuleers.** Encounter pilots that mine, haul, fight, explore and salvage. On new established worlds, eligible
+  bots buy and fit separate PvP ships with spendable ISK from ordinary work. Corporate pilots can take paid production work,
+  replace lost ships and fund first sovereignty claims. Bot work continues with nobody logged in by default. With background
+  preparation enabled, eligible high-security systems gain bots ahead of player visits. The default departure policy favors
+  PvP roams for eligible independent pilots heading into nullsec. [Activity-funded PvP](protocol/capsuleers.md#activity-funded-pvp-ships) ·
+  [Independent nullsec expeditions](capsuleer-population.md#independent-nullsec-expeditions) ·
   [Capsuleer encounters](capsuleer-population.md) · [Population settings](world-configuration.md#autonomous-population) ·
-  [Fresh-world first claims](protocol/sovereignty.md#fresh-world-alliance-and-first-claim-progression)
+  [First claims](protocol/sovereignty.md#autonomous-first-claims) · [Population inspector](capsuleer-population.md#inspecting-bots-and-organizations)
 
 The linked protocol records contain scope, source revisions and validation for individual milestones.
 
@@ -58,13 +63,23 @@ All **25 published learning implants** now support native installation, destruct
 
 Unallocated skill points now persist and can be applied through native individual-skill, selected-level and queue workflows. All **59** fixed SP reward types from the pinned client can be issued through the redeem queue and credited once to an owned pilot, without creating inventory. Previews preserve saved state; application retains elapsed training, enforces Alpha skill limits, and refreshes the queue and fitted-ship brain. Unallocated points count toward Alpha passive-training limits. Native rendering remains unverified. See the [skill point notes](protocol/characters.md#persistent-unallocated-skill-points).
 
-The account redeem queue now supports administrator-issued inventory, fixed SP and currency rewards, native claiming, trashing and reversal of intact redeemed stacks. Rewards have optional expiry and fixed stations, can be delivered to an owned pilot before character selection or to its home station, and survive restarts. Grant references prevent duplicate issuance; queue updates reach connected accounts. Special activation rewards and blueprint metadata remain pending. See [redemption administration](development-client.md#issuing-account-redeem-rewards) and the [protocol notes](protocol/characters.md#persistent-account-redemption).
+The account redeem queue supports administrator-issued inventory, fixed SP, currency, and Expert System rewards.
+Claiming an Expert System activates it directly on the recipient. Grants have optional expiry and survive restarts.
+Physical rewards support fixed stations and home-station delivery. Grant references prevent duplicate issuance, queue
+updates reach connected accounts, and the queue supports trash and reversal of intact redeemed stacks. Other activation
+rewards and blueprint metadata remain pending. [Redemption administration](development-client.md#issuing-account-redeem-rewards) ·
+[Direct Expert System redemption](protocol/characters.md#direct-expert-system-redemption)
 
-Personal jump clones now support installation, naming, destruction and activation at NPC stations, with saved bodies, fees and cooldowns. Installation and activation each cost **900,000 ISK**; swaps within one station do not start or reset a cooldown. Infomorph skills and Alpha limits apply. The client can leave a docked ship in its hangar before jumping. Learning implants persist with each body. Rorqual and Titan vats can install and receive clones. Upwell installation, Pochven installation and native presentation remain open. See the [jump-clone notes](protocol/characters.md#persistent-personal-jump-clones) and [mobile jump clones](protocol/capital-logistics.md#mobile-jump-clones).
+Personal jump clones support installation, naming, destruction and activation at NPC stations, with saved bodies, fees and cooldowns. Installation and activation each cost **900,000 ISK**. Swaps within one station do not start or reset a cooldown. Infomorph skills and Alpha limits apply. The client can leave a docked ship in its hangar before jumping. Learning implants persist with each body. Rorqual and Titan vats can install and receive clones. Pochven NPC clone bays allow installation and local swaps at **+3.00 Triglavian Collective standing**. Upwell installation and native presentation remain open. See the [jump-clone notes](protocol/characters.md#persistent-personal-jump-clones), [Pochven rules](protocol/characters.md#pochven-npc-clone-bays) and [mobile jump clones](protocol/capital-logistics.md#mobile-jump-clones).
 
 The agent directory includes all active pinned-catalog agents. Pilots can find agents, save contacts, and accept supported
-combat, delivery, trade, mining and Data Center missions. R&D agents support passive research and paid datacore redemption.
-Daily bonus research missions remain open. [Supported missions](missions.md) · [Agent and research records](protocol/agents.md)
+combat, delivery, trade, mining, Data Center, and Paragon missions. All 100 career agents offer their empire's chain,
+including combat, scanning, hacking, and industry lessons. R&D agents support passive research, paid datacore redemption,
+and bonus assignments. Mission progress, direct mission penalties, and capped derived faction changes for ordinary
+storylines persist through resident checkpoints.
+The station Agents tab checks Event agents against the pilot's current mission and Eden's supported assignments.
+[Nine epic arcs](missions.md#epic-arcs) offer branching progression, cross-agent handoffs and a 90-day replay interval.
+[Supported missions](missions.md) · [Agent and research records](protocol/agents.md)
 
 Home stations now persist independently of ship travel. Select the current NPC station or your school corporation’s headquarters for **100,000 ISK**. A docked capsule away from home can use **Self-Destruct** in the home-station panel to return there in a replacement capsule; other ships, wallet and skills stay in place. New pilots retain their starting station as home. Player-corporation remote offices remain pending. See the [home-station notes](protocol/characters.md#persistent-home-stations-and-docked-clone-transfer).
 
@@ -74,7 +89,14 @@ Character settings support the stock client's read, save and delete calls. Each 
 
 Each account has three character slots. Choose **Add Character** to create a pilot in the stock client. New pilots start docked at their school's AIR station with their race's corvette and starting skills. The location panel shows the system, security status, constellation, region, and station.
 
-The Character Sheet opens for Eden Pilot and shows the Jita home station. Each local pilot has a saved account profile, pilot identity, and the starting skills for their race from the pinned catalog. Character selection and the Skill Catalogue show 384,047 SP for fresh seeded Caldari pilots. Buy a physical skillbook, right-click **Inject Skill**, then train it through the existing queue. Injection consumes one book and starts at zero SP; training checks prerequisites and the local Alpha limits. Queue progress, pause and resume survive restarts. The local gateway answers the personal plan list and tracked-plan lookup. See the [character-sheet service roadmap](protocol/characters.md#character-sheet-service-roadmap).
+The Character Sheet opens for Eden Pilot and shows the Jita home station. Each local pilot has a saved account profile, pilot identity, and the starting skills for their race from the pinned catalog. Character selection and the Skill Catalogue show 384,047 SP for fresh seeded Caldari pilots. Buy a physical skillbook, right-click **Inject Skill**, then train it through the existing queue. Injection consumes one book and starts at zero SP; training checks prerequisites and the local Alpha limits. Queue progress, pause and resume survive restarts. See the [character-sheet service roadmap](protocol/characters.md#character-sheet-service-roadmap).
+
+Personal Skill Plans support creating, editing, and deleting plans with ordered skill levels and milestones. Plans and
+tracking survive restarts. Each pilot can track a personal or certified plan.
+[Persistent personal skill plans](protocol/characters.md#persistent-personal-skill-plans)
+
+Expert Systems can grant temporary levels for operating ships and modules. Rentals and top-ups survive restarts. The
+Skill Catalogue shows virtual levels alongside permanent skill training. [Resident Expert Systems](protocol/characters.md#resident-expert-systems)
 
 The admin site's **Progression → Skill training speed** sets the server rate for newly scheduled training after restart. The client uses that rate for new estimates and the saved timeline for scheduled levels. Pilots can pause and resume to apply the active rate to an existing queue while keeping earned progress. See the [skill training speed notes](protocol/characters.md#world-skill-training-speed-november-21-2026).
 
@@ -126,9 +148,20 @@ executor, and the executor can transfer EverMarks to member corporations.
 
 ## Travel and navigation
 
+Focused Heavy Interdiction Cruiser scripts prevent combat capitals and Capital Industrial Ships from jumping through
+NPC stargates while the effect is active. Freighters, Jump Freighters and subcapitals can still jump under focused tackle.
+[Focused interdiction at NPC stargates](protocol/navigation.md#focused-interdiction-at-npc-stargates)
+
+The star map's **Personal → Systems Visited** filter shows each pilot's visit counts and latest timestamps. History starts
+when the pilot first selects a character after upgrading and persists across world restarts.
+[Personal map visit history](protocol/navigation.md#personal-map-visit-history)
+
 Developer accounts can use **GM / WM Extras → TR me here!** on known solar systems, NPC stations and standard static celestials. Travel preserves the active hull, fittings, cargo, wallet and medical home. Cross-system space destinations use a three-tick native jump transition to hand off the camera and input controls; a docked departure first undocks and loads its source ballpark. Same-system moves keep the current flight connection and stream nearby contacts as the ship relocates. Station destinations are immediate. Native camera/menu recovery remains unverified. See the [translocation notes](protocol/navigation.md#developer-translocation) and [developer travel guide](development-client.md#developer-travel).
 
-Map startup now answers the native jump-bridge access, faction ownership and home-station lookups that previously stopped scene loading with **Invalid Packet Destination**. The home marker uses the saved medical home independently of the ship's current location. The bridge reply preserves the client's three-part tuple; unimplemented player bridges, alliance sovereignty and faction-war occupations return empty collections, allowing the client to use its bundled universe and NPC faction data. Rendering and navigation remain unverified. See the [map startup notes](protocol/navigation.md#native-map-startup) and [home-marker correction](protocol/navigation.md#map-home-station-row).
+Map startup answers the native jump-bridge access, faction ownership and home-station lookups. The home marker uses the
+saved medical home, and the bridge reply preserves the client's three-part tuple. The map and Alliance Systems window
+read the world's sovereignty claims. [Map startup](protocol/navigation.md#native-map-startup) ·
+[Home-station marker](protocol/navigation.md#map-home-station-row) · [Alliance Systems window](protocol/sovereignty.md#alliance-systems-window)
 
 Undocking now uses each NPC station model's catalogued exit lane and launches with the pinned client's initial velocity. Static collisions retain thrust and tangential movement instead of cancelling the course. All 44 NPC station models have automated coverage, including Amsen VI - AIR Laboratories. Launches remain outside Eden's spherical station collision boundary, so exact placement at the visible hangar mouth remains approximate. See the [undocking correction](protocol/navigation.md#station-exit-lanes-and-collision-response).
 
@@ -144,6 +177,22 @@ Use **Orbit** or **Keep at Range** on a nearby ship, NPC, asteroid or wreck to c
 
 ## Player Upwell structures
 
+Ordinary targeted warp disruption prevents Upwell docking while its active strength exceeds the ship's warp core strength.
+Pilots can retry when the effect expires or their stabilizer ties the incoming strength.
+[Warp disruption and Upwell docking](protocol/structures.md#warp-disruption-and-upwell-docking)
+
+Pilots within range of a dockable Upwell structure can move eligible ship cargo into their personal Deliveries hangar
+from space. They can see the deposit in Personal Assets and move it into Item Hangar after docking.
+[Cargo Deposit at dockable Upwell structures](protocol/structures.md#cargo-deposit-at-dockable-upwell-structures)
+
+Pilots can supply fuel blocks from space to an anchored Pharolux, Ansiblex or Tenebrex through **Cargo Deposit**. The
+structure's corporation receives the fuel for its built-in service.
+[Cargo Deposit at FLEX navigation structures](protocol/structures.md#cargo-deposit-at-flex-navigation-structures)
+
+While docked at an Upwell structure, pilots can send eligible personal Item Hangar stacks to another pilot's Deliveries
+hangar. The recipient's items and inbox notification persist across restarts.
+[Personal Deliveries at Upwell structures](protocol/structures.md#personal-deliveries-at-upwell-structures)
+
 Gunners can fit Standup defenses, load ammunition and scripts, lock from the structure's own sensors, fire defensive
 missiles, neutralize capacitor, slow ships and disrupt warp. Loading the Standup scrambling script also blocks
 microwarpdrives and micro jump drives. Standup fighters can launch and recall, including after the gunner
@@ -156,6 +205,9 @@ and change an eligible structure's abandonment deadline. [Structure GM commands]
 
 ## Inventory, ships and holds
 
+Inventory displays the saved wear of personally owned frequency and mining crystals through the native crystal damage query.
+[Crystal damage in inventory](protocol/inventory.md#crystal-damage-in-inventory)
+
 Pilots docked in a cored Upwell structure with repair access can use the native repair shop for free ship and module repairs.
 [Upwell repair shop](protocol/structures.md#native-upwell-repair-shop)
 
@@ -164,6 +216,13 @@ The native **Personal Assets** window now receives station counts, solar-system/
 Inventory stack division now supports Shift-drag within the same hangar or active ship hold, plus the native Divide Stack menu while docked. A 50-unit injector stack can become separate 49- and one-unit stacks without changing location or consuming extra capacity. Splits preserve metadata, update the native inventory cache and survive restarts. See the [stack division correction](protocol/inventory.md#native-inventory-stack-division); native presentation remains unverified.
 
 Ship dirt now uses a saved timestamp for each assembled hull, and the native **Clean Ship** action resets it. Aging survives repeated reads, restarts and ownership transfers. Hangar reads and space metadata share the same value, with cleaning updates for owners and observers. Hulls without previous dirt history begin tracking on their first authorized read. Access follows current ownership and inventory reachability; client rendering remains unverified. See the [ship dirt notes](protocol/inventory.md#persistent-ship-dirt-and-native-cleaning).
+
+Pilots can activate eligible permanent and timed first-party **SKIN licenses** from inventory. Activated licenses
+appear in their collection and persist across restarts. [First-party ship SKIN licenses](protocol/inventory.md#first-party-ship-skin-licenses)
+
+Pilots can apply a licensed first-party SKIN in fitting and clear it to return to the default appearance. The selected
+SKIN persists per hull for its owner and is visible to nearby ships in space.
+[First-party ship SKIN application](protocol/inventory.md#first-party-ship-skin-application)
 
 Newly created pilots start with an online Civilian Miner and Civilian Gatling Railgun in their corvette's two high slots when the starting-equipment setting is enabled. [Initial corvette fitting](protocol/characters.md#initial-corvette-fitting)
 
@@ -220,6 +279,8 @@ Native **Stack All** now consolidates compatible personal stacks in Item Hangar 
 
 ## Combat and NPC populations
 
+- The administration killboard shows recorded ship and capsule destruction across the server, with independent NPC,
+  player and bot filters for final blows and losses. [Server killboard](protocol/combat.md#server-killboard)
 - Belt pirates use regional catalog pools with supported missiles, turrets, electronic warfare and self-repairs.
   Empire guards defend gates and stations, and civilian convoys and NPC mining fleets run local routes.
   [Populations and combat behavior](protocol/combat.md)
@@ -229,10 +290,13 @@ Native **Stack All** now consolidates compatible personal stacks in Item Hangar 
   [CONCORD](protocol/combat.md#concord-criminal-response--november-9-2026)
 - Criminal player attacks award lasting kill rights. Owners can activate a right for free or list it for public or
   restricted access. Activation makes the target suspect for 15 minutes. [Character kill rights](protocol/combat.md#character-kill-rights)
-- NPC bounties, eligible security gains, ship losses and wrecks persist. Fleetmates can share eligible bounties and loot. Pilot
+- NPC bounties and mining and ratting SP settle on a configurable per-pilot tick. Fleetmates can share eligible bounties and loot.
+  Ordinary NPC wrecks belong to the pilot who dealt the most damage, and mission wrecks go to the mission owner.
+  Eligible security gains, ship losses and wrecks persist. Pilot
   capsule loss destroys active-body implants and returns the pilot to their saved home station.
-  [Security gain](protocol/combat.md#persistent-security-status-from-pirate-kills) ·
-  [Capsule loss](protocol/combat.md#capsule-destruction-and-home-station-respawn-november-7-2026)
+  [Bounty ticks](protocol/combat.md#bounty-and-activity-sp-ticks) · [Security gain](protocol/combat.md#persistent-security-status-from-pirate-kills) ·
+  [Capsule loss](protocol/combat.md#capsule-destruction-and-home-station-respawn-november-7-2026) ·
+  [NPC wreck ownership](protocol/inventory.md#npc-wreck-ownership-from-damage)
 - Docked pilots can insure eligible ships and repair at NPC station facilities or the native Upwell repair shop where
   available. Eligible Upwell structures also provide tether repair and asset safety.
   [NPC station repair](protocol/combat.md#native-station-repair-november-2-2026) · [Upwell repair](protocol/structures.md#native-upwell-repair-shop)
@@ -241,15 +305,26 @@ Native **Stack All** now consolidates compatible personal stacks in Item Hangar 
 
 - **Fitting.** Swap and rearrange modules, group weapons, load charges and save personal, corporation or alliance fittings.
   Apply supported fits with Multifit. Administrators can scale CPU, power grid, calibration and drone bandwidth.
+  Fitting simulation uses the selected pilot's ship and combat-drone skill bonuses.
+  Drag loaded charges between compatible modules in the fitting window.
+  In space, fitted modules can go offline without cost. Bringing them online away from a fitting service requires 95% capacitor.
+  [Drag loaded charges](protocol/fitting.md#dragging-loaded-charges-between-fitting-slots) ·
+  [Module online state](protocol/fitting.md#module-online-state-in-space) ·
+  [Fitting simulation](protocol/fitting.md#trained-skills-in-fitting-simulation) ·
   [Fitting records](protocol/fitting.md) · [World settings](world-configuration.md#fitting)
 - **Weapons and defense.** Use supported hybrid, projectile and energy turrets, missiles, drones, smartbombs, and local or remote
   repairs. Scripts, ammunition, crystals, skills and hull bonuses affect their supported equipment. Native overload controls
   apply paid heat and module damage. Nanite paste repairs supported module damage.
   [Weapon and module records](protocol/fitting.md) ·
   [Overheating](protocol/fitting.md#complete-overheating-and-native-controls-november-8-2026)
+- **Marauders.** Bastion Module I and its faction variants stop propulsion and apply the catalog's weapon, repair and resistance
+  modifiers during their 60-second cycles. The weapons timer continues for 60 seconds after the cycle ends.
+  [Marauder Bastion modules](protocol/fitting.md#marauder-bastion-modules)
 - **Mobility and electronic warfare.** Use supported propulsion, cloaks, micro jumps, tackle, capacitor warfare and remote
   assistance. Interdictors, focused HIC scripts and nullifiers have their own fitting and activation rules.
   [Travel](protocol/navigation.md) · [Interdiction](protocol/interdiction.md) · [Area weapons](protocol/area-weapons.md)
+- **Command Destroyers.** The subcapital Micro Jump Field Generator moves the source and up to 24 nearby eligible ships
+  together. [Subcapital Micro Jump Field Generator](protocol/navigation.md#subcapital-micro-jump-field-generator)
 - **Drones and information modules.** Supported hulls can control combat, mining and utility drones. Combat drones can
   assist and guard fleetmates. Scanners, probes, salvagers and tractors use their own eligibility and range rules.
   [Drones](protocol/drones.md) · [Information modules](protocol/information.md)

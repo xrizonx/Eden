@@ -45,7 +45,7 @@ internal sealed partial class PilotMissionStore
             var rows = world.Filter<SavedMission>(m => m.SystemId == systemId && m.State == MissionState.Accepted).ToArray();
             foreach (var row in rows)
             {
-                Expire(world, row, now);
+                Expire(world, catalog, row, now);
             }
             var sites = rows.Where(m => m.State == MissionState.Accepted)
                 .Where(m => MissionCatalog.Find(catalog, m.MissionId).DungeonId.HasValue)
@@ -59,11 +59,30 @@ internal sealed partial class PilotMissionStore
                         .Select((o, index) => KeyValuePair.Create(o.Id, index))
                         .ToDictionary();
                     var structures = world.Filter<SavedMissionStructure>(s => s.MissionId == m.Id).ToDictionary(s => s.ObjectId);
+                    long? removedVisit =
+                        m.ObjectiveComplete && profile.Definition.CareerVisit is { RemoveObject: true } completedVisit
+                            ? completedVisit.ObjectId
+                            : null;
+                    MissionVisitPoint? ScenePoint(MissionVisitPoint? point, double radius = 0) =>
+                        m.ObjectiveComplete || point is null
+                            ? null
+                            : point with
+                            {
+                                Position = position + point.Position,
+                                Radius = radius,
+                                ObjectId = indices.TryGetValue(point.ObjectId, out int index)
+                                    ? SceneObjectId(profile, m.Id, point.ObjectId, index)
+                                    : 0,
+                            };
                     return profile
                         .Rooms.Select(room =>
                         {
                             var objects = room
-                                .Objects.Where(o => !profile.Definition.Structures.Any(s => s.ObjectId == o.Id))
+                                .Objects.Where(o =>
+                                    o.Id != profile.Definition.SalvageObjectId
+                                    && o.Id != removedVisit
+                                    && !profile.Definition.Structures.Any(s => s.ObjectId == o.Id)
+                                )
                                 .Select(o =>
                                     o with
                                     {
@@ -71,6 +90,7 @@ internal sealed partial class PilotMissionStore
                                         Position = position + o.Position,
                                     }
                                 )
+                                .Select(o => CareerContainerVisual(world, o))
                                 .Concat(
                                     profile
                                         .Definition.Structures.Select((definition, index) => KeyValuePair.Create(index, definition))
@@ -81,7 +101,7 @@ internal sealed partial class PilotMissionStore
                                         )
                                         .Select(s => RecoveryContainer(catalog, m, profile, s.Key, structures[s.Value.ObjectId].LootEmpty))
                                 )
-                                .Concat(profile.Kind == MissionKind.Mining ? MiningContacts(world, m, profile) : [])
+                                .Concat(profile.Deposits.IsEmpty ? [] : MiningContacts(world, m, profile, room.Id))
                                 .ToArray();
                             var gates = room
                                 .Gates.Select(g =>
@@ -99,7 +119,7 @@ internal sealed partial class PilotMissionStore
                                 .ToArray();
                             bool started =
                                 m.ObjectiveComplete
-                                || !profile.Definition.Waves.Any((w) => w.RoomId == room.Id || w.RoomId == 0)
+                                || !RoomStartsOnArrival(profile, room.Id)
                                 || progress.ContainsKey(room.Id)
                                 || profile.Rooms.Length == 1 && m.Wave >= 0;
                             return new MissionSite(m.Id, m.PilotId, m.SystemId, position + room.Position, started, objects)
@@ -108,8 +128,14 @@ internal sealed partial class PilotMissionStore
                                 Entrance = position,
                                 Gates = gates,
                                 Deadspace = profile.Definition.Deadspace,
-                                Private = profile.Kind == MissionKind.Mining,
+                                Private = profile.Kind == MissionKind.Mining || profile.Definition.Scripted,
                                 PublicBeacon = room == profile.Rooms[0] ? MilitiaBeacon(catalog, m, profile, position) : null,
+                                CareerVisit = ScenePoint(
+                                    room.CareerVisit,
+                                    room.Objects.FirstOrDefault(o => o.Id == room.CareerVisit?.ObjectId)?.Radius ?? 0
+                                ),
+                                CareerHazard = ScenePoint(room.CareerHazard),
+                                CareerScanner = CareerScanner(catalog, m, profile, room, objects),
                             };
                         })
                         .ToArray();
@@ -173,14 +199,10 @@ internal sealed partial class PilotMissionStore
             foreach (var site in pending)
             {
                 var row = world.Set<SavedMission>().Find(site.Id);
-                if (row is { State: MissionState.Accepted, ObjectiveComplete: false } && !Expire(world, row, now))
+                if (row is { State: MissionState.Accepted, ObjectiveComplete: false } && !Expire(world, catalog, row, now))
                 {
                     var profile = MissionCatalog.Find(catalog, row.MissionId);
-                    if (world.Set<SavedMissionRoom>().Find(row.Id, site.RoomId) is null && !(profile.Rooms.Length == 1 && row.Wave >= 0))
-                    {
-                        int wave = Enumerable.Range(0, profile.Definition.Waves.Length).First(w => profile.WaveRoom(w) == site.RoomId);
-                        Spawn(world, catalog, row, wave, now);
-                    }
+                    StartMissionRoom(world, catalog, row, profile, site.RoomId, now);
                 }
             }
             world.SaveChanges();
@@ -284,7 +306,7 @@ internal sealed partial class PilotMissionStore
         );
         if (decision.SpawnNextWave)
         {
-            Spawn(new SqlWorldAction(world), catalog, mission, nextWave, now);
+            Spawn(new SqlWorldAction(world), catalog, mission, profile, nextWave, now);
         }
         if (decision.Complete)
         {

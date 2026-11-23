@@ -4,6 +4,8 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Eden.Data.Catalog.Market;
 using Eden.Gameplay.Market;
+using Eden.Infrastructure.Diagnostics;
+using Eden.World.Catalog;
 using Eden.World.Storage;
 
 namespace Eden.World.Market;
@@ -11,7 +13,9 @@ namespace Eden.World.Market;
 public sealed class LiveMarketSnapshotCatalog(WorldDatabase database)
 {
     private readonly ConcurrentDictionary<int, Lazy<IReadOnlyDictionary<int, LiveMarketOrder[]>>> _regions = new();
+    private readonly ConcurrentDictionary<int, Lock> _preparation = new();
     private LiveMarketSnapshotManifest? _manifest;
+    private volatile bool _ready;
     internal string Root => Path.Combine(Path.GetDirectoryName(Path.GetFullPath(database.Path))!, "market-orders");
 
     public LiveMarketSnapshotManifest ReadManifest() => ReadManifest(Root);
@@ -55,20 +59,28 @@ public sealed class LiveMarketSnapshotCatalog(WorldDatabase database)
 
     internal LiveMarketSnapshotManifest Manifest => _manifest ??= ReadManifest();
 
-    internal IReadOnlyDictionary<int, LiveMarketOrder[]> Region(int regionId) =>
+    internal IReadOnlyDictionary<int, LiveMarketOrder[]> RegionOrdersByType(int regionId) =>
         _regions.GetOrAdd(regionId, id => new(() => LoadRegion(id))).Value;
+
+    internal Lock RegionPreparation(int regionId) => _preparation.GetOrAdd(regionId, static _ => new());
+
+    internal bool Ready => _ready;
+
+    internal void CompleteReadiness() => _ready = true;
 
     private static string RegionPath(string root, LiveMarketSnapshotManifest manifest, int regionId) =>
         Path.Combine(root, manifest.Generation, $"{regionId}.json.gz");
 
     private IReadOnlyDictionary<int, LiveMarketOrder[]> LoadRegion(int regionId)
     {
-        var descriptor = Manifest.Regions.SingleOrDefault(region => region.RegionId == regionId);
+        var manifest = Manifest;
+        var descriptor = manifest.Regions.SingleOrDefault(region => region.RegionId == regionId);
         if (descriptor is null)
         {
             return new Dictionary<int, LiveMarketOrder[]>();
         }
-        using var file = File.OpenRead(RegionPath(Root, Manifest, regionId));
+        using var phase = SessionPerformance.Phase("market.loadStandardRegion");
+        using var file = File.OpenRead(RegionPath(Root, manifest, regionId));
         if (!Convert.ToHexString(SHA256.HashData(file)).Equals(descriptor.Sha256, StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidDataException("Live market region checksum does not match its manifest.");
@@ -78,18 +90,30 @@ public sealed class LiveMarketSnapshotCatalog(WorldDatabase database)
         var orders =
             JsonSerializer.Deserialize<LiveMarketOrder[]>(zipped, JsonSerializerOptions.Web)
             ?? throw new InvalidDataException("Invalid live market region.");
-        if (orders.Length != descriptor.Orders || orders.Select(order => order.SourceOrderId).Distinct().Count() != orders.Length)
+        if (orders.Length != descriptor.Orders)
         {
-            throw new InvalidDataException("Live market region has an invalid order count or duplicate identity.");
+            throw new InvalidDataException("Live market region has an invalid order count.");
         }
-        var types = orders
-            .Select(order => order.TypeId)
-            .Distinct()
-            .ToDictionary(type => type, type => database.Catalog.Find(Eden.World.Catalog.CatalogData.Client.Types, (long)type));
+        HashSet<long> identities = new(orders.Length);
+        Dictionary<int, int> counts = [];
         foreach (var order in orders)
         {
-            var station = database.Catalog.Stations.GetValueOrDefault(order.StationId);
-            var type = types[order.TypeId];
+            if (!identities.Add(order.SourceOrderId))
+            {
+                throw new InvalidDataException("Live market region has a duplicate order identity.");
+            }
+            counts[order.TypeId] = counts.GetValueOrDefault(order.TypeId) + 1;
+        }
+        var catalog = database.Catalog;
+        var types = catalog.FindMany(CatalogData.Client.Types, counts.Keys.Select(type => (long)type));
+        var stations = catalog.Stations;
+        var items = catalog.Items;
+        var grouped = counts.ToDictionary(pair => pair.Key, pair => new LiveMarketOrder[pair.Value]);
+        counts.Clear();
+        foreach (var order in orders)
+        {
+            var station = stations.GetValueOrDefault(order.StationId);
+            var type = types.GetValueOrDefault(order.TypeId);
             if (
                 order.SourceOrderId <= 0
                 || station is null
@@ -97,7 +121,7 @@ public sealed class LiveMarketSnapshotCatalog(WorldDatabase database)
                 || station.RegionId != regionId
                 || order.RegionId != regionId
                 || type is not { Published: 1, MarketGroupID: > 0 }
-                || !database.Catalog.Items.ContainsKey(order.TypeId)
+                || !items.ContainsKey(order.TypeId)
                 || order.PriceCents <= 0
                 || order.PriceCents > MarketDefinitions.MaximumOrderPrice * MarketDefinitions.CentsPerIsk
                 || order.Remaining <= 0
@@ -112,7 +136,10 @@ public sealed class LiveMarketSnapshotCatalog(WorldDatabase database)
             {
                 throw new InvalidDataException("Live market order is invalid or incompatible with the installed catalog.");
             }
+            int index = counts.GetValueOrDefault(order.TypeId);
+            grouped[order.TypeId][index] = order;
+            counts[order.TypeId] = index + 1;
         }
-        return orders.GroupBy(order => order.StationId).ToDictionary(group => group.Key, group => group.ToArray());
+        return grouped;
     }
 }

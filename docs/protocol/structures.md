@@ -2,6 +2,160 @@
 
 [Protocol index](../protocol.md) Â· [Documentation index](../README.md)
 
+## Warp disruption and Upwell docking
+
+A ship under targeted warp disruption cannot dock at an Upwell structure while the active strength exceeds its warp
+core strength. Eden previously checked only focused Heavy Interdictor and Standup effects, so a ship held by an ordinary
+Warp Disruptor or Warp Scrambler could still dock.
+[CCP Upwell Quick Facts](https://support.eveonline.com/hc/en-us/articles/209985225-Upwell-Structures-Quick-Facts) ·
+[EVE University tackling](https://wiki.eveuniversity.org/Tackling)
+
+The Upwell dock transaction now checks targeted tackle from ships, structures and NPCs using the existing fitted warp-scramble
+status. It excludes expired offensive points and settles an expired stabilizer on the docking ship if the session's
+module update has not run. A tied active stabilizer allows docking and a denial preserves the ship's current location.
+
+The pinned build **3662168** catalog supplies warp-scramble status **104** and additive targeted strength **105**.
+EVE.js **261108.1**, build **3396210**, checks the scrambled flag for Upwell docking in
+`space/runtime/spaceRuntime/docking.js` (SHA-256 prefix `fde06eb9bb2e`) and
+`services/structure/structureTetherRestrictionState.js` (`73a15e89d333`). Eden reuses the existing dock request and error.
+
+**Automated validation.** The Warp Disruptor I case reproduced the dock bypass on base `852bc415`. The exact filter
+`FullyQualifiedName=Eden.Protocol.Tests.Structures.StructureWarpDisruptorTests.ShipTackleBlocksUpwellDockingUntilItExpiresOrMeetsWarpCoreStrength`
+passed all three cases in 20.63 seconds after a 14.75-second build. It covers the tick before expiry, exact expiry, tied
+warp-core strength, overlapping scrams and an expired stabilizer whose owner has yet to run the module update. The
+expired-stabilizer case failed before the docking check began settling the inactive defensive effect.
+The final combined filter passed all 144 cases in 186.59 seconds after a 1.71-second build.
+
+```text
+FullyQualifiedName~StructureWarpDisruptorTests|FullyQualifiedName~StructureTetherTests|FullyQualifiedName~Eden.Protocol.Tests.Propulsion.TackleTests|FullyQualifiedName~NpcEwarTests|FullyQualifiedName~StructureServiceTests
+```
+
+The solution build had zero warnings and errors. Both Python policy suites passed (8 catalog and 9 formatting cases),
+and formatting, updated documentation anchors and whitespace checks passed.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Attempt to dock at an Upwell structure under an ordinary point, then retry after the point ends.
+Repeat with a Warp Core Stabilizer that matches the scramble strength.
+
+## Cargo Deposit at dockable Upwell structures
+
+Build **3662168** `dropboxWnd.pyj` sends `structureCargoDelivery.DropOffItems(itemIDs, shipID, structureID)` from its
+space-side Cargo Deposit window. The reply lists the item IDs that moved. Dogma attribute **2790** supplies a **10 km**
+surface range on supported hulls, and inventory flag **173** identifies the personal Deliveries hangar. The original
+client archive has SHA-256 prefix `37fb2af4fa0e`. EVE.js **261108.1**, build **3396210**, implements the route in
+`structureCargoDeliveryService.js` (`ae8c9e10c413`). [Upwell structure hauling](https://wiki.eveuniversity.org/Hauling)
+
+Pilots can transfer eligible ship-hold items from space at a dockable Upwell structure. The deposit uses the active ship's
+position and works independently of docking access. Cloaking, warp, and an active weapons timer prevent deposits. A
+criminal flag prevents deposit in empire space. Accepted items keep their owners, IDs, contents and metadata in the
+personal Deliveries hangar. An item that has already moved or is unavailable stays out of the success reply.
+
+Personal Assets includes the resulting items and locations, so the existing asset-safety path can be reached when docking
+is unavailable. After docking, the owner can move the delivered items into Item Hangar using the native inventory view.
+Assembled ship custody and courier completion while undocked remain separate features.
+[Asset safety](https://wiki.eveuniversity.org/Asset_Safety)
+
+**Automated validation.** `NativeDropOffChecksSurfaceRangeAndPreservesPrivateDeliveriesAcrossRestart` passed through
+`Test-Feature.ps1` in 22.17 seconds after a 48.79-second build. It covers the exact surface limit, deposit without docking
+access, weapons timer expiry, mixed item eligibility, private asset visibility, retry and checkpoint reopen, and retrieval
+through the bound structure inventory.
+
+The solution built in 4.26 seconds with no warnings or errors. Before rebasing, the following filter passed 72 tests in
+97.46 seconds.
+
+```text
+FullyQualifiedName~Eden.Protocol.Tests.Structures.StructureCargoDropoffTests|FullyQualifiedName~Eden.Protocol.Tests.Structures.AssetSafetyTests|FullyQualifiedName~Eden.Protocol.Tests.Structures.StructureTests|FullyQualifiedName~Eden.Protocol.Tests.Inventory.PersonalAssetRulesTests|FullyQualifiedName~Eden.Protocol.Tests.Persistence.InventoryStackSplitTests|FullyQualifiedName~Eden.Protocol.Tests.Persistence.InventoryOwnershipTests
+```
+
+After rebasing onto `4425121c`, the catalog policy identified six unchanged Epic Arc calls by the cached helper name
+`Get`. Renaming it to `RequireArc` restored the policy check. The final solution build completed in 12.55 seconds with no
+warnings or errors. The following overlap filter passed 14 tests in 13.27 seconds. Both Python suites, full formatting and
+the whitespace check passed.
+
+```text
+FullyQualifiedName~Eden.Protocol.Tests.Structures.StructureCargoDropoffTests|FullyQualifiedName~Eden.Protocol.Tests.Agents.EpicArcDeliveryTests|FullyQualifiedName~Eden.Protocol.Tests.Agents.EpicArcProgressionTests|FullyQualifiedName~Eden.Protocol.Tests.Agents.EpicArcWireTests|FullyQualifiedName~Eden.Protocol.Tests.Persistence.InventoryOwnershipTests
+```
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Open **Cargo Deposit** within 10 km of a dockable Upwell structure. Deposit a stack, dock,
+then move the stack from **Deliveries** into **Item Hangar**.
+
+## Cargo Deposit at FLEX navigation structures
+
+The build **3662168** `dropboxController.pyj` switches the Cargo Deposit window to **Fuel Bay** for non-dockable Upwell
+structures and sends the same `DropOffItems` request. `structures/types.pyj` supplies the type filter and
+`inventorycommon/const.pyj` binds the structure fuel bay to flag **172**. EVE.js **261108.1**, build **3396210**, directs
+FLEX deposits to the structure owner's corporate fuel bay in `structureCargoDeliveryService.js` (`ae8c9e10c413`).
+[CCP navigation structures](https://www.eveonline.com/news/view/navigation-structures-inbound) ·
+[EVE University navigation structures](https://wiki.eveuniversity.org/Navigation_structures)
+
+Any pilot within **10 km** of the surface of an anchored Pharolux, Ansiblex or Tenebrex can deposit eligible whole fuel
+block stacks from their active ship, subject to the same cloak, warp and combat restrictions as personal deposits.
+The owning corporation receives the stacks in its fuel bay. The structure's built-in service uses the same resident
+stock for startup and hourly fuel charges. Deposits use Eden's existing **30,000 m³** fuel bay limit and skip stacks
+that cannot fit in full.
+
+Build 3662168 still offers Liquid Ozone in the Cargo Deposit filter. Ansiblex uses capacitor for jumps, and Eden accepts
+fuel blocks for its hourly upkeep. Metenox fueling depends on its automatic harvest and reagent consumption lifecycle.
+[CCP Version 24.01 patch notes](https://www.eveonline.com/news/view/patch-notes-version-24-01)
+
+**Automated validation.** The exact
+`Eden.Protocol.Tests.Structures.StructureFlexCargoDropoffTests.NativeDropOffFuelsPrivateFlexStructuresWithWholeStacksAcrossRestart`
+filter passed for all three hulls in 41.58 s after a 41.71 s build. It covers the surface boundary, public deposit at a
+private structure, capacity and mixed-item checks, sender cache removals, retry and corporate custody after reopen.
+
+The solution built in 31.74 s with zero warnings or errors. This combined filter ran in 219.62 s with 144 passes and
+one skip. The skipped Rhea acquisition replay requires an installed catalog paired with a captured market snapshot.
+The catalog and formatting policy suites passed all 17 Python tests.
+
+```text
+FullyQualifiedName~Eden.Protocol.Tests.Structures.StructureFlexCargoDropoffTests|FullyQualifiedName~Eden.Protocol.Tests.Structures.StructureCargoDropoffTests|FullyQualifiedName~Eden.Protocol.Tests.Structures.StructureDeliveryTests|FullyQualifiedName~Eden.Protocol.Tests.Structures.StructureTests|FullyQualifiedName~Eden.Protocol.Tests.Structures.StructureFuelRulesTests|FullyQualifiedName~Eden.Protocol.Tests.Flight.CapitalTravelTests
+```
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Approach an anchored navigation structure from another corporation and use **Cargo
+Deposit** to contribute fuel blocks. Confirm the owner can use them to run the built-in service.
+
+## Personal Deliveries at Upwell structures
+
+Build **3662168** `invItemFunctions.pyj` sends `structureDeliveries.Deliver(structureID, characterID, itemIDs)` from
+**Deliver to**. It sends whole item stacks. The original client archive has SHA-256 prefix `37fb2af4fa0e`. EVE.js
+**261108.1**, build **3396210**, processes the personal Item Hangar source in `structureDeliveriesService.js` (`ff6f7a64e11d`).
+[CCP Upwell Structures quick facts](https://support.eveonline.com/hc/en-us/articles/209985225-Upwell-Structures-Quick-Facts) ·
+[EVE University character transfers](https://wiki.eveuniversity.org/Alternate_characters#Transferring_goods_between_characters)
+
+A docked pilot can send eligible items from their Item Hangar to a local pilot's Deliveries hangar at the same Upwell
+structure. The receiving pilot can be offline or elsewhere. A self-delivery moves the items between the pilot's hangars.
+Supported containers carry eligible contents with them. A container with an ineligible item or a different owner inside
+stays in the sender's hangar. Ownership and the saved delivery notification commit together. Recipients can see their
+items in Personal Assets and move them into Item Hangar after docking.
+
+The pinned formatter in `notifications/common/formatters/structures.pyj` reads notification type **199**, the structure and
+sender identifiers, and `(quantity, typeID)` pairs. A recipient already docked there receives inventory updates for the
+delivered items that are still in Deliveries. Corporation inventory sources and assembled ship transfers remain separate.
+
+**Automated validation.** The exact
+`Eden.Protocol.Tests.Structures.StructureDeliveryTests.NativeDeliverToPersistsPrivateCustodyAndNoticesThenAllowsClaimAfterRestart`
+filter passed in 8.73 s after a 15.91 s build. It exercises container ownership, retry safety, the native inbox and
+claiming deliveries after checkpoint and reopen. The previous Personal Assets test still expected unsupported results
+for two implemented Asset Safety routes. Its failure reproduced on the pre-delivery main revision `eeb96063` and the
+corrected malformed-request test passed in 8.70 s.
+
+The solution build completed in 14.97 s with zero warnings or errors. This combined filter passed all 78 tests in 35.51 s.
+The catalog setup and formatting policy suites passed all 17 Python tests.
+
+```text
+FullyQualifiedName~Eden.Protocol.Tests.Structures.StructureDeliveryTests|FullyQualifiedName~Eden.Protocol.Tests.Structures.StructureCargoDropoffTests|FullyQualifiedName~Eden.Protocol.Tests.Structures.AssetSafetyTests|FullyQualifiedName~Eden.Protocol.Tests.Persistence.InboxTests|FullyQualifiedName~Eden.Protocol.Tests.PilotSessions.InboxServiceTests|FullyQualifiedName~Eden.Protocol.Tests.PilotSessions.PersonalAssetServiceTests|FullyQualifiedName~Eden.Protocol.Tests.Inventory.CargoContainerAssemblyTests|FullyQualifiedName~Eden.Protocol.Tests.PilotSessions.PlayerTradeTests
+```
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Dock at the same Upwell structure with two accounts. Send a stack using **Deliver to**, then
+confirm it appears in the recipient's Deliveries and notification inbox.
+
 ## Upwell completion program — November 16, 2026
 
 The completion program continues the existing foundation with resident authority and checkpoint persistence.
@@ -922,7 +1076,7 @@ the combined run. An additional actual-Athanor open/solid point assertion passed
 Tool/solution restore and the solution build passed with zero warnings/errors (0.76 seconds).
 The catalog Python policy suite passed eight cases in 1.044 seconds and formatting policy passed nine in 0.015 seconds.
 Formatting verified 2,471 files and the 140-column rule. Full export/conversion, pinned-converter bootstrap, preflight,
-fresh-profile equivalence, byte-identical incremental export, wrong-client rejection and output preservation passed;
+clean export equivalence, byte-identical incremental export, wrong-client rejection and output preservation passed;
 the latter combined exporter smoke checks took 2.42 seconds. Documentation links and `git diff --check` passed.
 The full .NET suite was not requested or run.
 

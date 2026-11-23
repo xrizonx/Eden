@@ -13,6 +13,7 @@ using Eden.Gameplay.Defenses;
 using Eden.Gameplay.Dogma;
 using Eden.Gameplay.Drones;
 using Eden.Gameplay.Fleets;
+using Eden.Gameplay.Flight;
 using Eden.Gameplay.Inventory;
 using Eden.Gameplay.Mining;
 using Eden.Gameplay.Propulsion;
@@ -28,6 +29,7 @@ using Eden.World.Combat.Npcs;
 using Eden.World.Combat.Weapons;
 using Eden.World.Defenses;
 using Eden.World.Fleets;
+using Eden.World.Flight;
 using Eden.World.Inventory;
 using Eden.World.Mining;
 using Eden.World.Propulsion;
@@ -48,12 +50,13 @@ internal sealed partial record FittingCalculation
         Pilot pilot,
         Ship? ship = null,
         int? ownerTypeId = null,
-        IReadOnlySet<long>? overloadedModules = null
+        IReadOnlySet<long>? overloadedModules = null,
+        OwnedItem[]? proposedModules = null
     )
     {
         // A paid-cycle owner supplies its explicit overload selection. Neither
         // the module snapshot nor derived ship values may enter the normal cache.
-        string? revision = ownerTypeId is null && overloadedModules is null ? world.FitRevision(pilot.Id) : null;
+        string? revision = ownerTypeId is null && overloadedModules is null && proposedModules is null ? world.FitRevision(pilot.Id) : null;
         SessionPerformance.FittingCalculated();
         ship ??= pilot.ActiveShip;
         if (overloadedModules is not null && ship.OwnerId != pilot.Id)
@@ -64,7 +67,7 @@ internal sealed partial record FittingCalculation
         var hullAttributes = PilotFittingStore.ReadAttributes(catalog, ship.TypeId).ToDictionary();
         hullAttributes[DogmaAttributeId.Mass] = hull.Mass ?? 0;
         hullAttributes[DogmaAttributeId.CargoCapacity] = hull.Capacity ?? 0;
-        var items = world.FittedItems(pilot.Id, ship.Id);
+        var items = proposedModules ?? world.FittedItems(pilot.Id, ship.Id);
         var moduleAttributes = items.ToDictionary(i => i.Id, i => MutaplasmidStore.Attributes(world, catalog, i.Id, i.TypeId));
         var modules = items
             .Select(i => new FittingLocation(
@@ -83,7 +86,7 @@ internal sealed partial record FittingCalculation
         {
             throw new InvalidDataException("Overload selection must belong to this owned ship's fitted modules.");
         }
-        var loaded = world.LoadedFittingItems(pilot.Id, moduleIds);
+        var loaded = proposedModules is null ? world.LoadedFittingItems(pilot.Id, moduleIds) : [];
         var chargeAttributes = loaded
             .Select(i => i.TypeId)
             .Distinct()
@@ -306,13 +309,20 @@ internal sealed partial record FittingCalculation
         {
             if (
                 module.Item.Online
-                && module.GroupId is Eden.Gameplay.Flight.CapitalModeRules.Group or Eden.Gameplay.Flight.CapitalModeRules.CloneVatGroup
+                && module.GroupId is CapitalModeRules.Group or CapitalModeRules.CloneVatGroup
                 && activeModules.ContainsKey(module.Item.Id)
             )
             {
-                foreach (var modifier in Eden.World.Flight.CapitalModeCatalog.Modifiers(catalog, module.Item.TypeId))
+                int type = module.Item.TypeId;
+                bool bastion = CapitalModeRules.Effect(type) == DogmaEffect.Bastion;
+                foreach (var modifier in CapitalModeCatalog.Modifiers(catalog, type))
                 {
-                    Add(module.Item.Id, modifier, true);
+                    Add(
+                        module.Item.Id,
+                        modifier,
+                        !CapitalModeCatalog.SharesStackingPenalty(type, modifier),
+                        bastion && CapitalModeCatalog.ModifiesMissileVelocity(modifier) ? IsNotRapidHeavyCharge : null
+                    );
                 }
             }
             if (SpatialModuleCatalog.Supported(catalog, module.Item.TypeId, module.GroupId))
@@ -589,8 +599,13 @@ internal sealed partial record FittingCalculation
                     .Where(s => s.PilotId == pilot.Id && Enumerable.Contains(relevantSkills, s.TypeId))
                     .Select(s => s.TypeId)
                     .ToHashSet();
+        var grants = PilotSkillReader.VirtualSkills(world, catalog, pilot.Id);
         var activeSkills = relevantSkills
-            .Where(skill => hullSkills.Contains(skill) || (trained?.Contains(skill) ?? world.SkillPoints(pilot.Id, skill).HasValue))
+            .Where(skill =>
+                hullSkills.Contains(skill)
+                || grants.ContainsKey(skill)
+                || (trained?.Contains(skill) ?? world.SkillPoints(pilot.Id, skill).HasValue)
+            )
             .ToArray();
         var skillIds = activeSkills
             .Concat(Enum.GetValues<FittingSkill>().Select(s => (int)s))
@@ -598,7 +613,7 @@ internal sealed partial record FittingCalculation
             .Concat(Enum.GetValues<TargetingSkill>().Select(s => (int)s))
             .Distinct()
             .ToArray();
-        var levels = PilotSkillReader.Levels(world, catalog, pilot.Id, skillIds);
+        var levels = PilotSkillReader.OperationalLevels(world, catalog, pilot.Id, skillIds, grants);
         foreach (int skill in activeSkills)
         {
             int level = levels.GetValueOrDefault(skill);
@@ -747,17 +762,21 @@ internal sealed partial record FittingCalculation
         }
         return new(graph, ship.Id, pilot.Id, modules, bonuses, charges, levels)
         {
-            Transient = ownerTypeId is not null || overloadedModules is not null,
+            Transient = ownerTypeId is not null || overloadedModules is not null || proposedModules is not null,
             OverloadedModules = overloads,
         };
 
-        void Add(long source, PassiveModifier modifier, bool exempt)
+        // Build 3662168's Bastion description excludes rapid heavy launchers. The loaded charge also misses the range bonus.
+        bool IsNotRapidHeavyCharge(FittingLocation target) =>
+            !modules.Any(module => module.GroupId == (int)MissileLauncherGroup.RapidHeavy && module.Item.Id == target.Item.LocationId);
+
+        void Add(long source, PassiveModifier modifier, bool exempt, Predicate<FittingLocation>? applies = null)
         {
             IEnumerable<long> targets = modifier.Selector switch
             {
                 ModifierSelector.Group => locations.Where(m => m.GroupId == modifier.SelectionId).Select(m => m.Item.Id),
                 ModifierSelector.RequiredSkill => locations
-                    .Where(m => m.RequiredSkills.Contains(modifier.SelectionId!.Value))
+                    .Where(m => m.RequiredSkills.Contains(modifier.SelectionId!.Value) && (applies is null || applies(m)))
                     .Select(m => m.Item.Id),
                 ModifierSelector.OwnerRequiredSkill => ownerTargets
                     .Where(m => m.RequiredSkills.Contains(modifier.SelectionId!.Value))

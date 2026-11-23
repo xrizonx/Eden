@@ -3,6 +3,7 @@ using System.Globalization;
 using Eden.Data.Catalog;
 using Eden.Data.World.Capsuleers;
 using Eden.Data.World.Corporations;
+using Eden.Data.World.Industry;
 using Eden.Data.World.Inventory;
 using Eden.Data.World.Market;
 using Eden.Data.World.Skills;
@@ -10,6 +11,7 @@ using Eden.Gameplay.Capsuleers;
 using Eden.Gameplay.Corporations;
 using Eden.Gameplay.Docking;
 using Eden.Gameplay.Dogma;
+using Eden.Gameplay.Industry;
 using Eden.Gameplay.Inventory;
 using Eden.Gameplay.Mining;
 using Eden.Gameplay.Ships;
@@ -24,8 +26,6 @@ using Eden.World.Skills;
 namespace Eden.World.Capsuleers;
 
 internal readonly record struct CapsuleerTrainingTurn(CapsuleerCareerPlan? Plan, bool MarketChanged = false, bool LevelChanged = false);
-
-internal readonly record struct CapsuleerQualificationTurn(bool Progressed, bool MarketChanged);
 
 [Injectable]
 internal sealed class CapsuleerCareerTraining(PilotTrainingStore training, PilotMarketStore market)
@@ -65,9 +65,6 @@ internal sealed class CapsuleerCareerTraining(PilotTrainingStore training, Pilot
         }
     }
 
-    internal static void PrepareFreshChoices(CatalogDbContext catalog, CapsuleerProfession profession) =>
-        _ = catalog.Definition(s_careerFitPlans, EntryHull(profession));
-
     internal CapsuleerTrainingTurn Advance(
         EconomyTransaction world,
         CatalogDbContext catalog,
@@ -86,8 +83,17 @@ internal sealed class CapsuleerCareerTraining(PilotTrainingStore training, Pilot
             return new(saved);
         }
         long id = pilot.PilotId;
-        bool reset = world.Settings.FreshUniverse && pilot.ShipGroupId == (int)HullClass.Corvette && saved is { HighestHullStage: > 0 };
-        var plan = Choose(world, catalog, pilot, profession, !reset && saved?.Profession == profession ? saved : null);
+        var plan = Choose(world, catalog, pilot, profession, saved?.Profession == profession ? saved : null, now);
+        if (CapsuleerIndustry.RequiresEarnedPvp(world) && CapsuleerCorporations.Organization(world, id).PvpFitGoal is { } goal)
+        {
+            var kit = goal.Kit();
+            var parts = kit.Parts();
+            if (!CapsuleerIndustry.PvpFitQualified(world, catalog, pilot, kit, parts, out bool needsFittingSkills))
+            {
+                var result = TrainEquipment(world, catalog, pilot, parts.Select(part => part.TypeId).ToArray(), now, needsFittingSkills);
+                return new(plan, result.MarketChanged, result.LevelChanged);
+            }
+        }
         if (PilotTrainingStore.ReadFreePoints(world, id) == 0)
         {
             return new(plan);
@@ -97,12 +103,9 @@ internal sealed class CapsuleerCareerTraining(PilotTrainingStore training, Pilot
         {
             return new(plan);
         }
-        bool fresh = world.Settings.FreshUniverse;
-        bool primaryRole = fresh ? StarterIndustryRules.IsProducerSlot(agent.Slot) : agent.Slot == StarterIndustryRules.ProducerSlot;
+        bool primaryRole = agent.Slot == 0;
         bool manager = world.Set<SavedCorporation>().Find(pilot.CorpId)?.CeoId == id || primaryRole;
-        bool factory =
-            profession == CapsuleerProfession.Mining
-            && (profile.CorporationId >= CorporationRules.FirstCorporationId || fresh && primaryRole);
+        bool factory = profession == CapsuleerProfession.Mining && profile.CorporationId >= CorporationRules.FirstCorporationId;
         var focus = plan.NextFocus;
         for (int turn = 0; turn < 3; turn++, focus = CapsuleerCareerTrainingRules.Next(focus))
         {
@@ -121,94 +124,53 @@ internal sealed class CapsuleerCareerTraining(PilotTrainingStore training, Pilot
         return new(plan);
     }
 
-    internal CapsuleerTrainingTurn AdvanceFreshCareer(
-        EconomyTransaction world,
-        CatalogDbContext catalog,
-        DockedPilot pilot,
-        CapsuleerProfession profession,
-        long now
-    )
-    {
-        var plan = new CapsuleerCareerPlan(profession, EntryHull(profession), CapsuleerTrainingFocus.Ship);
-        long id = pilot.PilotId;
-        var state = training.Advance(world, id, now);
-        bool trained = state.ChangedSkills.Count > 0;
-        if (catalog.Definition(s_careerFitPlans, plan.ShipTypeId) is not { } targets)
-        {
-            return new(plan, LevelChanged: trained);
-        }
-        if (PilotTrainingStore.ReadFreePoints(world, id) > 0)
-        {
-            if (Spend(world, catalog, pilot, targets, now, out bool boughtBook, out bool allocatedLevel))
-            {
-                return new(plan, boughtBook, trained || allocatedLevel);
-            }
-            if (
-                targets.All(target => PilotSkillReader.Level(world, catalog, id, target.TypeId) >= target.Level)
-                && (
-                    Spend(
-                        world,
-                        catalog,
-                        pilot,
-                        catalog.Definition(s_work, 0)[(profession, false, false)],
-                        now,
-                        out boughtBook,
-                        out allocatedLevel
-                    ) || Spend(world, catalog, pilot, catalog.Definition(s_foundation, 0), now, out boughtBook, out allocatedLevel)
-                )
-            )
-            {
-                return new(plan, boughtBook, trained || allocatedLevel);
-            }
-        }
-        bool marketChanged = state.Queue.Count == 0 && QueueNextLevel(world, catalog, pilot, targets, now, out _);
-        return new(plan, marketChanged, trained);
-    }
-
     internal bool TrainForModule(EconomyTransaction world, CatalogDbContext catalog, DockedPilot pilot, int module, long now) =>
         TrainForEquipment(world, catalog, pilot, [module], now);
 
-    internal bool TrainForEquipment(EconomyTransaction world, CatalogDbContext catalog, DockedPilot pilot, int[] types, long now)
-    {
-        if (Expand(catalog, types.SelectMany(type => RequiredSkills(catalog, type))) is not { Length: > 0 } targets)
-        {
-            return false;
-        }
-        long id = pilot.PilotId;
-        if (PilotTrainingStore.ReadFreePoints(world, id) > 0 && Spend(world, catalog, pilot, targets, now, out bool bought, out _))
-        {
-            return bought;
-        }
-        return training.Advance(world, id, now).Queue.Count == 0 && QueueNextLevel(world, catalog, pilot, targets, now, out _);
-    }
-
-    internal CapsuleerQualificationTurn AdvanceQualification(
+    internal bool TrainForEquipment(
         EconomyTransaction world,
         CatalogDbContext catalog,
         DockedPilot pilot,
-        IReadOnlyList<int> equipment,
-        TrainingTarget qualification,
-        long now
+        int[] types,
+        long now,
+        bool improveFittingResources = false
+    ) => TrainEquipment(world, catalog, pilot, types, now, improveFittingResources).MarketChanged;
+
+    private (bool MarketChanged, bool LevelChanged) TrainEquipment(
+        EconomyTransaction world,
+        CatalogDbContext catalog,
+        DockedPilot pilot,
+        int[] types,
+        long now,
+        bool improveFittingResources
     )
     {
-        if (
-            pilot.Position is not null
-            || pilot.InStructure
-            || Expand(catalog, equipment.SelectMany(type => RequiredSkills(catalog, type)).Append(qualification))
-                is not { Length: > 0 } targets
-        )
+        var required = types.SelectMany(type => RequiredSkills(catalog, type));
+        if (improveFittingResources)
+        {
+            var fittingSkills = new[] { (int)FittingSkill.CpuManagement, (int)FittingSkill.PowerGridManagement }.Concat(
+                Enum.GetValues<RiggingSkill>().Select(skill => (int)skill)
+            );
+            required = required.Concat(
+                fittingSkills.Where(type => catalog.FittingType(type) is not null).Select(type => new TrainingTarget(type, 5))
+            );
+        }
+        if (Expand(catalog, required) is not { Length: > 0 } targets)
         {
             return default;
         }
         long id = pilot.PilotId;
         var state = training.Advance(world, id, now);
-        if (PilotTrainingStore.ReadFreePoints(world, id) > 0 && Spend(world, catalog, pilot, targets, now, out bool bought, out _))
+        bool changed = state.ChangedSkills.Count > 0;
+        if (
+            PilotTrainingStore.ReadFreePoints(world, id) > 0
+            && Spend(world, catalog, pilot, targets, now, out bool bought, out bool allocated)
+        )
         {
-            return new(true, bought);
+            return (bought, changed || allocated);
         }
-        bool queued = false;
-        bool marketChanged = state.Queue.Count == 0 && QueueNextLevel(world, catalog, pilot, targets, now, out queued);
-        return new(queued || state.ChangedSkills.Count > 0, marketChanged);
+        bool marketChanged = state.Queue.Count == 0 && QueueNextLevel(world, catalog, pilot, targets, now, out _);
+        return (marketChanged, changed);
     }
 
     private bool QueueNextLevel(
@@ -300,15 +262,6 @@ internal sealed class CapsuleerCareerTraining(PilotTrainingStore training, Pilot
             PilotSkillBookStore.Inject(world, catalog, id, [owned.Id], now);
             return true;
         }
-        // Keep the fresh factory and its buyer's working capital available until each settles its first finished-goods trade.
-        if (
-            world.Settings.FreshUniverse
-            && world.Set<SavedCapsuleerAgent>().Find(id)?.Career == CapsuleerCareer.Mining
-            && !CapsuleerIndustry.StarterTradeSettled(world, id)
-        )
-        {
-            return false;
-        }
         long budget = (world.Set<PilotWallet>().Find(id)?.Cents ?? 0) / SkillbookBudgetDivisor;
         if (budget == 0)
         {
@@ -338,7 +291,8 @@ internal sealed class CapsuleerCareerTraining(PilotTrainingStore training, Pilot
         CatalogDbContext catalog,
         DockedPilot pilot,
         CapsuleerProfession profession,
-        CapsuleerCareerPlan? saved
+        CapsuleerCareerPlan? saved,
+        long now
     )
     {
         var (stage, preferred) = PreferredShip(catalog, pilot.ShipTypeId, profession, saved);
@@ -354,7 +308,10 @@ internal sealed class CapsuleerCareerTraining(PilotTrainingStore training, Pilot
         }
         long seed = world.Set<SavedCapsuleerProvisioning>().Find(1)?.WorldSeed ?? 0;
         ulong draw = CapsuleerProvisioningRules.Seed(seed ^ pilot.PilotId, pilot.SystemId, CapsuleerCareer.Mining);
-        return new(profession, available[(int)(draw % (ulong)available.Length)], focus) { HighestHullStage = stage };
+        int first = (int)(draw % (ulong)available.Length);
+        int target =
+            stage == 0 ? available[first] : CapsuleerIndustry.PreferredAvailableCareerKit(world, catalog, pilot, available, first, now);
+        return new(profession, target, focus) { HighestHullStage = stage };
     }
 
     private static (int Stage, int Preferred) PreferredShip(

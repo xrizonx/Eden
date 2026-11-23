@@ -294,6 +294,429 @@
       ]
     },
     {
+      "missionId": 2925,
+      "level": 1,
+      "difficulty": 1000,
+      "storyline": false,
+      "source": "https://eve-survival.org/?wakka=Blockade1gu",
+      "sourceRevision": "2017-10-16 08:49 UTC; EVE University oldid=191985",
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                17608
+              ],
+              "count": 1,
+              "range": 25000,
+              "required": false
+            },
+            {
+              "types": [
+                16981
+              ],
+              "count": 4,
+              "range": 25000
+            },
+            {
+              "types": [
+                17001,
+                17006
+              ],
+              "count": 1,
+              "range": 25000,
+              "trigger": true
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                16981,
+                16994
+              ],
+              "count": 6,
+              "range": 120000
+            },
+            {
+              "types": [
+                16996
+              ],
+              "count": 1,
+              "range": 120000,
+              "trigger": true
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                16981
+              ],
+              "count": 6,
+              "range": 115000
+            },
+            {
+              "types": [
+                16987,
+                17002
+              ],
+              "count": 1,
+              "range": 115000,
+              "trigger": true
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                16994,
+                16981
+              ],
+              "count": 8,
+              "range": 100000
+            },
+            {
+              "types": [
+                17002,
+                16987
+              ],
+              "count": 1,
+              "range": 100000,
+              "trigger": true
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                17002,
+                16987
+              ],
+              "count": 4,
+              "range": 100000
+            },
+            {
+              "types": [
+                17001
+              ],
+              "count": 1,
+              "range": 100000,
+              "completesMission": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 2926,
+      "level": 1,
+      "difficulty": 1000,
+      "storyline": false,
+      "source": "https://eve-survival.org/?wakka=Blockade1sa",
+      "sourceRevision": "2017-10-16 08:49 UTC; 2010-10-18 completion; EVE University oldid=191987",
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                17606
+              ],
+              "count": 1,
+              "range": 25000,
+              "required": false
+            },
+            {
+              "types": [
+                17068
+              ],
+              "count": 3,
+              "range": 25000
+            },
+            {
+              "types": [
+                17072
+              ],
+              "count": 1,
+              "range": 25000,
+              "trigger": true
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                17068
+              ],
+              "count": 4,
+              "range": 120000
+            },
+            {
+              "types": [
+                17078
+              ],
+              "count": 2,
+              "range": 120000
+            },
+            {
+              "types": [
+                17074
+              ],
+              "count": 1,
+              "range": 120000,
+              "trigger": true
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                17078
+              ],
+              "count": 6,
+              "range": 120000
+            },
+            {
+              "types": [
+                17076
+              ],
+              "count": 1,
+              "range": 120000,
+              "trigger": true
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                17068
+              ],
+              "count": 4,
+              "range": 120000
+            },
+            {
+              "types": [
+                17078
+              ],
+              "count": 3,
+              "range": 120000
+            },
+            {
+              "types": [
+                17081
+              ],
+              "count": 1,
+              "range": 120000,
+              "trigger": true
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                17076
+              ],
+              "count": 4,
+              "range": 120000
+            },
+            {
+              "types": [
+                17072
+              ],
+              "count": 1,
+              "range": 120000,
+              "completesMission": true
+            }
+          ]
+        }
+      ],
+      "deadspace": false
+    },
+    {
+      "missionId": 2940,
+      "level": 2,
+      "difficulty": 1000,
+      "storyline": false,
+      "source": "https://eve-survival.org/?wakka=Blockade2gu",
+      "sourceRevision": "2012-07-14 05:36 UTC; EVE University oldid=193403",
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                17612
+              ],
+              "count": 1,
+              "range": 25000,
+              "required": false
+            },
+            {
+              "types": [
+                16986
+              ],
+              "count": 4,
+              "range": 25000
+            },
+            {
+              "types": [
+                23984
+              ],
+              "count": 3,
+              "range": 25000
+            },
+            {
+              "types": [
+                23971
+              ],
+              "count": 1,
+              "range": 25000,
+              "trigger": true
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                17002
+              ],
+              "count": 1,
+              "range": 60000
+            },
+            {
+              "types": [
+                16986
+              ],
+              "count": 3,
+              "range": 60000
+            },
+            {
+              "types": [
+                23971
+              ],
+              "count": 6,
+              "range": 60000
+            },
+            {
+              "types": [
+                16982
+              ],
+              "count": 3,
+              "range": 60000
+            },
+            {
+              "types": [
+                17004
+              ],
+              "count": 1,
+              "range": 60000,
+              "trigger": true
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                24045
+              ],
+              "count": 4,
+              "range": 65000
+            },
+            {
+              "types": [
+                23985
+              ],
+              "count": 3,
+              "range": 65000
+            },
+            {
+              "types": [
+                23971
+              ],
+              "count": 3,
+              "range": 65000
+            },
+            {
+              "types": [
+                17004
+              ],
+              "count": 1,
+              "range": 65000,
+              "trigger": true
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                17006
+              ],
+              "count": 3,
+              "range": 70000
+            },
+            {
+              "types": [
+                24050
+              ],
+              "count": 3,
+              "range": 70000
+            },
+            {
+              "types": [
+                23971
+              ],
+              "count": 2,
+              "range": 70000
+            },
+            {
+              "types": [
+                16982
+              ],
+              "count": 1,
+              "range": 70000,
+              "trigger": true
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                16989
+              ],
+              "count": 4,
+              "range": 50000
+            },
+            {
+              "types": [
+                23987
+              ],
+              "count": 3,
+              "range": 50000
+            },
+            {
+              "types": [
+                24087
+              ],
+              "count": 1,
+              "range": 50000,
+              "completesMission": true
+            }
+          ]
+        }
+      ]
+    },
+    {
       "missionId": 875,
       "level": 1,
       "difficulty": 500,
@@ -342,6 +765,818 @@
         {
           "fromObjectId": 53016,
           "destinationRoomId": 2710
+        }
+      ]
+    },
+    {
+      "missionId": 2933,
+      "level": 3,
+      "difficulty": 1000,
+      "storyline": false,
+      "source": "https://eve-survival.org/?wakka=Blockade3an",
+      "sourceRevision": "2015-06-16 08:52 UTC; EVE University oldid=205299",
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                17606
+              ],
+              "count": 1,
+              "range": 17500,
+              "required": false
+            },
+            {
+              "types": [
+                24034,
+                24033
+              ],
+              "count": 4,
+              "range": 17500,
+              "required": false
+            },
+            {
+              "types": [
+                23976,
+                23975
+              ],
+              "count": 3,
+              "range": 17500,
+              "required": false
+            },
+            {
+              "types": [
+                23976,
+                23975
+              ],
+              "count": 1,
+              "range": 17500,
+              "trigger": true,
+              "required": false
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                24006,
+                24007
+              ],
+              "count": 2,
+              "range": 115000,
+              "required": false
+            },
+            {
+              "types": [
+                24112,
+                24111
+              ],
+              "count": 3,
+              "range": 115000,
+              "required": false
+            },
+            {
+              "types": [
+                23974,
+                23975,
+                23978,
+                23976
+              ],
+              "count": 3,
+              "range": 115000,
+              "required": false
+            },
+            {
+              "types": [
+                24006,
+                24004,
+                24007
+              ],
+              "count": 3,
+              "range": 115000,
+              "required": false
+            },
+            {
+              "types": [
+                23999
+              ],
+              "count": 1,
+              "range": 115000,
+              "trigger": true,
+              "required": false
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                24120,
+                24119
+              ],
+              "count": 3,
+              "range": 107500,
+              "required": false
+            },
+            {
+              "types": [
+                23999,
+                24004
+              ],
+              "count": 3,
+              "range": 107500,
+              "required": false
+            },
+            {
+              "types": [
+                23974,
+                23976,
+                23975,
+                23969
+              ],
+              "count": 4,
+              "range": 107500,
+              "required": false
+            },
+            {
+              "types": [
+                23999,
+                24004,
+                24007
+              ],
+              "count": 4,
+              "range": 107500,
+              "required": false
+            },
+            {
+              "types": [
+                24006
+              ],
+              "count": 1,
+              "range": 107500,
+              "trigger": true,
+              "required": false
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                24112,
+                16891,
+                24111
+              ],
+              "count": 3,
+              "range": 120000,
+              "required": false
+            },
+            {
+              "types": [
+                24006
+              ],
+              "count": 3,
+              "range": 120000,
+              "required": false
+            },
+            {
+              "types": [
+                24117,
+                24116
+              ],
+              "count": 4,
+              "range": 120000,
+              "required": false
+            },
+            {
+              "types": [
+                23999,
+                24004
+              ],
+              "count": 4,
+              "range": 120000,
+              "required": false
+            },
+            {
+              "types": [
+                24007
+              ],
+              "count": 1,
+              "range": 120000,
+              "trigger": true,
+              "required": false
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                24034,
+                24033
+              ],
+              "count": 4,
+              "range": 35000,
+              "required": false
+            },
+            {
+              "types": [
+                24008
+              ],
+              "count": 4,
+              "range": 35000,
+              "required": false
+            },
+            {
+              "types": [
+                24007
+              ],
+              "count": 1,
+              "range": 35000,
+              "completesMission": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 2934,
+      "level": 3,
+      "difficulty": 1000,
+      "storyline": false,
+      "source": "https://eve-survival.org/?wakka=Blockade3gu",
+      "sourceRevision": "2016-05-17 00:16 UTC; EVE University oldid=214891",
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                17612
+              ],
+              "count": 1,
+              "range": 25000,
+              "required": false
+            },
+            {
+              "types": [
+                23985
+              ],
+              "count": 1,
+              "range": 25000,
+              "trigger": true,
+              "required": false
+            },
+            {
+              "types": [
+                24098,
+                24097,
+                24095
+              ],
+              "count": 4,
+              "range": 25000,
+              "required": false
+            },
+            {
+              "types": [
+                24014,
+                24001
+              ],
+              "count": 4,
+              "range": 25000,
+              "required": false
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                17001,
+                17006
+              ],
+              "count": 2,
+              "range": 65000,
+              "required": false
+            },
+            {
+              "types": [
+                23984,
+                23971,
+                23985,
+                23988,
+                23987
+              ],
+              "count": 6,
+              "range": 65000,
+              "required": false
+            },
+            {
+              "types": [
+                24016
+              ],
+              "count": 1,
+              "range": 65000,
+              "trigger": true,
+              "required": false
+            },
+            {
+              "types": [
+                24015,
+                24014,
+                24001
+              ],
+              "count": 8,
+              "range": 65000,
+              "required": false
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                23984,
+                23971,
+                23985,
+                23988
+              ],
+              "count": 4,
+              "range": 115000,
+              "required": false
+            },
+            {
+              "types": [
+                24095
+              ],
+              "count": 2,
+              "range": 115000,
+              "required": false
+            },
+            {
+              "types": [
+                24017
+              ],
+              "count": 1,
+              "range": 115000,
+              "trigger": true,
+              "required": false
+            },
+            {
+              "types": [
+                24016,
+                24014,
+                24001
+              ],
+              "count": 6,
+              "range": 115000,
+              "required": false
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                24047,
+                24048
+              ],
+              "count": 4,
+              "range": 100000,
+              "required": false
+            },
+            {
+              "types": [
+                24088,
+                24087
+              ],
+              "count": 3,
+              "range": 100000,
+              "required": false
+            },
+            {
+              "types": [
+                24016
+              ],
+              "count": 1,
+              "range": 100000,
+              "trigger": true,
+              "required": false
+            },
+            {
+              "types": [
+                24015,
+                24014
+              ],
+              "count": 7,
+              "range": 100000,
+              "required": false
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                24045,
+                24046
+              ],
+              "count": 4,
+              "range": 22500,
+              "required": false
+            },
+            {
+              "types": [
+                24017,
+                24018
+              ],
+              "count": 5,
+              "range": 22500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 2935,
+      "level": 3,
+      "difficulty": 1000,
+      "storyline": false,
+      "source": "https://eve-survival.org/?show_comments=3&wakka=Blockade3sa",
+      "sourceRevision": "EVE-Survival comments 2009-10-21 and 2010-09-04",
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                17609
+              ],
+              "count": 1,
+              "range": 25000,
+              "required": false
+            },
+            {
+              "types": [
+                24085
+              ],
+              "count": 4,
+              "range": 25000,
+              "required": false
+            },
+            {
+              "types": [
+                24002
+              ],
+              "count": 3,
+              "range": 25000,
+              "required": false
+            },
+            {
+              "types": [
+                23990
+              ],
+              "count": 1,
+              "range": 25000,
+              "trigger": true,
+              "required": false
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                24002
+              ],
+              "count": 6,
+              "range": 120000,
+              "required": false
+            },
+            {
+              "types": [
+                17063
+              ],
+              "count": 1,
+              "range": 120000,
+              "required": false
+            },
+            {
+              "types": [
+                23989
+              ],
+              "count": 2,
+              "range": 120000,
+              "required": false
+            },
+            {
+              "types": [
+                23990
+              ],
+              "count": 4,
+              "range": 120000,
+              "required": false
+            },
+            {
+              "types": [
+                24020
+              ],
+              "count": 1,
+              "range": 120000,
+              "trigger": true,
+              "required": false
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                24002
+              ],
+              "count": 6,
+              "range": 120000,
+              "required": false
+            },
+            {
+              "types": [
+                23972
+              ],
+              "count": 3,
+              "range": 120000,
+              "required": false
+            },
+            {
+              "types": [
+                24084
+              ],
+              "count": 2,
+              "range": 120000,
+              "required": false
+            },
+            {
+              "types": [
+                24021
+              ],
+              "count": 1,
+              "range": 120000,
+              "trigger": true,
+              "required": false
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                24002
+              ],
+              "count": 6,
+              "range": 122500,
+              "required": false
+            },
+            {
+              "types": [
+                24054
+              ],
+              "count": 4,
+              "range": 122500,
+              "required": false
+            },
+            {
+              "types": [
+                24076
+              ],
+              "count": 2,
+              "range": 122500,
+              "required": false
+            },
+            {
+              "types": [
+                24020
+              ],
+              "count": 1,
+              "range": 122500,
+              "trigger": true,
+              "required": false
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                24052
+              ],
+              "count": 4,
+              "range": 30000,
+              "required": false
+            },
+            {
+              "types": [
+                24023
+              ],
+              "count": 1,
+              "range": 30000,
+              "required": false
+            },
+            {
+              "types": [
+                24022
+              ],
+              "count": 3,
+              "range": 30000,
+              "required": false
+            },
+            {
+              "types": [
+                24022
+              ],
+              "count": 1,
+              "range": 30000,
+              "completesMission": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 2937,
+      "level": 3,
+      "difficulty": 1000,
+      "storyline": false,
+      "source": "https://eve-survival.org/?wakka=Blockade3br",
+      "sourceRevision": "2017-10-16 08:49 UTC; EVE University oldid=191981",
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                17609
+              ],
+              "count": 1,
+              "range": 20000,
+              "required": false
+            },
+            {
+              "types": [
+                24042
+              ],
+              "count": 4,
+              "range": 20000,
+              "required": false
+            },
+            {
+              "types": [
+                24013
+              ],
+              "count": 4,
+              "range": 20000,
+              "required": false
+            },
+            {
+              "types": [
+                23981
+              ],
+              "count": 1,
+              "range": 20000,
+              "trigger": true,
+              "required": false
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                16945
+              ],
+              "count": 1,
+              "range": 110000,
+              "required": false
+            },
+            {
+              "types": [
+                23970,
+                23980
+              ],
+              "count": 4,
+              "range": 110000,
+              "required": false
+            },
+            {
+              "types": [
+                24009,
+                24010
+              ],
+              "count": 7,
+              "range": 110000,
+              "required": false
+            },
+            {
+              "types": [
+                24011
+              ],
+              "count": 1,
+              "range": 110000,
+              "trigger": true,
+              "required": false
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                23980
+              ],
+              "count": 4,
+              "range": 105000,
+              "required": false
+            },
+            {
+              "types": [
+                24107
+              ],
+              "count": 2,
+              "range": 105000,
+              "required": false
+            },
+            {
+              "types": [
+                24009,
+                24000
+              ],
+              "count": 6,
+              "range": 105000,
+              "required": false
+            },
+            {
+              "types": [
+                24011
+              ],
+              "count": 1,
+              "range": 105000,
+              "trigger": true,
+              "required": false
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                24041
+              ],
+              "count": 3,
+              "range": 118000,
+              "required": false
+            },
+            {
+              "types": [
+                16928
+              ],
+              "count": 2,
+              "range": 118000,
+              "required": false
+            },
+            {
+              "types": [
+                24000
+              ],
+              "count": 4,
+              "range": 118000,
+              "required": false
+            },
+            {
+              "types": [
+                24010
+              ],
+              "count": 1,
+              "range": 118000,
+              "trigger": true,
+              "required": false
+            }
+          ]
+        },
+        {
+          "groups": [
+            {
+              "types": [
+                24041
+              ],
+              "count": 4,
+              "range": 20000,
+              "required": false
+            },
+            {
+              "types": [
+                24013,
+                24012
+              ],
+              "count": 5,
+              "range": 20000
+            }
+          ]
         }
       ]
     },
@@ -1147,6 +2382,714 @@
       "source": "build-3662168 client/missions; Eden storyline offer policy",
       "sourceRevision": "3662168",
       "waves": []
+    },
+    {
+      "missionId": 1065,
+      "level": 4,
+      "difficulty": 500,
+      "storyline": false,
+      "source": "https://wiki.eveuniversity.org/The_Blood_Raider_Spies_(Level_4)",
+      "sourceRevision": "oldid=208031",
+      "offerOrder": 1,
+      "deadspace": true,
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                24000,
+                24009
+              ],
+              "count": 3,
+              "range": 5000,
+              "required": false
+            },
+            {
+              "types": [
+                24136,
+                16938
+              ],
+              "count": 1,
+              "range": 5000,
+              "required": false
+            },
+            {
+              "types": [
+                23970,
+                23979
+              ],
+              "count": 3,
+              "range": 35000,
+              "required": false
+            },
+            {
+              "types": [
+                24099,
+                24100
+              ],
+              "count": 3,
+              "range": 35000,
+              "required": false
+            },
+            {
+              "types": [
+                16952,
+                16934
+              ],
+              "count": 3,
+              "range": 35000,
+              "required": false
+            },
+            {
+              "types": [
+                23983,
+                23982
+              ],
+              "count": 3,
+              "range": 55000
+            },
+            {
+              "types": [
+                24013
+              ],
+              "count": 3,
+              "range": 55000
+            }
+          ],
+          "roomId": 3535
+        }
+      ],
+      "rooms": [
+        {
+          "roomId": 3536,
+          "entryObjectId": 70449
+        },
+        {
+          "roomId": 3535,
+          "entryObjectId": 70433
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 70448,
+          "destinationRoomId": 3535
+        }
+      ]
+    },
+    {
+      "missionId": 1084,
+      "level": 2,
+      "difficulty": 500,
+      "storyline": false,
+      "source": "https://wiki.eveuniversity.org/Attack_the_Angel_Hideout",
+      "sourceRevision": "oldid=191574",
+      "offerOrder": 1,
+      "deadspace": true,
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                10995,
+                10993,
+                3750
+              ],
+              "count": 2,
+              "range": 30000,
+              "required": false,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                16883,
+                16888
+              ],
+              "count": 3,
+              "range": 60000
+            },
+            {
+              "types": [
+                16874,
+                16885
+              ],
+              "count": 2,
+              "range": 60000
+            },
+            {
+              "types": [
+                16884
+              ],
+              "count": 1,
+              "range": 60000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 909,
+      "level": 2,
+      "difficulty": 500,
+      "storyline": false,
+      "source": "https://wiki.eveuniversity.org/The_Seven%27s_Brothel",
+      "sourceRevision": "oldid=232779",
+      "offerOrder": 1,
+      "deadspace": false,
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                18028
+              ],
+              "count": 1,
+              "range": 30000,
+              "required": false
+            },
+            {
+              "types": [
+                18574,
+                18575
+              ],
+              "count": 2,
+              "range": 40000,
+              "required": false
+            },
+            {
+              "types": [
+                18573
+              ],
+              "count": 1,
+              "range": 60000
+            },
+            {
+              "types": [
+                11597,
+                12251
+              ],
+              "count": 1,
+              "range": 60000
+            },
+            {
+              "types": [
+                18574,
+                18575
+              ],
+              "count": 2,
+              "range": 70000,
+              "required": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 910,
+      "level": 3,
+      "difficulty": 500,
+      "storyline": false,
+      "source": "https://wiki.eveuniversity.org/The_Seven%27s_Prison_Facility",
+      "sourceRevision": "oldid=205377",
+      "offerOrder": 1,
+      "deadspace": false,
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                17147
+              ],
+              "count": 2,
+              "range": 45000,
+              "required": false
+            },
+            {
+              "types": [
+                17146
+              ],
+              "count": 1,
+              "range": 50000,
+              "required": false
+            },
+            {
+              "types": [
+                18574,
+                18575,
+                18576
+              ],
+              "count": 3,
+              "range": 40000,
+              "required": false
+            },
+            {
+              "types": [
+                18578,
+                18577
+              ],
+              "count": 1,
+              "range": 55000
+            },
+            {
+              "types": [
+                12253,
+                12255,
+                12252
+              ],
+              "count": 1,
+              "range": 55000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 2256,
+      "level": 2,
+      "difficulty": 500,
+      "storyline": false,
+      "source": "https://wiki.eveuniversity.org/Eliminate_the_Stargate_Campers_(Level_2)",
+      "sourceRevision": "oldid=191678",
+      "offerOrder": 1,
+      "deadspace": false,
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                16105
+              ],
+              "count": 3,
+              "range": 25000
+            },
+            {
+              "types": [
+                16108
+              ],
+              "count": 3,
+              "range": 25000
+            },
+            {
+              "types": [
+                16109
+              ],
+              "count": 1,
+              "range": 25000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 2257,
+      "level": 2,
+      "difficulty": 500,
+      "storyline": false,
+      "source": "https://wiki.eveuniversity.org/Eliminate_the_Stargate_Campers_(Level_2)",
+      "sourceRevision": "oldid=191678",
+      "offerOrder": 1,
+      "deadspace": false,
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                16105
+              ],
+              "count": 3,
+              "range": 25000
+            },
+            {
+              "types": [
+                16108
+              ],
+              "count": 3,
+              "range": 25000
+            },
+            {
+              "types": [
+                16109
+              ],
+              "count": 1,
+              "range": 25000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 2250,
+      "level": 3,
+      "difficulty": 500,
+      "storyline": false,
+      "source": "https://wiki.eveuniversity.org/Eliminate_the_Stargate_Campers_(Level_3)",
+      "sourceRevision": "oldid=191679",
+      "offerOrder": 1,
+      "deadspace": false,
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                16107,
+                16108
+              ],
+              "count": 5,
+              "range": 25000
+            },
+            {
+              "types": [
+                16112,
+                16115
+              ],
+              "count": 3,
+              "range": 25000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 2251,
+      "level": 3,
+      "difficulty": 500,
+      "storyline": false,
+      "source": "https://wiki.eveuniversity.org/Eliminate_the_Stargate_Campers_(Level_3)",
+      "sourceRevision": "oldid=191679",
+      "offerOrder": 1,
+      "deadspace": false,
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                16107,
+                16108
+              ],
+              "count": 5,
+              "range": 25000
+            },
+            {
+              "types": [
+                16112,
+                16115
+              ],
+              "count": 3,
+              "range": 25000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 1256,
+      "level": 3,
+      "difficulty": 500,
+      "storyline": false,
+      "offerOrder": 1,
+      "source": "https://wiki.eveuniversity.org/The_Small_Armory",
+      "sourceRevision": "oldid=203906",
+      "rooms": [
+        {
+          "roomId": 3330,
+          "entryObjectId": 63951
+        },
+        {
+          "roomId": 3331,
+          "entryObjectId": 63953
+        },
+        {
+          "roomId": 3332,
+          "entryObjectId": 63973
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 63950,
+          "destinationRoomId": 3331
+        },
+        {
+          "fromObjectId": 63952,
+          "destinationRoomId": 3332,
+          "requiresClear": true
+        }
+      ],
+      "structures": [
+        {
+          "objectId": 63988,
+          "required": true
+        }
+      ],
+      "waves": [
+        {
+          "roomId": 3331,
+          "groups": [
+            {
+              "types": [
+                23999,
+                24004
+              ],
+              "count": 2,
+              "range": 42500
+            },
+            {
+              "types": [
+                17574
+              ],
+              "count": 2,
+              "range": 42500,
+              "required": false
+            },
+            {
+              "types": [
+                17146
+              ],
+              "count": 2,
+              "range": 42500,
+              "required": false
+            },
+            {
+              "types": [
+                16878,
+                16879
+              ],
+              "count": 3,
+              "range": 30000
+            },
+            {
+              "types": [
+                23969,
+                23974
+              ],
+              "count": 2,
+              "range": 30000
+            },
+            {
+              "types": [
+                16891,
+                16896,
+                24111
+              ],
+              "count": 2,
+              "range": 30000
+            },
+            {
+              "types": [
+                16878,
+                16879
+              ],
+              "count": 3,
+              "range": 77500
+            },
+            {
+              "types": [
+                16891,
+                16896
+              ],
+              "count": 1,
+              "range": 77500
+            },
+            {
+              "types": [
+                24004,
+                24005
+              ],
+              "count": 1,
+              "range": 77500
+            }
+          ]
+        },
+        {
+          "roomId": 3332,
+          "groups": [
+            {
+              "types": [
+                23969,
+                23974
+              ],
+              "count": 4,
+              "range": 65000,
+              "required": false
+            },
+            {
+              "types": [
+                16889,
+                16898
+              ],
+              "count": 2,
+              "range": 65000,
+              "required": false
+            },
+            {
+              "types": [
+                16562,
+                16561
+              ],
+              "count": 2,
+              "range": 115000,
+              "required": false
+            },
+            {
+              "types": [
+                16889,
+                16898,
+                24112
+              ],
+              "count": 2,
+              "range": 115000,
+              "required": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 1398,
+      "level": 4,
+      "difficulty": 500,
+      "storyline": false,
+      "offerOrder": 1,
+      "source": "https://wiki.eveuniversity.org/Ritualist_Raids",
+      "sourceRevision": "oldid=222184",
+      "rooms": [
+        {
+          "roomId": 19092,
+          "entryObjectId": 845142
+        },
+        {
+          "roomId": 19093,
+          "entryObjectId": 845143
+        },
+        {
+          "roomId": 19094,
+          "entryObjectId": 845166
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 845141,
+          "destinationRoomId": 19093
+        },
+        {
+          "fromObjectId": 845144,
+          "destinationRoomId": 19094,
+          "requiresClear": true
+        }
+      ],
+      "structures": [
+        {
+          "objectId": 845167,
+          "required": true
+        }
+      ],
+      "waves": [
+        {
+          "roomId": 19093,
+          "groups": [
+            {
+              "types": [
+                16935,
+                16947
+              ],
+              "count": 3,
+              "range": 32500
+            },
+            {
+              "types": [
+                23983,
+                23981,
+                23982,
+                23980
+              ],
+              "count": 9,
+              "range": 32500
+            },
+            {
+              "types": [
+                24000,
+                24010,
+                24011,
+                24009
+              ],
+              "count": 4,
+              "range": 32500
+            },
+            {
+              "types": [
+                24137,
+                24136,
+                16938
+              ],
+              "count": 2,
+              "range": 32500
+            },
+            {
+              "types": [
+                17595
+              ],
+              "count": 2,
+              "range": 32500,
+              "required": false
+            }
+          ]
+        },
+        {
+          "roomId": 19094,
+          "groups": [
+            {
+              "types": [
+                16953,
+                16940
+              ],
+              "count": 3,
+              "range": 27500,
+              "required": false
+            },
+            {
+              "types": [
+                23981,
+                23983,
+                23982
+              ],
+              "count": 6,
+              "range": 27500
+            },
+            {
+              "types": [
+                24000,
+                24009,
+                24010
+              ],
+              "count": 9,
+              "range": 27500,
+              "required": false
+            },
+            {
+              "types": [
+                24139,
+                24140
+              ],
+              "count": 2,
+              "range": 27500
+            },
+            {
+              "types": [
+                13116
+              ],
+              "count": 6,
+              "range": 27500,
+              "required": false
+            },
+            {
+              "types": [
+                17594
+              ],
+              "count": 6,
+              "range": 27500,
+              "required": false
+            }
+          ]
+        }
+      ]
     },
     {
       "missionId": 1227,
@@ -2550,6 +4493,62 @@
       ]
     },
     {
+      "missionId": 893,
+      "level": 3,
+      "difficulty": 500,
+      "storyline": false,
+      "source": "https://wiki.eveuniversity.org/The_Guristas_Spies_(Level_3)",
+      "sourceRevision": "oldid=192011",
+      "offerOrder": 1,
+      "deadspace": true,
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                24014
+              ],
+              "count": 3,
+              "range": 30000
+            },
+            {
+              "types": [
+                23984
+              ],
+              "count": 3,
+              "range": 60000,
+              "required": false
+            },
+            {
+              "types": [
+                24015
+              ],
+              "count": 1,
+              "range": 60000,
+              "required": false
+            }
+          ],
+          "roomId": 2714
+        }
+      ],
+      "rooms": [
+        {
+          "roomId": 2715,
+          "entryObjectId": 53040
+        },
+        {
+          "roomId": 2714,
+          "entryObjectId": 53027
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 53039,
+          "destinationRoomId": 2714
+        }
+      ]
+    },
+    {
       "missionId": 898,
       "level": 3,
       "difficulty": 500,
@@ -2620,6 +4619,92 @@
         {
           "fromObjectId": 53201,
           "destinationRoomId": 2746
+        }
+      ]
+    },
+    {
+      "missionId": 899,
+      "level": 4,
+      "difficulty": 500,
+      "storyline": false,
+      "source": "https://wiki.eveuniversity.org/The_Serpentis_Spies_(Level_4)",
+      "sourceRevision": "oldid=192060",
+      "offerOrder": 1,
+      "deadspace": true,
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                17159
+              ],
+              "count": 3,
+              "range": 60000,
+              "required": false
+            },
+            {
+              "types": [
+                17158
+              ],
+              "count": 2,
+              "range": 60000,
+              "required": false
+            },
+            {
+              "types": [
+                16747
+              ],
+              "count": 2,
+              "range": 60000,
+              "required": false
+            },
+            {
+              "types": [
+                23994,
+                23995
+              ],
+              "count": 4,
+              "range": 137000
+            },
+            {
+              "types": [
+                24026
+              ],
+              "count": 2,
+              "range": 137000
+            },
+            {
+              "types": [
+                24027
+              ],
+              "count": 1,
+              "range": 137000
+            },
+            {
+              "types": [
+                17036
+              ],
+              "count": 1,
+              "range": 137000
+            }
+          ],
+          "roomId": 3533
+        }
+      ],
+      "rooms": [
+        {
+          "roomId": 3534,
+          "entryObjectId": 70432
+        },
+        {
+          "roomId": 3533,
+          "entryObjectId": 70406
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 70431,
+          "destinationRoomId": 3533
         }
       ]
     },
@@ -2949,6 +5034,1182 @@
               "range": 5000
             }
           ]
+        }
+      ]
+    },
+    {
+      "missionId": 2407,
+      "level": 1,
+      "difficulty": 500,
+      "storyline": false,
+      "source": "https://wiki.eveuniversity.org/The_Score_(Angel_Cartel)_(Level_1)",
+      "sourceRevision": "oldid=209646",
+      "offerOrder": 1,
+      "deadspace": true,
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                16885,
+                16878
+              ],
+              "count": 2,
+              "range": 45000,
+              "required": false
+            },
+            {
+              "types": [
+                16882,
+                16874
+              ],
+              "count": 1,
+              "range": 45000,
+              "required": false
+            },
+            {
+              "types": [
+                16882,
+                16874
+              ],
+              "count": 1,
+              "range": 48000,
+              "required": true
+            },
+            {
+              "types": [
+                16878,
+                16885
+              ],
+              "count": 1,
+              "range": 48000,
+              "required": true
+            },
+            {
+              "types": [
+                16887
+              ],
+              "count": 1,
+              "range": 48000,
+              "required": true
+            },
+            {
+              "types": [
+                23974,
+                23975
+              ],
+              "count": 1,
+              "range": 48000,
+              "required": true
+            },
+            {
+              "types": [
+                16882,
+                16874
+              ],
+              "count": 3,
+              "range": 45000,
+              "required": false
+            }
+          ],
+          "roomId": 15022
+        }
+      ],
+      "rooms": [
+        {
+          "roomId": 15023,
+          "entryObjectId": 653507
+        },
+        {
+          "roomId": 15022,
+          "entryObjectId": 653506
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 653508,
+          "destinationRoomId": 15022
+        }
+      ]
+    },
+    {
+      "missionId": 2391,
+      "level": 1,
+      "difficulty": 500,
+      "storyline": false,
+      "source": "https://wiki.eveuniversity.org/The_Score_(Guristas_Pirates)_(Level_1)",
+      "sourceRevision": "oldid=192048",
+      "offerOrder": 1,
+      "deadspace": true,
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                17002,
+                16987
+              ],
+              "count": 3,
+              "range": 40000,
+              "required": false
+            },
+            {
+              "types": [
+                17002,
+                16987,
+                17006
+              ],
+              "count": 3,
+              "range": 50000,
+              "required": true
+            },
+            {
+              "types": [
+                23985,
+                23984
+              ],
+              "count": 1,
+              "range": 50000,
+              "required": true
+            },
+            {
+              "types": [
+                17001,
+                17006,
+                16989
+              ],
+              "count": 3,
+              "range": 40000,
+              "required": false
+            }
+          ],
+          "roomId": 15026
+        }
+      ],
+      "rooms": [
+        {
+          "roomId": 15027,
+          "entryObjectId": 653575
+        },
+        {
+          "roomId": 15026,
+          "entryObjectId": 653574
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 653576,
+          "destinationRoomId": 15026
+        }
+      ]
+    },
+    {
+      "missionId": 2416,
+      "level": 2,
+      "difficulty": 500,
+      "storyline": false,
+      "source": "https://wiki.eveuniversity.org/The_Score_(Blood_Raiders)",
+      "sourceRevision": "oldid=192046",
+      "offerOrder": 1,
+      "deadspace": true,
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                16935,
+                16947
+              ],
+              "count": 2,
+              "range": 40000,
+              "required": false
+            },
+            {
+              "types": [
+                23979
+              ],
+              "count": 1,
+              "range": 40000,
+              "required": false
+            },
+            {
+              "types": [
+                16936,
+                16947
+              ],
+              "count": 5,
+              "range": 48000,
+              "required": false
+            },
+            {
+              "types": [
+                16946,
+                16933
+              ],
+              "count": 3,
+              "range": 62000,
+              "required": true
+            },
+            {
+              "types": [
+                23980
+              ],
+              "count": 1,
+              "range": 62000,
+              "required": true
+            },
+            {
+              "types": [
+                16929
+              ],
+              "count": 1,
+              "range": 62000,
+              "required": true
+            }
+          ],
+          "roomId": 15001
+        }
+      ],
+      "rooms": [
+        {
+          "roomId": 15000,
+          "entryObjectId": 652798
+        },
+        {
+          "roomId": 15001,
+          "entryObjectId": 652800
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 652799,
+          "destinationRoomId": 15001
+        }
+      ]
+    },
+    {
+      "missionId": 2449,
+      "level": 2,
+      "difficulty": 500,
+      "storyline": false,
+      "source": "https://wiki.eveuniversity.org/The_Score_(Serpentis)_(level_2)",
+      "sourceRevision": "oldid=192055",
+      "offerOrder": 1,
+      "deadspace": true,
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                17121,
+                17117,
+                17116,
+                17120
+              ],
+              "count": 5,
+              "range": 40000,
+              "required": false
+            },
+            {
+              "types": [
+                17121,
+                17117
+              ],
+              "count": 4,
+              "range": 50000,
+              "required": false
+            },
+            {
+              "types": [
+                23994,
+                23995
+              ],
+              "count": 1,
+              "range": 50000,
+              "required": false
+            },
+            {
+              "types": [
+                17279,
+                17118
+              ],
+              "count": 3,
+              "range": 62000,
+              "required": true
+            },
+            {
+              "types": [
+                23973
+              ],
+              "count": 2,
+              "range": 62000,
+              "required": true
+            },
+            {
+              "types": [
+                17114
+              ],
+              "count": 1,
+              "range": 62000,
+              "required": true
+            }
+          ],
+          "roomId": 15003
+        }
+      ],
+      "rooms": [
+        {
+          "roomId": 15002,
+          "entryObjectId": 652822
+        },
+        {
+          "roomId": 15003,
+          "entryObjectId": 652824
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 652823,
+          "destinationRoomId": 15003
+        }
+      ]
+    },
+    {
+      "missionId": 2470,
+      "level": 3,
+      "difficulty": 500,
+      "storyline": false,
+      "offerOrder": 1,
+      "source": "https://wiki.eveuniversity.org/The_Score_(Guristas_Pirates)_(Level_3)",
+      "sourceRevision": "oldid=223423",
+      "rooms": [
+        {
+          "roomId": 14776,
+          "entryObjectId": 642754
+        },
+        {
+          "roomId": 14777,
+          "entryObjectId": 642757
+        },
+        {
+          "roomId": 14778,
+          "entryObjectId": 642866
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 642755,
+          "destinationRoomId": 14777
+        },
+        {
+          "fromObjectId": 642756,
+          "destinationRoomId": 14778,
+          "requiresClear": true
+        }
+      ],
+      "waves": [
+        {
+          "roomId": 14777,
+          "groups": [
+            {
+              "types": [
+                16989
+              ],
+              "count": 1,
+              "range": 50000
+            },
+            {
+              "types": [
+                16995,
+                16991
+              ],
+              "count": 2,
+              "range": 50000
+            },
+            {
+              "types": [
+                16989
+              ],
+              "count": 1,
+              "range": 54000
+            },
+            {
+              "types": [
+                16995,
+                16991
+              ],
+              "count": 2,
+              "range": 54000
+            },
+            {
+              "types": [
+                16986
+              ],
+              "count": 1,
+              "range": 62000
+            },
+            {
+              "types": [
+                23987
+              ],
+              "count": 1,
+              "range": 62000
+            }
+          ]
+        },
+        {
+          "roomId": 14778,
+          "groups": [
+            {
+              "types": [
+                17001
+              ],
+              "count": 1,
+              "range": 62000,
+              "required": false
+            },
+            {
+              "types": [
+                16991
+              ],
+              "count": 2,
+              "range": 62000,
+              "required": false
+            },
+            {
+              "types": [
+                16989,
+                16986
+              ],
+              "count": 2,
+              "range": 64000,
+              "required": false
+            },
+            {
+              "types": [
+                24087
+              ],
+              "count": 1,
+              "range": 64000,
+              "required": false
+            },
+            {
+              "types": [
+                16989,
+                16986
+              ],
+              "count": 2,
+              "range": 70000
+            },
+            {
+              "types": [
+                16995
+              ],
+              "count": 1,
+              "range": 70000
+            },
+            {
+              "types": [
+                24014,
+                24015
+              ],
+              "count": 1,
+              "range": 70000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 2561,
+      "level": 4,
+      "difficulty": 500,
+      "storyline": false,
+      "offerOrder": 1,
+      "source": "https://wiki.eveuniversity.org/The_Mordus_Headhunters_(Level_4)",
+      "sourceRevision": "oldid=231829",
+      "rooms": [
+        {
+          "roomId": 14936,
+          "entryObjectId": 649926
+        },
+        {
+          "roomId": 14937,
+          "entryObjectId": 649928
+        },
+        {
+          "roomId": 14938,
+          "entryObjectId": 649991
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 649927,
+          "destinationRoomId": 14937
+        },
+        {
+          "fromObjectId": 649979,
+          "destinationRoomId": 14938,
+          "requiresClear": true
+        }
+      ],
+      "waves": [
+        {
+          "roomId": 14937,
+          "groups": [
+            {
+              "types": [
+                16031,
+                16033
+              ],
+              "count": 5,
+              "range": 22000
+            },
+            {
+              "types": [
+                16034,
+                16036,
+                16035
+              ],
+              "count": 3,
+              "range": 22000
+            },
+            {
+              "types": [
+                16022
+              ],
+              "count": 4,
+              "range": 78000
+            },
+            {
+              "types": [
+                16040
+              ],
+              "count": 2,
+              "range": 78000
+            },
+            {
+              "types": [
+                16030,
+                16033
+              ],
+              "count": 5,
+              "range": 78000
+            },
+            {
+              "types": [
+                16023,
+                16022
+              ],
+              "count": 6,
+              "range": 83000
+            },
+            {
+              "types": [
+                16027
+              ],
+              "count": 4,
+              "range": 83000
+            },
+            {
+              "types": [
+                16035
+              ],
+              "count": 2,
+              "range": 83000
+            }
+          ]
+        },
+        {
+          "roomId": 14938,
+          "groups": [
+            {
+              "types": [
+                16020,
+                16023
+              ],
+              "count": 8,
+              "range": 18000,
+              "required": false
+            },
+            {
+              "types": [
+                16040
+              ],
+              "count": 2,
+              "range": 18000,
+              "required": false
+            },
+            {
+              "types": [
+                16022
+              ],
+              "count": 5,
+              "range": 50000,
+              "required": false
+            },
+            {
+              "types": [
+                16027,
+                16028,
+                16031,
+                16033,
+                16030
+              ],
+              "count": 12,
+              "range": 50000,
+              "required": false
+            },
+            {
+              "types": [
+                16035,
+                16034,
+                16036
+              ],
+              "count": 5,
+              "range": 50000,
+              "required": false
+            },
+            {
+              "types": [
+                16023
+              ],
+              "count": 4,
+              "range": 80000
+            },
+            {
+              "types": [
+                16031,
+                16033
+              ],
+              "count": 5,
+              "range": 80000
+            },
+            {
+              "types": [
+                16035
+              ],
+              "count": 2,
+              "range": 80000
+            },
+            {
+              "types": [
+                16037
+              ],
+              "count": 1,
+              "range": 80000
+            },
+            {
+              "types": [
+                16023,
+                16040
+              ],
+              "count": 5,
+              "range": 100000,
+              "required": false
+            },
+            {
+              "types": [
+                16040
+              ],
+              "count": 2,
+              "range": 100000,
+              "required": false
+            },
+            {
+              "types": [
+                16028,
+                16030
+              ],
+              "count": 8,
+              "range": 100000,
+              "required": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 2542,
+      "level": 2,
+      "difficulty": 500,
+      "storyline": false,
+      "source": "https://wiki.eveuniversity.org/Smuggler_Interception_(Angel_Cartel)_(Level_2)",
+      "sourceRevision": "oldid=231043",
+      "offerOrder": 1,
+      "deadspace": true,
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                16877,
+                16886,
+                16887,
+                16882
+              ],
+              "count": 6,
+              "range": 35000,
+              "required": false
+            },
+            {
+              "types": [
+                16877,
+                16886
+              ],
+              "count": 8,
+              "range": 50000
+            },
+            {
+              "types": [
+                23974,
+                23975
+              ],
+              "count": 1,
+              "range": 50000
+            },
+            {
+              "types": [
+                16875,
+                16884
+              ],
+              "count": 1,
+              "range": 50000
+            },
+            {
+              "types": [
+                16165
+              ],
+              "count": 2,
+              "range": 50000,
+              "lootTypeId": 25373,
+              "lootQuantity": 10
+            }
+          ],
+          "roomId": 15347
+        }
+      ],
+      "rooms": [
+        {
+          "roomId": 15346,
+          "entryObjectId": 671872
+        },
+        {
+          "roomId": 15347,
+          "entryObjectId": 671874
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 671873,
+          "destinationRoomId": 15347
+        }
+      ]
+    },
+    {
+      "missionId": 2546,
+      "level": 2,
+      "difficulty": 500,
+      "storyline": false,
+      "source": "https://wiki.eveuniversity.org/Smuggler_Interception_(Sansha's_Nation)",
+      "sourceRevision": "oldid=191943",
+      "offerOrder": 1,
+      "deadspace": true,
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                17059,
+                17067,
+                17068,
+                17078
+              ],
+              "count": 3,
+              "range": 40000,
+              "required": false
+            },
+            {
+              "types": [
+                17081,
+                17076,
+                17068
+              ],
+              "count": 6,
+              "range": 45000
+            },
+            {
+              "types": [
+                17073
+              ],
+              "count": 1,
+              "range": 45000
+            },
+            {
+              "types": [
+                16167
+              ],
+              "count": 2,
+              "range": 45000,
+              "lootTypeId": 25373,
+              "lootQuantity": 10
+            }
+          ],
+          "roomId": 15015
+        }
+      ],
+      "rooms": [
+        {
+          "roomId": 15014,
+          "entryObjectId": 653069
+        },
+        {
+          "roomId": 15015,
+          "entryObjectId": 653071
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 653070,
+          "destinationRoomId": 15015
+        }
+      ]
+    },
+    {
+      "missionId": 1219,
+      "level": 2,
+      "difficulty": 500,
+      "storyline": false,
+      "offerOrder": 1,
+      "source": "https://wiki.eveuniversity.org/Rogue_Drone_Harassment_(Level_2)",
+      "sourceRevision": "oldid=191890",
+      "rooms": [
+        {
+          "roomId": 13916,
+          "entryObjectId": 585972
+        },
+        {
+          "roomId": 13917,
+          "entryObjectId": 585975
+        },
+        {
+          "roomId": 13918,
+          "entryObjectId": 586052
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 585971,
+          "destinationRoomId": 13917,
+          "requiresClear": false
+        },
+        {
+          "fromObjectId": 586019,
+          "destinationRoomId": 13918,
+          "requiresClear": true
+        }
+      ],
+      "waves": [
+        {
+          "roomId": 13917,
+          "groups": [
+            {
+              "types": [
+                3750,
+                18087,
+                18079,
+                18080
+              ],
+              "count": 6,
+              "range": 20000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18087,
+                18088
+              ],
+              "count": 5,
+              "range": 64000,
+              "enemyFaction": 500025
+            }
+          ]
+        },
+        {
+          "roomId": 13918,
+          "groups": [
+            {
+              "types": [
+                3746
+              ],
+              "count": 1,
+              "range": 12000,
+              "enemyFaction": 500025
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 1222,
+      "level": 3,
+      "difficulty": 500,
+      "storyline": false,
+      "offerOrder": 1,
+      "source": "https://wiki.eveuniversity.org/Rogue_Drone_Harassment_(Level_3)",
+      "sourceRevision": "oldid=201909",
+      "rooms": [
+        {
+          "roomId": 13903,
+          "entryObjectId": 585561
+        },
+        {
+          "roomId": 13904,
+          "entryObjectId": 585564
+        },
+        {
+          "roomId": 13905,
+          "entryObjectId": 585641
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 585560,
+          "destinationRoomId": 13904,
+          "requiresClear": false
+        },
+        {
+          "fromObjectId": 585608,
+          "destinationRoomId": 13905,
+          "requiresClear": true
+        }
+      ],
+      "waves": [
+        {
+          "roomId": 13904,
+          "groups": [
+            {
+              "types": [
+                18083
+              ],
+              "count": 4,
+              "range": 19000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18084
+              ],
+              "count": 4,
+              "range": 22000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18080,
+                18079
+              ],
+              "count": 2,
+              "range": 45000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18076
+              ],
+              "count": 2,
+              "range": 45000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                3745
+              ],
+              "count": 3,
+              "range": 65000,
+              "enemyFaction": 500025
+            }
+          ]
+        },
+        {
+          "roomId": 13905,
+          "groups": [
+            {
+              "types": [
+                18084,
+                18076,
+                3745
+              ],
+              "count": 8,
+              "range": 20000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18073,
+                3747
+              ],
+              "count": 1,
+              "range": 32000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18076,
+                3745,
+                18077
+              ],
+              "count": 1,
+              "range": 32000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18078
+              ],
+              "count": 1,
+              "range": 32000,
+              "enemyFaction": 500025,
+              "required": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 1237,
+      "level": 1,
+      "difficulty": 500,
+      "storyline": false,
+      "source": "https://wiki.eveuniversity.org/The_Roving_Rogue_Drones",
+      "sourceRevision": "oldid=203054",
+      "offerOrder": 1,
+      "deadspace": true,
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                10995,
+                10993
+              ],
+              "count": 4,
+              "range": 55000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                3750
+              ],
+              "count": 1,
+              "range": 55000,
+              "enemyFaction": 500025
+            }
+          ],
+          "roomId": 3118
+        }
+      ],
+      "rooms": [
+        {
+          "roomId": 3117,
+          "entryObjectId": 59190
+        },
+        {
+          "roomId": 3118,
+          "entryObjectId": 59191
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 59189,
+          "destinationRoomId": 3118
+        }
+      ]
+    },
+    {
+      "missionId": 1214,
+      "level": 1,
+      "difficulty": 500,
+      "storyline": false,
+      "source": "https://wiki.eveuniversity.org/The_Drone_Infestation_(Level_1)",
+      "sourceRevision": "oldid=230772",
+      "offerOrder": 1,
+      "deadspace": true,
+      "waves": [
+        {
+          "groups": [
+            {
+              "types": [
+                10995,
+                10993
+              ],
+              "count": 2,
+              "range": 30000,
+              "required": false,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                3750
+              ],
+              "count": 1,
+              "range": 30000,
+              "required": false,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                10995,
+                10993
+              ],
+              "count": 2,
+              "range": 45000,
+              "required": false,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                3750
+              ],
+              "count": 1,
+              "range": 45000,
+              "required": false,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18035
+              ],
+              "count": 1,
+              "range": 45000,
+              "required": false,
+              "enemyFaction": 500025
+            }
+          ],
+          "roomId": 13829
+        }
+      ],
+      "rooms": [
+        {
+          "roomId": 13828,
+          "entryObjectId": 582810
+        },
+        {
+          "roomId": 13829,
+          "entryObjectId": 582811
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 582809,
+          "destinationRoomId": 13829
+        }
+      ],
+      "structures": [
+        {
+          "objectId": 582824,
+          "required": true,
+          "completesMission": true
         }
       ]
     },
@@ -5921,6 +9182,207 @@
       ]
     },
     {
+      "missionId": 1221,
+      "level": 2,
+      "difficulty": 500,
+      "storyline": false,
+      "offerOrder": 1,
+      "source": "https://wiki.eveuniversity.org/Rogue_Drone_Harassment_(Level_2)",
+      "sourceRevision": "oldid=191890",
+      "rooms": [
+        {
+          "roomId": 13916,
+          "entryObjectId": 585972
+        },
+        {
+          "roomId": 13917,
+          "entryObjectId": 585975
+        },
+        {
+          "roomId": 13918,
+          "entryObjectId": 586052
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 585971,
+          "destinationRoomId": 13917,
+          "requiresClear": false
+        },
+        {
+          "fromObjectId": 586019,
+          "destinationRoomId": 13918,
+          "requiresClear": true
+        }
+      ],
+      "waves": [
+        {
+          "roomId": 13917,
+          "groups": [
+            {
+              "types": [
+                3750,
+                18087,
+                18079,
+                18080
+              ],
+              "count": 6,
+              "range": 20000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18087,
+                18088
+              ],
+              "count": 5,
+              "range": 64000,
+              "enemyFaction": 500025
+            }
+          ]
+        },
+        {
+          "roomId": 13918,
+          "groups": [
+            {
+              "types": [
+                3746
+              ],
+              "count": 1,
+              "range": 12000,
+              "enemyFaction": 500025
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 1223,
+      "level": 3,
+      "difficulty": 500,
+      "storyline": false,
+      "offerOrder": 1,
+      "source": "https://wiki.eveuniversity.org/Rogue_Drone_Harassment_(Level_3)",
+      "sourceRevision": "oldid=201909",
+      "rooms": [
+        {
+          "roomId": 13903,
+          "entryObjectId": 585561
+        },
+        {
+          "roomId": 13904,
+          "entryObjectId": 585564
+        },
+        {
+          "roomId": 13905,
+          "entryObjectId": 585641
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 585560,
+          "destinationRoomId": 13904,
+          "requiresClear": false
+        },
+        {
+          "fromObjectId": 585608,
+          "destinationRoomId": 13905,
+          "requiresClear": true
+        }
+      ],
+      "waves": [
+        {
+          "roomId": 13904,
+          "groups": [
+            {
+              "types": [
+                18083
+              ],
+              "count": 4,
+              "range": 19000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18084
+              ],
+              "count": 4,
+              "range": 22000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18080,
+                18079
+              ],
+              "count": 2,
+              "range": 45000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18076
+              ],
+              "count": 2,
+              "range": 45000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                3745
+              ],
+              "count": 3,
+              "range": 65000,
+              "enemyFaction": 500025
+            }
+          ]
+        },
+        {
+          "roomId": 13905,
+          "groups": [
+            {
+              "types": [
+                18084,
+                18076,
+                3745
+              ],
+              "count": 8,
+              "range": 20000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18073,
+                3747
+              ],
+              "count": 1,
+              "range": 32000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18076,
+                3745,
+                18077
+              ],
+              "count": 1,
+              "range": 32000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18078
+              ],
+              "count": 1,
+              "range": 32000,
+              "enemyFaction": 500025,
+              "required": false
+            }
+          ]
+        }
+      ]
+    },
+    {
       "missionId": 1565,
       "level": 1,
       "difficulty": 500,
@@ -6034,6 +9496,408 @@
       ]
     },
     {
+      "missionId": 1572,
+      "level": 2,
+      "difficulty": 500,
+      "storyline": false,
+      "offerOrder": 1,
+      "source": "https://wiki.eveuniversity.org/Rogue_Drone_Harassment_(Level_2)",
+      "sourceRevision": "oldid=191890",
+      "rooms": [
+        {
+          "roomId": 13916,
+          "entryObjectId": 585972
+        },
+        {
+          "roomId": 13917,
+          "entryObjectId": 585975
+        },
+        {
+          "roomId": 13918,
+          "entryObjectId": 586052
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 585971,
+          "destinationRoomId": 13917,
+          "requiresClear": false
+        },
+        {
+          "fromObjectId": 586019,
+          "destinationRoomId": 13918,
+          "requiresClear": true
+        }
+      ],
+      "waves": [
+        {
+          "roomId": 13917,
+          "groups": [
+            {
+              "types": [
+                3750,
+                18087,
+                18079,
+                18080
+              ],
+              "count": 6,
+              "range": 20000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18087,
+                18088
+              ],
+              "count": 5,
+              "range": 64000,
+              "enemyFaction": 500025
+            }
+          ]
+        },
+        {
+          "roomId": 13918,
+          "groups": [
+            {
+              "types": [
+                3746
+              ],
+              "count": 1,
+              "range": 12000,
+              "enemyFaction": 500025
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 1573,
+      "level": 2,
+      "difficulty": 500,
+      "storyline": false,
+      "offerOrder": 1,
+      "source": "https://wiki.eveuniversity.org/Rogue_Drone_Harassment_(Level_2)",
+      "sourceRevision": "oldid=191890",
+      "rooms": [
+        {
+          "roomId": 13916,
+          "entryObjectId": 585972
+        },
+        {
+          "roomId": 13917,
+          "entryObjectId": 585975
+        },
+        {
+          "roomId": 13918,
+          "entryObjectId": 586052
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 585971,
+          "destinationRoomId": 13917,
+          "requiresClear": false
+        },
+        {
+          "fromObjectId": 586019,
+          "destinationRoomId": 13918,
+          "requiresClear": true
+        }
+      ],
+      "waves": [
+        {
+          "roomId": 13917,
+          "groups": [
+            {
+              "types": [
+                3750,
+                18087,
+                18079,
+                18080
+              ],
+              "count": 6,
+              "range": 20000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18087,
+                18088
+              ],
+              "count": 5,
+              "range": 64000,
+              "enemyFaction": 500025
+            }
+          ]
+        },
+        {
+          "roomId": 13918,
+          "groups": [
+            {
+              "types": [
+                3746
+              ],
+              "count": 1,
+              "range": 12000,
+              "enemyFaction": 500025
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 1574,
+      "level": 3,
+      "difficulty": 500,
+      "storyline": false,
+      "offerOrder": 1,
+      "source": "https://wiki.eveuniversity.org/Rogue_Drone_Harassment_(Level_3)",
+      "sourceRevision": "oldid=201909",
+      "rooms": [
+        {
+          "roomId": 13903,
+          "entryObjectId": 585561
+        },
+        {
+          "roomId": 13904,
+          "entryObjectId": 585564
+        },
+        {
+          "roomId": 13905,
+          "entryObjectId": 585641
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 585560,
+          "destinationRoomId": 13904,
+          "requiresClear": false
+        },
+        {
+          "fromObjectId": 585608,
+          "destinationRoomId": 13905,
+          "requiresClear": true
+        }
+      ],
+      "waves": [
+        {
+          "roomId": 13904,
+          "groups": [
+            {
+              "types": [
+                18083
+              ],
+              "count": 4,
+              "range": 19000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18084
+              ],
+              "count": 4,
+              "range": 22000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18080,
+                18079
+              ],
+              "count": 2,
+              "range": 45000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18076
+              ],
+              "count": 2,
+              "range": 45000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                3745
+              ],
+              "count": 3,
+              "range": 65000,
+              "enemyFaction": 500025
+            }
+          ]
+        },
+        {
+          "roomId": 13905,
+          "groups": [
+            {
+              "types": [
+                18084,
+                18076,
+                3745
+              ],
+              "count": 8,
+              "range": 20000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18073,
+                3747
+              ],
+              "count": 1,
+              "range": 32000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18076,
+                3745,
+                18077
+              ],
+              "count": 1,
+              "range": 32000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18078
+              ],
+              "count": 1,
+              "range": 32000,
+              "enemyFaction": 500025,
+              "required": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 1575,
+      "level": 3,
+      "difficulty": 500,
+      "storyline": false,
+      "offerOrder": 1,
+      "source": "https://wiki.eveuniversity.org/Rogue_Drone_Harassment_(Level_3)",
+      "sourceRevision": "oldid=201909",
+      "rooms": [
+        {
+          "roomId": 13903,
+          "entryObjectId": 585561
+        },
+        {
+          "roomId": 13904,
+          "entryObjectId": 585564
+        },
+        {
+          "roomId": 13905,
+          "entryObjectId": 585641
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 585560,
+          "destinationRoomId": 13904,
+          "requiresClear": false
+        },
+        {
+          "fromObjectId": 585608,
+          "destinationRoomId": 13905,
+          "requiresClear": true
+        }
+      ],
+      "waves": [
+        {
+          "roomId": 13904,
+          "groups": [
+            {
+              "types": [
+                18083
+              ],
+              "count": 4,
+              "range": 19000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18084
+              ],
+              "count": 4,
+              "range": 22000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18080,
+                18079
+              ],
+              "count": 2,
+              "range": 45000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18076
+              ],
+              "count": 2,
+              "range": 45000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                3745
+              ],
+              "count": 3,
+              "range": 65000,
+              "enemyFaction": 500025
+            }
+          ]
+        },
+        {
+          "roomId": 13905,
+          "groups": [
+            {
+              "types": [
+                18084,
+                18076,
+                3745
+              ],
+              "count": 8,
+              "range": 20000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18073,
+                3747
+              ],
+              "count": 1,
+              "range": 32000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18076,
+                3745,
+                18077
+              ],
+              "count": 1,
+              "range": 32000,
+              "enemyFaction": 500025
+            },
+            {
+              "types": [
+                18078
+              ],
+              "count": 1,
+              "range": 32000,
+              "enemyFaction": 500025,
+              "required": false
+            }
+          ]
+        }
+      ]
+    },
+    {
       "missionId": 2305,
       "level": 1,
       "difficulty": 500,
@@ -6112,6 +9976,424 @@
       "source": "build-3662168 client/missions; Eden delivery volume-band policy",
       "sourceRevision": "3662168",
       "waves": []
+    },
+    {
+      "missionId": 2562,
+      "level": 4,
+      "difficulty": 500,
+      "storyline": false,
+      "offerOrder": 1,
+      "source": "https://wiki.eveuniversity.org/The_Mordus_Headhunters_(Level_4)",
+      "sourceRevision": "oldid=231829",
+      "rooms": [
+        {
+          "roomId": 14936,
+          "entryObjectId": 649926
+        },
+        {
+          "roomId": 14937,
+          "entryObjectId": 649928
+        },
+        {
+          "roomId": 14938,
+          "entryObjectId": 649991
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 649927,
+          "destinationRoomId": 14937
+        },
+        {
+          "fromObjectId": 649979,
+          "destinationRoomId": 14938,
+          "requiresClear": true
+        }
+      ],
+      "waves": [
+        {
+          "roomId": 14937,
+          "groups": [
+            {
+              "types": [
+                16031,
+                16033
+              ],
+              "count": 5,
+              "range": 22000
+            },
+            {
+              "types": [
+                16034,
+                16036,
+                16035
+              ],
+              "count": 3,
+              "range": 22000
+            },
+            {
+              "types": [
+                16022
+              ],
+              "count": 4,
+              "range": 78000
+            },
+            {
+              "types": [
+                16040
+              ],
+              "count": 2,
+              "range": 78000
+            },
+            {
+              "types": [
+                16030,
+                16033
+              ],
+              "count": 5,
+              "range": 78000
+            },
+            {
+              "types": [
+                16023,
+                16022
+              ],
+              "count": 6,
+              "range": 83000
+            },
+            {
+              "types": [
+                16027
+              ],
+              "count": 4,
+              "range": 83000
+            },
+            {
+              "types": [
+                16035
+              ],
+              "count": 2,
+              "range": 83000
+            }
+          ]
+        },
+        {
+          "roomId": 14938,
+          "groups": [
+            {
+              "types": [
+                16020,
+                16023
+              ],
+              "count": 8,
+              "range": 18000,
+              "required": false
+            },
+            {
+              "types": [
+                16040
+              ],
+              "count": 2,
+              "range": 18000,
+              "required": false
+            },
+            {
+              "types": [
+                16022
+              ],
+              "count": 5,
+              "range": 50000,
+              "required": false
+            },
+            {
+              "types": [
+                16027,
+                16028,
+                16031,
+                16033,
+                16030
+              ],
+              "count": 12,
+              "range": 50000,
+              "required": false
+            },
+            {
+              "types": [
+                16035,
+                16034,
+                16036
+              ],
+              "count": 5,
+              "range": 50000,
+              "required": false
+            },
+            {
+              "types": [
+                16023
+              ],
+              "count": 4,
+              "range": 80000
+            },
+            {
+              "types": [
+                16031,
+                16033
+              ],
+              "count": 5,
+              "range": 80000
+            },
+            {
+              "types": [
+                16035
+              ],
+              "count": 2,
+              "range": 80000
+            },
+            {
+              "types": [
+                16037
+              ],
+              "count": 1,
+              "range": 80000
+            },
+            {
+              "types": [
+                16023,
+                16040
+              ],
+              "count": 5,
+              "range": 100000,
+              "required": false
+            },
+            {
+              "types": [
+                16040
+              ],
+              "count": 2,
+              "range": 100000,
+              "required": false
+            },
+            {
+              "types": [
+                16028,
+                16030
+              ],
+              "count": 8,
+              "range": 100000,
+              "required": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "missionId": 2564,
+      "level": 4,
+      "difficulty": 500,
+      "storyline": false,
+      "offerOrder": 1,
+      "source": "https://wiki.eveuniversity.org/The_Mordus_Headhunters_(Level_4)",
+      "sourceRevision": "oldid=231829",
+      "rooms": [
+        {
+          "roomId": 14936,
+          "entryObjectId": 649926
+        },
+        {
+          "roomId": 14937,
+          "entryObjectId": 649928
+        },
+        {
+          "roomId": 14938,
+          "entryObjectId": 649991
+        }
+      ],
+      "gates": [
+        {
+          "fromObjectId": 649927,
+          "destinationRoomId": 14937
+        },
+        {
+          "fromObjectId": 649979,
+          "destinationRoomId": 14938,
+          "requiresClear": true
+        }
+      ],
+      "waves": [
+        {
+          "roomId": 14937,
+          "groups": [
+            {
+              "types": [
+                16031,
+                16033
+              ],
+              "count": 5,
+              "range": 22000
+            },
+            {
+              "types": [
+                16034,
+                16036,
+                16035
+              ],
+              "count": 3,
+              "range": 22000
+            },
+            {
+              "types": [
+                16022
+              ],
+              "count": 4,
+              "range": 78000
+            },
+            {
+              "types": [
+                16040
+              ],
+              "count": 2,
+              "range": 78000
+            },
+            {
+              "types": [
+                16030,
+                16033
+              ],
+              "count": 5,
+              "range": 78000
+            },
+            {
+              "types": [
+                16023,
+                16022
+              ],
+              "count": 6,
+              "range": 83000
+            },
+            {
+              "types": [
+                16027
+              ],
+              "count": 4,
+              "range": 83000
+            },
+            {
+              "types": [
+                16035
+              ],
+              "count": 2,
+              "range": 83000
+            }
+          ]
+        },
+        {
+          "roomId": 14938,
+          "groups": [
+            {
+              "types": [
+                16020,
+                16023
+              ],
+              "count": 8,
+              "range": 18000,
+              "required": false
+            },
+            {
+              "types": [
+                16040
+              ],
+              "count": 2,
+              "range": 18000,
+              "required": false
+            },
+            {
+              "types": [
+                16022
+              ],
+              "count": 5,
+              "range": 50000,
+              "required": false
+            },
+            {
+              "types": [
+                16027,
+                16028,
+                16031,
+                16033,
+                16030
+              ],
+              "count": 12,
+              "range": 50000,
+              "required": false
+            },
+            {
+              "types": [
+                16035,
+                16034,
+                16036
+              ],
+              "count": 5,
+              "range": 50000,
+              "required": false
+            },
+            {
+              "types": [
+                16023
+              ],
+              "count": 4,
+              "range": 80000
+            },
+            {
+              "types": [
+                16031,
+                16033
+              ],
+              "count": 5,
+              "range": 80000
+            },
+            {
+              "types": [
+                16035
+              ],
+              "count": 2,
+              "range": 80000
+            },
+            {
+              "types": [
+                16037
+              ],
+              "count": 1,
+              "range": 80000
+            },
+            {
+              "types": [
+                16023,
+                16040
+              ],
+              "count": 5,
+              "range": 100000,
+              "required": false
+            },
+            {
+              "types": [
+                16040
+              ],
+              "count": 2,
+              "range": 100000,
+              "required": false
+            },
+            {
+              "types": [
+                16028,
+                16030
+              ],
+              "count": 8,
+              "range": 100000,
+              "required": false
+            }
+          ]
+        }
+      ]
     },
     {
       "missionId": 2585,

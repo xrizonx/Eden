@@ -370,7 +370,10 @@ internal sealed partial class ResidentEconomy
 internal readonly record struct NpcMarketAssortment(int StationId, int TypeId, bool Bid, NpcMarketKind Kind, long SourceOrderId = 0)
 {
     internal static NpcMarketAssortment For(NpcMarketOrder order) =>
-        new(order.StationId, order.TypeId, order.Bid, order.Kind, order.SourceOrderId);
+        For(order.StationId, order.TypeId, order.Bid, order.Kind, order.SourceOrderId);
+
+    internal static NpcMarketAssortment For(int station, int type, bool bid, NpcMarketKind kind, long sourceOrder) =>
+        kind == NpcMarketKind.Standard ? new(station, 0, false, kind, sourceOrder) : new(station, type, bid, kind, sourceOrder);
 }
 
 internal sealed record EconomyNpcMarketOrder(
@@ -931,6 +934,9 @@ internal sealed partial class ResidentEconomy
     private void RegisterTables()
     {
         RegisterBotTables();
+        RegisterMissionReinforcements();
+        RegisterActivityRewardTicks();
+        RegisterStandardMarketTypes();
         RegisterKillRights();
         RegisterCapitalTravel();
         RegisterLauncherTables();
@@ -994,9 +1000,14 @@ internal sealed partial class ResidentEconomy
         RegisterCloneTrainingTables();
         RegisterCharacterServices();
         RegisterSkillTrading();
+        RegisterPersonalSkillPlans();
+        RegisterExpertSystems();
+        RegisterShipSkinLicenses();
+        RegisterAppliedShipSkins();
         RegisterRedemption();
         RegisterSavedFittings();
         RegisterCharacterSettings();
+        RegisterModState();
         RegisterJetcans();
         RegisterStructureIndustryTables();
         RegisterMailTables();
@@ -1117,6 +1128,7 @@ internal sealed partial class ResidentEconomy
                 primaryColumn: "Id"
             )
         );
+        RegisterCombatReports();
         Register(
             new EconomyTable<Ship, EconomyShip>(
                 "WorldShip",
@@ -1249,7 +1261,6 @@ internal sealed partial class ResidentEconomy
                 indexes:
                 [
                     new("OwnerId", row => row.OwnerId, member: EconomyIndexMember.RowId),
-                    new("TypeId", row => row.TypeId, member: EconomyIndexMember.RowId),
                     new("LocationId", row => row.LocationId, member: EconomyIndexMember.RowId),
                 ],
                 primaryColumn: "Id",
@@ -1364,10 +1375,7 @@ internal sealed partial class ResidentEconomy
                     new("RegionId", row => row.RegionId, member: EconomyIndexMember.RowId),
                     new("OwnerId", row => row.OwnerId, member: EconomyIndexMember.RowId),
                     new("TypeId", row => row.TypeId, member: EconomyIndexMember.RowId),
-                    new(
-                        nameof(NpcMarketAssortment),
-                        row => new NpcMarketAssortment(row.StationId, row.TypeId, row.Bid, row.Kind, row.SourceOrderId)
-                    ),
+                    new NpcMarketAssortmentIndex(),
                 ],
                 primaryColumn: "Id",
                 rowIdIsKey: true

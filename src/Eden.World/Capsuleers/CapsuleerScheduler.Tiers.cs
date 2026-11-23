@@ -38,7 +38,7 @@ internal sealed partial class CapsuleerScheduler
     private long? NextWorkTicks() =>
         _waitingBackground.Count == 0 ? _queue.NextDueTicks : Math.Min(_queue.NextDueTicks ?? long.MaxValue, _nextBackgroundStartTicks);
 
-    private int StartBackgroundPilots(long elapsedTicks)
+    private int StartBackgroundPilots(long elapsedTicks, bool allowDueWork = false)
     {
         if (_waitingBackground.Count == 0 || elapsedTicks < _nextBackgroundStartTicks)
         {
@@ -47,14 +47,8 @@ internal sealed partial class CapsuleerScheduler
         int limit = BackgroundStartsPerInterval;
         if (_queue.NextDueTicks is long oldest && oldest <= elapsedTicks)
         {
-            // An expanded fresh roster can keep some work due even while healthy.
-            // Let one current-time start join the existing deadlines per interval.
-            var settings = _populationSettings.Settings;
-            if (
-                !settings.FreshUniverse
-                || settings.Capsuleers.FreshFounderCohortsPerSystem == FreshCareerRules.DefaultFounderCohorts
-                || elapsedTicks - oldest >= CapsuleerJobQueue.WakeInterval.Ticks * 2
-            )
+            // A healthy busy queue may never become empty. Admit one pilot after existing work advances.
+            if (!allowDueWork || elapsedTicks - oldest >= CapsuleerJobQueue.WakeInterval.Ticks * 2)
             {
                 return 0;
             }
@@ -115,6 +109,32 @@ internal sealed partial class CapsuleerScheduler
         return worker;
     }
 
+    private HashSet<long> JoinMiningCrew(long pilot, int system)
+    {
+        if (!_miningCrews.TryGetValue(system, out var crew))
+        {
+            crew = [];
+            _miningCrews.Add(system, crew);
+        }
+        crew.Add(pilot);
+        return crew;
+    }
+
+    private static void RestoreMiningCrew(WorldAction world, LiveWorld live, HashSet<long> crew)
+    {
+        foreach (long member in crew)
+        {
+            if (!live.MinerCheckpoints.ContainsKey(member) && !live.ProjectedMiners.ContainsKey(member))
+            {
+                var row = world.Filter<SavedCapsuleerCommunity>(value => value.PilotId == member).SingleOrDefault();
+                if (MinerCheckpoint.Read(row?.Progress) is { } progress)
+                {
+                    live.ProjectedMiners.Add(member, new(member, progress));
+                }
+            }
+        }
+    }
+
     private void RebaseMiningCrew(long pilot, CapsuleerMiner worker, int system)
     {
         var registration = _registrations[pilot];
@@ -122,15 +142,9 @@ internal sealed partial class CapsuleerScheduler
         {
             return;
         }
-        _miningCrews[registration.CrewSystem].Remove(pilot);
-        if (!_miningCrews.TryGetValue(system, out var crew))
-        {
-            crew = [];
-            _miningCrews.Add(system, crew);
-        }
-        crew.Add(pilot);
+        RemoveMember(_miningCrews, registration.CrewSystem, pilot);
         _registrations[pilot] = registration with { CrewSystem = system };
-        worker.ChangeCrew(crew);
+        worker.ChangeCrew(JoinMiningCrew(pilot, system));
     }
 
     private CapsuleerHauler? HaulerWorker(long pilot)
@@ -154,15 +168,66 @@ internal sealed partial class CapsuleerScheduler
         _haulers.Remove(pilot);
     }
 
+    private bool ApplyWorkerChange(LiveWorld? live, long pilot, int system, bool restoreCrew)
+    {
+        if (live is null || !live.CapsuleerWorkerChanges.Remove(pilot, out var career))
+        {
+            return false;
+        }
+
+        // The current action has committed its replacement checkpoint and canonical job.
+        // Drop both retained observations before loading the incoming worker.
+        ReleaseWorker(pilot);
+        _pendingMiners.Remove(pilot);
+        _pendingHaulers.Remove(pilot);
+        _presentations.Remove(system);
+        _readiness.Remove(system);
+        // Keep the overdue-queue scan on its normal cadence even when many pilots change lanes in one turn.
+
+        var registration = _registrations[pilot];
+        if (registration.Career != career)
+        {
+            if (registration.Career == CapsuleerCareer.Mining)
+            {
+                RemoveMember(_miningCrews, registration.CrewSystem, pilot);
+            }
+            _registrations[pilot] = registration with { Career = career, CrewSystem = system };
+            if (career == CapsuleerCareer.Mining)
+            {
+                var crew = JoinMiningCrew(pilot, system);
+                if (restoreCrew && crew.Count > 1)
+                {
+                    WorldActionScope.Inspect(database, world => RestoreMiningCrew(world, live, crew));
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private CapsuleerCareer? DormantCareer(long pilot)
+    {
+        if (_suspended.Contains(pilot))
+        {
+            return null;
+        }
+        if (_registrations.TryGetValue(pilot, out var registration))
+        {
+            return registration.Career;
+        }
+
+        var resident = Live!.Economy;
+        var career = resident.Peek<SavedCapsuleerAgent>(pilot)?.Career;
+        return career is null || resident.Peek<SavedCapsuleerOrganization>(pilot) is null
+            ? career
+            : WorldActionScope.Inspect(database, world => CapsuleerCorporations.Organization(world, pilot).ActiveWorker) ?? career;
+    }
+
     private CapsuleerMiner? ReadDormantMiner(long pilot) =>
-        Live!.Economy.Peek<SavedCapsuleerAgent>(pilot)?.Career == CapsuleerCareer.Mining && !_suspended.Contains(pilot)
-            ? miners.Create(pilot, [], id => _suspended.Contains(id))
-            : null;
+        DormantCareer(pilot) == CapsuleerCareer.Mining ? miners.Create(pilot, [], id => _suspended.Contains(id)) : null;
 
     private CapsuleerHauler? ReadDormantHauler(long pilot) =>
-        Live!.Economy.Peek<SavedCapsuleerAgent>(pilot)?.Career == CapsuleerCareer.Hauling && !_suspended.Contains(pilot)
-            ? haulers.Create(pilot)
-            : null;
+        DormantCareer(pilot) == CapsuleerCareer.Hauling ? haulers.Create(pilot) : null;
 
     private void ReleaseRegistration(LiveWorld live, long pilot)
     {

@@ -14,6 +14,7 @@ using Eden.Server.Gateway;
 using Eden.Server.Launcher;
 using Eden.Server.Logging;
 using Eden.Server.Maintenance;
+using Eden.World.Capsuleers;
 using Eden.World.Catalog;
 using Eden.World.Fittings;
 using Eden.World.Storage;
@@ -136,7 +137,7 @@ internal static class Program
         {
             return;
         }
-        string[] creationFlags = ["--fresh-universe", "--economy-world", "--testing-market", "--economy-config", "--npc-stock"];
+        string[] creationFlags = ["--economy-world", "--testing-market", "--economy-config", "--npc-stock"];
         if (args.Any(creationFlags.Contains))
         {
             throw new InvalidDataException("World creation settings have moved to administration. Start Eden without the creation flags.");
@@ -331,7 +332,9 @@ internal static class Program
             ServerLog.Console.Information($"Backing up and wiping world. Backup directory: {wipe.BackupDirectory}");
             bool reconfigure = wipe.Recreation == WorldRecreation.Configure;
             WorldWipe.Execute(worldPath, wipe.BackupDirectory, reconfigure, wipe.ConfigurationGeneration);
-            string next = reconfigure ? "configure the replacement in administration" : "recreate it with the saved settings";
+            string next = WorldSetupStore.Read(worldPath) is not null
+                ? "configure the replacement in administration"
+                : "recreate it with the saved settings";
             ServerLog.Console.Information($"World wipe complete. Accounts retained. Restart Eden to {next}.");
         }
     }
@@ -391,6 +394,9 @@ internal static class Program
             var abyssalMaintenance = services.GetRequiredService<AbyssalMaintenance>();
             lifetime.OnStop(nameof(AbyssalMaintenance), abyssalMaintenance.Dispose);
             abyssalMaintenance.Start();
+            var activityRewardMaintenance = services.GetRequiredService<ActivityRewardMaintenance>();
+            lifetime.OnStop(nameof(ActivityRewardMaintenance), activityRewardMaintenance.Dispose);
+            activityRewardMaintenance.Start();
             var sovereigntyMaintenance = services.GetRequiredService<SovereigntyMaintenance>();
             lifetime.OnStop(nameof(SovereigntyMaintenance), sovereigntyMaintenance.Dispose);
             sovereigntyMaintenance.Start();
@@ -405,7 +411,8 @@ internal static class Program
             var gateway = LocalGateway.Create(
                 services.GetRequiredService<GatewayRequests>(),
                 options,
-                services.GetRequiredService<IGatewayAuthentication>()
+                services.GetRequiredService<IGatewayAuthentication>(),
+                services.GetRequiredService<Eden.Infrastructure.Operations.IPilotOperationScope>()
             );
             lifetime.OnStop("gateway", gateway.DisposeAsync);
             var chat = services.GetRequiredService<ChatServer>();
@@ -453,6 +460,7 @@ internal static class Program
             );
             if (!server.IsCompleted && !shutdown.IsCancellationRequested)
             {
+                services.GetRequiredService<CapsuleerActivitySource>().StartUnattended();
                 population.Start(shutdown.Token);
                 readiness.Open(
                     new(

@@ -83,12 +83,12 @@ internal sealed partial class CapsuleerScheduler
     private CapsuleerHauler.PreparedJourney? PlanUpcomingTrade(PreparationInput input, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        using var catalogScope = new CatalogReadScope().Begin();
+        using var catalogScope = new CatalogReadScope(database).Begin();
         using CatalogDbContext catalog = new(database.CatalogPath);
         PrepareStationInputs(catalog, input);
-        if (input.PrepareInstitutionalOffers)
+        if (input.PrepareMarketOffers)
         {
-            market.PrepareInstitutional(catalog, input.StationId);
+            market.PrepareMarketOffers(catalog, input.StationId);
         }
         token.ThrowIfCancellationRequested();
         return input.Journey is null ? null : CapsuleerHauler.PlanJourney(catalog, input.Journey, database.Settings.Capsuleers);
@@ -118,7 +118,9 @@ internal sealed partial class CapsuleerScheduler
                 || old.TrainingHull != current.TrainingHull
                 || old.DefaultProfession != current.DefaultProfession
                 || old.TrainingPlan != current.TrainingPlan
-                || old.PrepareInstitutionalOffers != current.PrepareInstitutionalOffers
+                || old.PvpSnapshot != current.PvpSnapshot
+                || !SameFactorySupplies(old.FactorySupplies, current.FactorySupplies)
+                || old.PrepareMarketOffers != current.PrepareMarketOffers
                 || old.Journey != current.Journey
                 || !SameTemplate(old.Template, current.Template)
             )
@@ -130,6 +132,17 @@ internal sealed partial class CapsuleerScheduler
             return true;
         }
     }
+
+    private static bool SameFactorySupplies(
+        CapsuleerIndustry.FactorySupplyPreparation? before,
+        CapsuleerIndustry.FactorySupplyPreparation? after
+    ) =>
+        before is null
+            ? after is null
+            : after is not null
+                && before.Research == after.Research
+                && before.Warehouses.AsSpan().SequenceEqual(after.Warehouses)
+                && before.PlanetaryWarehouses.AsSpan().SequenceEqual(after.PlanetaryWarehouses);
 
     private static bool SameTemplate(TrafficTemplateInput? before, TrafficTemplateInput? after) =>
         before is null

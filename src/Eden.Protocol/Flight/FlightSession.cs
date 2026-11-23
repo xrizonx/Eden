@@ -80,7 +80,7 @@ internal sealed partial class FlightSession(
                 InWarp || PreparingWarp,
                 Cloaked,
                 ModuleEffects.WarpBlocked,
-                false
+                BastionActive || SubcapitalFieldSpooling
             )
         );
         Effects.Tether(Pilot.ShipId, next, _tether);
@@ -482,11 +482,14 @@ internal sealed partial class FlightSession(
                 _navigation = displacement.PriorNavigation?.Copy() ?? new();
                 _simulatedStamp = Stamp;
                 CorrectPosition(Pilot.ShipId, destination, _navigation.Velocity, _simulatedStamp);
-                Update(
-                    displacement.PriorNavigation is null
-                        ? new DestinyCommand.Stop(Pilot.ShipId)
-                        : new DestinyCommand.MicroJumpVisual(Pilot.ShipId, destination)
-                );
+                if (displacement.PriorNavigation is null)
+                {
+                    Update(new DestinyCommand.Stop(Pilot.ShipId));
+                }
+                if (displacement.Landing is not null || displacement.PriorNavigation is not null)
+                {
+                    Update(displacement.Landing ?? new DestinyCommand.MicroJumpVisual(Pilot.ShipId, destination));
+                }
                 PublishMotion();
                 PublishContact();
             }
@@ -1093,7 +1096,7 @@ internal sealed partial class FlightSession(
             {
                 _travel.CancelTranslocation();
                 SnapshotCore();
-                NotificationsBeforeFlight.Add(new CapitalJumpCancelled(error.Message));
+                NotificationsBeforeFlight.Add(new JumpCancelled(error.Message));
                 return null;
             }
             Relocate(moved.Pilot, transit.Objects);
@@ -1233,6 +1236,10 @@ internal sealed partial class FlightSession(
 
     public PilotCallResult StartJump(FlightCommand.Jump request, ISystemObjects systems, bool automatic = false)
     {
+        if (SubcapitalFieldSpooling)
+        {
+            return new PilotCallResult.Failure("Wait for the micro-jump spool to finish before jumping.");
+        }
         if (CapitalModuleActive)
         {
             return new PilotCallResult.Failure("Wait for the active capital module to finish before jumping.");
@@ -1253,6 +1260,17 @@ internal sealed partial class FlightSession(
         {
             return departure.Result;
         }
+        if (CapitalTravelRules.RestrictedCapital(Pilot.ShipGroupId))
+        {
+            try
+            {
+                gates?.CheckJump(Pilot.PilotId, Pilot.ShipId);
+            }
+            catch (InvalidDataException error)
+            {
+                return new PilotCallResult.Failure(error.Message);
+            }
+        }
         // Keep the source scene alive for the camera handoff before transferring the pilot.
         CancelGateCloak();
         if (!automatic)
@@ -1263,7 +1281,8 @@ internal sealed partial class FlightSession(
         ReleaseTether();
         missiles?.Cancel(Pilot.PilotId, Pilot.ShipId);
         drones?.Release(Pilot.PilotId, Pilot.ShipId);
-        tackle?.Cancel(Pilot.PilotId, Pilot.ShipId);
+        // Keep incoming tackle available for the authoritative transfer check.
+        tackle?.Disconnect(Pilot.PilotId, Pilot.ShipId);
         electronicWarfare?.Cancel(Pilot.PilotId, Pilot.ShipId, incoming: true);
         SetAtRest();
         Update(new DestinyCommand.Stop(Pilot.ShipId));
@@ -1335,26 +1354,30 @@ internal sealed partial class FlightSession(
                 return false;
             }
         }
-        else if (jump.Bridge is { } bridge)
+        else
         {
             try
             {
-                position = bridge.Transfer(Pilot.PilotId, Pilot.ShipId, jump.SourceId, jump.Exit.Id).Position!;
+                if (jump.Bridge is { } bridge)
+                {
+                    position = bridge.Transfer(Pilot.PilotId, Pilot.ShipId, jump.SourceId, jump.Exit.Id).Position!;
+                }
+                else if (gates is not null)
+                {
+                    position = gates.Transfer(Pilot.PilotId, Pilot.ShipId, jump.SourceId, jump.Exit.Id).Position!;
+                }
+                else
+                {
+                    world.SetPosition(Pilot.ShipId, position, jump.System.Id);
+                }
             }
             catch (InvalidDataException error)
             {
                 _travel.Reset();
-                NotificationsBeforeFlight.Add(new CapitalJumpCancelled(error.Message));
+                Snapshot();
+                NotificationsBeforeFlight.Add(new JumpCancelled(error.Message));
                 return false;
             }
-        }
-        else if (gates is not null)
-        {
-            position = gates.Transfer(Pilot.PilotId, Pilot.ShipId, jump.SourceId, jump.Exit.Id).Position!;
-        }
-        else
-        {
-            world.SetPosition(Pilot.ShipId, position, jump.System.Id);
         }
         LeaveSpace();
         Scene.ReplaceObjects(jump.Objects);
@@ -1581,7 +1604,11 @@ internal sealed partial class FlightSession(
         {
             return new PilotCallResult.Failure("Wait for the paid Entosis cycle to finish before travelling.");
         }
-        if (MicroJumpSpooling && command is not (FlightCommand.RefreshState or FlightCommand.Speed or FlightCommand.Stop))
+        if (
+            MicroJumpSpooling
+            && command is not FlightCommand.RefreshState
+            && (SubcapitalFieldSpooling || command is not (FlightCommand.Speed or FlightCommand.Stop))
+        )
         {
             return new PilotCallResult.Failure("Wait for the micro-jump spool to finish before navigating.");
         }

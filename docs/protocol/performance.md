@@ -6,6 +6,228 @@ Diagnostics, replay benchmarks, resident caches, combat objects and checkpoints.
 
 These records preserve milestone evidence and historical observations. Dates, schema versions, test results and live acceptance apply to the recorded change; they do not establish acceptance of later changes.
 
+## SQL-free gameplay and cold market preparation
+
+November 23, 2026. The installed server prepares a resident catalog generation before gameplay begins. It loads the
+typed source datasets used by World and Server, the dogma attribute and celestial projections, and the indexes
+needed for first-visit exploration. Large source records are stored as compressed UTF-8. The bounded decoded
+cache can still evict entries. Cold, repeated and absent lookups use the same resident source generation.
+Tooling retains the existing typed SQLite reads for authoring and verification.
+
+Player sessions and gateway requests, bot work and timed gameplay services use a guard at the storage boundary.
+It rejects SQL in gameplay regardless of whether performance tracing is enabled. The catalog policy checks that
+new World and Server source consumers are represented in the startup projection. Gameplay mod commands and events
+use checkpoint-backed resident state and a frozen skill identity index. Startup imports existing named mod state
+from the sidecar without overwriting newer checkpoint values.
+
+Standard market readiness verifies and loads immutable regional stock before listeners and traffic start.
+Regional best-ask reads capture the relevant committed rows under ownership, project their summary outside
+ownership and publish it only for the captured market revision and pilot location. First whole-region
+materialization uses bounded resident commits. Type-specific trading retains lazy stock publication and uses the
+prepared source data. Bot planetary sourcing prepares the relevant requests and catalog sites before Trade
+settlement and checks the resident inputs again before committing.
+
+Checkpoint work retains the relational persistence format. Size queries run against the detached image outside
+the owner. Checkpoint metadata SQL is reported separately from projection commands and from gameplay metrics.
+
+### Automated validation
+
+Release saved-world replays used private copies of the incident checkpoint with its original active skill
+catalog, traffic and Standard market data. The previous Trade revision 1475 recorded 101 catalog commands under
+the world owner. The courier replay requires the original job to reach Arrival revision 1476 at station
+60006511 by the same six-system route, with zero SQL and connection opens in both due Trade actions.
+The final Release run passed in 1 minute 58 seconds. Revision 1475 spent 116.22 ms executing the owned queue action,
+down from 961.14 ms in the previous replay. Its planetary site search took 4.92 ms with zero commands, down from
+244.98 ms and 44 commands. Selection, the first frame and regional best-ask call, and five repeated pairs all
+recorded zero SQL and connection opens. The first frame took 227.31 ms. The first market call took 1,104.05 ms
+for an initially incomplete region, including bounded resident stock commits. Warm market calls took 2.27 to
+5.37 ms. These are single instrumented observations.
+
+The paired Forge market probe returned the same 17,377 asks, including aggregate prices and remaining
+quantities, with zero SQL and connection opens. The old path used one 352.15 ms owner hold and completed
+in 359.75 ms. On the final path, the longest of four owner leases was 35.21 ms and the request completed
+in 155.62 ms. The leases totaled 92.97 ms and the detached summary projection took 31.29 ms.
+This sample starts with the captured generation already imported under the legacy station markers.
+Unseeded regions instead use bounded resident commits with the same prepared input.
+
+The final `ReplaySustainedBotThroughput` run completed 17,631 bot actions with zero failures in a 75-second
+workload across 135 communities. The two cold operations and all 75 timed player requests recorded zero SQL,
+connection opens and fitting rebuilds. Bot work also recorded zero gameplay SQL and opens. The selected workload
+case passed in 2 minutes 38 seconds. Three other theory variants returned early through the case selector.
+The first frame took 258.66 ms. The first best ask for the incomplete region took 1,077.50 ms, with a
+62.63 ms longest shared owner lease. The 30 warmed frames and 15 warmed market requests had p95
+arrival-to-completion times of 25.56 ms and 33.62 ms. Six periodic generation probes and the detached
+checkpoint projection were accounted separately.
+
+Host startup in that replay took 12.58 seconds to prepare the resident catalog and 9.51 seconds to build the
+snapshot PvP fit index. Exploration and market preparation took 0.61 and 3.38 seconds, respectively. These
+operations now precede gameplay. The replay uses automated sessions without a live listener or game transport.
+
+The 69-case rebased Release selection passed in 31 seconds of test execution. It covered catalog reads,
+checkpoint isolation, gateway skill plans, XMPP, ship SKINs, Standard market behavior, cold exploration
+and resident mod state. The final 28-case selection passed in 34 seconds, including the prepared catalog,
+SQL guard, ship SKIN and Standard market checks. The separate guarded exploration and mod package selection
+passed three cases in 54.03 seconds, including migration, restart, stopped reads, wipe and backup. The pinned
+client files were used for headless packaging. All eight catalog setup and policy tests and the code format check passed.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+None.
+
+## Planetary sourcing and tether waits during bot trades
+
+A read-only November 23 HostCram capture verified the running revision as `1547ae5f`. At 04:55:54 UTC a Trade
+held the shared world owner for 19,063.43 ms and counted 8,153 SQL commands. A concurrent player tick spent
+18,329.80 of its 18,333.00 ms waiting for the world. At 05:09:56 UTC another courier's Trade held the owner for
+5,635.05 ms and counted 3,313 commands. Neither trade reported a checkpoint copy overlap. The capture used published
+logs and the atomic 05:08:35 UTC checkpoint. Automated workloads ran against private copies.
+
+The 05:08:35 checkpoint contained pilot `90003982` docked at the supplier in E02-IK with a due Trade. A private
+copy replay on `eeb96063` processed the courier's research assignment, then followed the retry to a third Trade that
+held the owner for 1,797.17 ms. Factory supply planning considered planetary production before choosing another
+supplier. Its planet search used 1,779 of the action's 1,836 commands and took 1,479.06 ms. It looked up
+1,533 individual `sde/mapPlanets` records and performed 173 per-system celestial queries. This reproduces the
+recurring query pattern after the cold PvP fit build has left world ownership.
+
+The planner now batch-loads the eligible planet bodies and definitions for reachable market systems. It caches the
+compact results by catalog generation, including systems without usable planets, and uses one shortest-distance
+search for the common warehouse and avoidance policy. It evaluates installation choices once per planet type and
+keeps the existing order of preference for owned colonies, planet types, jump count and planet ID. Factory stock,
+pilot colony limits, travel policy and the selected courier job still use the current resident action.
+
+An independent warm-frame stack showed tether availability checks entering shared persistence even when the pilot's
+system had no structure. NPC and drone protection checks could enter the same owner before finding no active tether.
+These checks now use one atomically published resident view of active ships, flight membership, structure systems and
+persisted tethers to prove when there is nothing to check. Existing tether records and possible engagements still use
+the authoritative eligibility, repair and cleanup paths. System membership changes publish with the resident generation.
+
+EVE.js `planetStaticData.js` and `structureTethering.js` were checked for planet-type resource availability and local
+structure candidates. Their SHA-256 hashes are `3CCA293B7A98BFE4C4A9559EC3B109D0A661652AB441D8B005CEF3751B3EBBC9`
+and `E1655DBF2ED0D23729126713E324E386C8CBA75678081633B38B62612C3EE143` respectively.
+[EVE University Planetary Industry](https://wiki.eveuniversity.org/Planetary_Industry) · [EVE University Tethering](https://wiki.eveuniversity.org/Tethering)
+
+### Automated validation
+
+The matched courier replay held the frozen save, clock, adjusted queue and observer constant. The control and
+candidate each passed in Release on Windows, in 87.47 and 57.59 seconds including setup and shutdown. The
+courier chose Mercoxit supplier `60006511` over the same six-system route, and the exported final job and progress
+matched byte for byte.
+
+| Third Trade for pilot 90003982 | `eeb96063` | Candidate |
+| --- | ---: | ---: |
+| Shared owner hold | 1,797.17 ms | 961.60 ms |
+| Trade SQL commands | 1,836 | 101 |
+| Planet search | 1,479.06 ms | 244.99 ms |
+| Planet search SQL commands | 1,779 | 44 |
+
+The planet search used one query for the bodies and one for their definitions. The other 42 queries looked up
+station operations on this cold pass. The elapsed results are individual Windows samples under varying local
+load. A separate matched run used the saved factory requests of three couriers. All three planning results and six
+individual site choices matched. The largest factory request, for pilot `90002798`, fell from 6,879 to 108 SQL
+commands and from 3,726.09 to 439.20 ms while holding the owner. Both variants declined the full planetary trip and
+selected the same eligible site when asked about Mechanical Parts in isolation. The direct test ran in 37.15 seconds
+on the control and 33.30 seconds on the candidate.
+
+The new availability view was tested separately. Both complete warm-frame cases passed in 16 seconds with
+zero SQL, connections and fitting calculations, including the same paused shared owner that blocked the control.
+A regression with a structure in another system also checks immediate engagement and cleanup when a pilot travels
+between systems. It passed in 17.65 seconds.
+
+The broader tether, combat and checkpoint selection passed 101 of 102 cases in 204.84 seconds. The paid-shot
+checkpoint-copy case timed out at the same point in the unchanged `eeb96063` control. Raw diagnostics and the
+replay harness are recorded under `artifacts/trade-frame-followup-20261123`.
+
+The batched catalog regression passed in 11.37 seconds including runner startup. It verifies two cold SQL commands,
+zero warm commands or connections, and filtering of restricted systems, missing definitions and nonpositive radii.
+The integrated feature selection passed all 137 cases in 161.95 seconds after a 29.21-second solution build with zero
+warnings or errors. The selection included `PlanetaryIndustryTests`, `CapsuleerTrafficRoutesTests`, the planetary,
+Mercoxit and research courier restart flows, structure and combat tether tests, `NpcEwarTests`,
+`PausedSystemCannotBlockAnotherSystemsCompleteWarmFrame`, and `PausedCopyAllowsWarmFramesAndIndependentMovementWhileSqlWritersWait`.
+The catalog policy check required the new geometry query to use the shared catalog boundary. After relocating the query,
+the rebuilt `df025e36` integration passed 34 targeted planetary, courier, tether and complete warm-frame cases in 18.79 seconds.
+The final solution build took 26.36 seconds with zero warnings or errors. Both Python policy suites passed all 17 cases,
+and formatting, line-width and documentation anchor checks passed. The full .NET suite was outside this selection.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+After deploying, compare `traffic.findPlanetarySite` and Trade ownership with session `WorldWait` on a populated system.
+
+## Session frames blocked by docked bot trades
+
+The maintainer's server log on `1547ae5f` records four long ticks where a capsuleer Trade held the shared world owner.
+The tick's `Motion` timer includes the wait to acquire that owner. The work performed by the tick after acquisition
+took only 0.60–10.31 ms of ownership across the four samples. No overlapping checkpoint copy was reported for these
+trades. At 04:42:58, an agent call also queued for 18.11 seconds before processing in 13.80 ms.
+
+| Server log time | Tick | Tick world wait | Trade owner hold | Trade SQL commands |
+| --- | ---: | ---: | ---: | ---: |
+| 04:29:47 | 4,412.67 ms | 4,402.68 ms | 4,517.11 ms | 53,954 |
+| 04:34:28 | 14,281.42 ms | 14,269.93 ms | 14,971.81 ms | 8,004 |
+| 04:36:22 | 9,152.19 ms | 9,150.83 ms | 9,850.99 ms | 2,854 |
+| 04:42:58 | 20,772.58 ms | 20,769.60 ms | 21,491.42 ms | 8,448 |
+
+The pre-change fit selector built the immutable traffic snapshot's PvP loadout index on its first request. A local
+Release probe on the build-3662168 catalog and 44,719 loaded traffic profiles reproduced a 14.37-second cold
+index build with 7,106 catalog commands and zero fitting rebuilds. The production trace ties the blocked frames to
+Trade ownership. It does not attribute every recurring hold to the cold index. The index loads once per traffic snapshot
+and catalog generation, and the old warnings did not time several dock operations individually.
+
+The scheduler now prepares the index outside world ownership when docked work may need it. Preparation captures the
+traffic snapshot and checks the captured catalog and snapshot before running the job. Index construction batches
+immutable catalog reads and retains the first valid loadout when only ammunition quantities differ. Candidate ranking
+reuses the catalog requirements and skill ranks from the index and reads skill points from the current resident action.
+The same action still checks stock, budget, fitting and access before a purchase or dispatch. The slow-action detail
+now includes SQL elapsed time and timings for career work, supply, replacement, departure scouting and patrol decisions.
+
+The reference review covered station order matching in EVE.js `server/src/services/market/marketProxyService.js`,
+SHA-256 `F457CB1B181CEB570A5FA346C718D71A7CE7B84B8734C88CEE7F2546A8CE175B`, and the published Scout/Small complex gate rules.
+[EVE University trading](https://wiki.eveuniversity.org/Market) · [EVE University faction warfare](https://wiki.eveuniversity.org/Faction_warfare)
+
+### Automated validation
+
+The exact `Eden.Protocol.Tests.Capsuleers.TrafficPreparationTests.ResidentTradeLoadsSnapshotPvpFitsOutsideWorldOwnership`
+regression passed in 25.84 seconds including runner startup. It observes the cold index build outside the world owner
+and the cached read under ownership.
+
+Matched single Release samples used the same frozen traffic snapshot, a prewarmed core catalog and a reused catalog
+connection. The direct cold build took 14,365.44 ms and 7,106 catalog commands before the change, versus 12,215.19 ms
+and 3,949 commands after it. Point reads of `TypeAttribute` fell from 2,785 to 471.
+
+A separate Release run advanced the production scheduler's next due Trade on a private copy of the mature Standard market
+save. The fit index took 8,574.13 ms and 2,927 catalog commands during preparation. While reporting the end of that phase,
+an independent worker acquired shared ownership in 0.01 ms. An owned read of the completed index then took 1.13 ms with
+zero SQL commands, connection opens or fitting rebuilds. These are single Windows samples. The save has different bot
+locations from the production capture. Probe inputs and reports are recorded under `artifacts/session-frame-latency-20261122/fit-probe`.
+
+The wider initial selection passed 61 of 62 cases in 29.77 seconds. The `sharedCoordination: true` warm-frame isolation
+case timed out while its fixture deliberately held the shared world owner. The same parameterized case timed out on
+unchanged `d602ba98` in a separate two-case run. The independent-system variant passed both times. A stack capture in
+the failing fixture shows `FlightSession.Checkpoint` waiting for a resident inspection from `PilotTetherStore.Advance`.
+This still requires shared ownership. The fixture establishes one way Motion can wait, while the deployed tick warnings
+only give the aggregate phase timing.
+
+The final focused filter passed 60 cases in 27.29 seconds. It selected `TrafficPreparationTests`, `CapsuleerMilitiaPatrolTests`,
+`CapsuleerTrafficRoutesTests`, `EstablishedPilotBuysItsFirstPvpFitFromBountiesAndKeepsItAfterReopen`, and
+`IndependentTravelerResumesSeededStationlessNullsecExpeditionOffscreen`. The solution built in 14.20 seconds with no warnings
+or errors. The Python catalog and formatting policy suites passed all 17 cases. The full .NET suite was outside this selection.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+Compare Trade owner holds and session `WorldWait` after deployment. Keep warnings from both the traffic job and the tick
+for any recurring multi-second frame.
+
 ## Site history discovery and identity maxima, November 15, 2026
 
 Read-only container logs from 7:12–7:50 p.m. ET identify running revision
@@ -6169,8 +6391,7 @@ The bot worker accounted for 95% of sampled allocations during a separate 12-sec
 The stack for restoring hauler fittings accounted for 39%. Fittings now share immutable base attributes and look
 up a pilot's relevant skill points by composite key, including pending changes in that transaction. A trade
 prepares the selected career hull directly when the saved or entry hull qualifies. Selecting a new goal
-checks only hull groups that can supply the required career stage. Fresh careers prepare their slot's
-entry hull. Cold single-record catalog reads reuse a parameterized command within each operation.
+checks only hull groups that can supply the required career stage. Cold single-record catalog reads reuse a parameterized command within each operation.
 Partial mining keeps the system's asteroid contacts warm. Depletion, replenishment and physical changes refresh
 the affected system.
 
@@ -6222,11 +6443,10 @@ for each run. Per-second samples and checkpoint measurements are under `artifact
 
 The solution build passed in 9.99 s. The exact `ResidentDemandDoesNotVisitUnrelatedSimulatedSystems` and
 `PartialMiningKeepsAsteroidContactsWarmAndDepletionRefreshesOnlyTheMinedSystem` filters passed. The broader
-catalog, fitting, market, admission, scheduling, preparation, NPC and fresh-career selection passed 179 of
+catalog, fitting, market, admission, scheduling, preparation, NPC and historical career selection passed 179 of
 184 cases in 2 min 13 s. All five failures reproduced on `f285dfd7`. They were two fitting SQL-count assertions,
 the warm founder's SQL-count assertion and both disconnect variants of
-`RoutineProjectionPersistsNewResidentFounderBeforeItsDependents`. Fresh couriers and combat pilots earned and
-replaced both career ships in the installed-catalog test. Both Python policy suites passed all 17 checks.
+`RoutineProjectionPersistsNewResidentFounderBeforeItsDependents`. Both Python policy suites passed all 17 checks.
 
 After integration with the capital-logistics changes on `74904850`, the solution and Release test project
 built with zero warnings or errors in 10.84 s and 12.81 s. The integration filter covered resident demand,
@@ -6546,10 +6766,10 @@ Not performed; agent client testing is disabled.
 
 None.
 
-## Bot CPU and the fresh-world population ceiling
+## Bot CPU and the historical population ceiling
 
 The November 21 dedicated-server checkpoint had a cap of 5,000 and 2,418 saved autonomous pilots.
-Fresh-world background preparation had processed all 1,002 high-security systems with stations in
+Bot background preparation had processed all 1,002 high-security systems with stations in
 the pinned catalog. Of those, 955 had founders. There were 542 producer miners, 542 buyer miners,
 388 rookie couriers and 946 bounty pilots. The existing rules admit up to two miners, one courier
 and one bounty pilot per eligible system. Even if all four roles qualified everywhere, the initial
@@ -6588,7 +6808,7 @@ checkpoint requests. The established-world input is the previous CPU fixture wit
 active cap raised to 5,000. Its manifest SHA-256 is
 `AC31D4BE6C794B838941F5F7010C9546DE8360ABB6BC3B3B357B2D62FB25B59F`.
 Preparation and worker tracing were disabled for the comparison. All runs use private
-copies of the same save. Background preparation is enabled in the remote fresh world.
+copies of the same save. Background preparation is enabled in the remote benchmark save.
 
 Visiting 550 communities reached the cap late in an initial diagnostic run (550.8 s).
 The paired replays visit all 2,728 populated communities before starting the timer.
@@ -6642,12 +6862,12 @@ Not performed; agent client testing is disabled.
 
 ### Optional maintainer checks
 
-Repeat the CPU and observer measurements on a 5,000-pilot fresh-world fixture once its
+Repeat the CPU and observer measurements on a 5,000-pilot bot fixture once its
 admission rules can supply the additional pilots. The remote sample had about 777 saved
 job-sequence advances per second at 2,418 pilots. The established-world replay has a
 different activity mix, so it cannot establish the dedicated server's 5,000-pilot capacity.
 
-## Fresh-world backlog during starter ore sales
+## Bot backlog during starter ore sales
 
 At 18:42:24 UTC on November 21, the dedicated server showed 1,283 of 2,418 jobs due and
 the oldest 6.93 s late. Read-only samples of 11 published checkpoints between 18:43:34 and
@@ -6705,7 +6925,7 @@ Between seconds 60 and 179 it completed 572.4 actions/s at 0.690 ms process CPU 
 action. The oldest due job reached 99.8 ms in that window. End-to-end frame / market p99
 was 31.3 / 43.6 ms and the 120 observer calls issued zero SQL commands, opened zero
 connections and rebuilt zero fits. The test took 3 min 44 s including setup. The dedicated
-server's fresh-world queue still requires measurement on a deployed build.
+server's bot queue still requires measurement on a deployed build.
 
 The dedicated host first admitted 5,000 fresh pilots but reached 7.53 seconds of backlog as they began work.
 A four-minute diagnostic from the later checkpoint finished 3.72 seconds behind. An eight-second allocation
@@ -6733,16 +6953,15 @@ Not performed; agent client testing is disabled.
 ### Optional maintainer checks
 
 When the branch is deployed, compare allocation rate and oldest due job age across several
-15-second checkpoints with the fresh world active. The pre-change profile and checkpoint
+15-second checkpoints with the benchmark save active. The pre-change profile and checkpoint
 samples are under `artifacts/bot-cpu-5000/` in the main checkout.
 
 
-## Sustaining expanded fresh-world bot populations
+## Sustaining expanded bot populations
 
 The dedicated Linux host has four vCPUs and 7.8 GiB of RAM. Earlier established-world replays used a different
-workload. Fresh universes need additional eligible founders. The
-[founder cohort setting](capsuleers.md#additional-fresh-universe-founder-cohorts) expands the roster through the
-resident provisioner and preserves existing pilots, jobs, and normal starter economics.
+workload. These measurements used an expanded resident bot roster.
+[Original workload and configuration](https://github.com/CJ-SPT/Eden/blob/c31ac05af42c133567e203bb6859799c19af3852/docs/protocol/performance.md)
 
 The market changes select a station and type assortment through its resident index before materializing
 rows for institutional refresh. In a matched probe with 16,384 unrelated orders in the same station, four sales
@@ -6756,7 +6975,7 @@ The detached image keeps the same generation, atomic replacement, and retry sema
 market rows projected per checkpoint fell from 48,877 to 481 and market projection allocations fell from
 20,390,504 to 232,408 bytes. Both runs completed seven checkpoints without bot failures.
 
-Expanded fresh worlds allow one offscreen admission per 50 ms while oldest due work is less than 100 ms late,
+The expanded roster tests allow one offscreen admission per 50 ms while oldest due work is less than 100 ms late,
 retaining up to four starts per interval when the queue drains. Start work enters at current simulation time.
 The deadline queue still orders already-due jobs. Starts do not accumulate during backlog or inactivity.
 
@@ -6774,7 +6993,7 @@ that Windows disk increased from 229 to 405 ms. The default uses an in-memory im
 
 ### Automated validation
 
-The exact `ReplaySustainedBotThroughput` filter can use the observer pilot and account in a frozen fresh-world
+The exact `ReplaySustainedBotThroughput` filter can use the observer pilot and account in a frozen bot
 save. The admission window waits for the required number of scheduled pilots before timing the steady workload.
 The replay records admission time, actual paid mining collections, process working set, queue age, latency, and
 checkpoint costs. Market and population maintenance can run during the measured window.
@@ -6784,13 +7003,13 @@ resident provisioner before the timed workload. With `EDEN_BOT_REPLAY_IMMUTABLE_
 runner links catalogs from a read-only fixture after checking manifest hashes and rollback journal headers.
 Keep the world, skills editor and active marker in the private replay directory.
 
-The merged market fix at `63a030c0` ran on the dedicated host against a private copy of its 2,418-pilot fresh
+The merged market fix at `63a030c0` ran on the dedicated host against a private copy of its 2,418-pilot
 save. The 180-second run recovered from its saved backlog in 58.1 seconds and completed 153,218 actions
 and 4,004 paid mining collections. In the final 90 seconds, due age p95 was 606 ms and peaked at 1.16 s. Warm
 frame p95/p99 was 53.1/88.0 ms and market p95/p99 was 32.9/44.7 ms. The test container ran alongside the idle
 production service for this diagnostic. Raw results are under `artifacts/remote-bot-10000-20261121/`.
 
-The ten-minute Fresh Universe replay at `8a1af1d4` retained all 10,000 pilots, completed 1,531,712 actions
+The ten-minute historical replay at `8a1af1d4` retained all 10,000 pilots, completed 1,531,712 actions
 and 42,723 paid mining collections, and wrote 41 checkpoints. It recorded zero action failures, frame p99
 of 60.7 ms, and market request p99 of 68.9 ms. Bot queue age p95 over the final five minutes was 166.9 seconds
 and ended at 168.9 seconds. It failed the one-second queue deadline. The test changed the container limit from
@@ -6798,7 +7017,7 @@ and ended at 168.9 seconds. It failed the one-second queue deadline. The test ch
 fall behind after the change.
 
 A separate established-world replay with two observers reached 10,000 scheduled pilots and stopped at
-105 seconds when the 6 GiB container OOM-killed the test host. In the next Fresh Universe restart diagnostic,
+105 seconds when the 6 GiB container OOM-killed the test host. In the next historical restart diagnostic,
 the detached file capture and read-only catalog fixtures left more than 3.7 GiB of host memory available.
 The scheduler reached 9,993 of the 10,000 saved pilots. It held the remaining seven while the existing queue
 had thousands of due jobs. That diagnostic ended at the admission plateau before the timed window. The
@@ -6806,7 +7025,7 @@ read-only catalog link integration test passed on Linux. The linked fixture kept
 world database and its own mutable skill state.
 
 With disk-backed checkpoint capture and the larger static geometry cache at `08aef8b9`, a ten-minute
-Fresh Universe replay retained 7,500 scheduled pilots and completed 1,567,231 actions, including 46,965
+historical replay retained 7,500 scheduled pilots and completed 1,567,231 actions, including 46,965
 paid mining collections. It wrote 41 checkpoints with zero action failures and no OOM kill. All final
 301 queue samples stayed below one second. Queue age p95 was 343 ms and the maximum was 726 ms.
 Warm frame and market p99 were 16.5 and 30.5 ms. Peak process working set was 3.87 GiB and the lowest
@@ -6837,7 +7056,7 @@ had queue age p95 of 652 ms and an ending age of 168 ms. Two of 301 samples exce
 with a maximum of 1.10 seconds. Frame and market request p99 were 67.0 and 38.9 ms. Peak process
 working set was 3.99 GiB and host available memory stayed above 3.14 GiB.
 
-The 15-minute Fresh Universe replay at `338d74d2` used the same frozen 10,000-pilot workload and the
+The 15-minute historical replay at `338d74d2` used the same frozen 10,000-pilot workload and the
 indexed ship deletion, direct checkpoint installation, quiet defense reads and scoped population
 invalidation. Admission took 22.0 seconds after preparing the starter roster. All 10,000 pilots stayed
 scheduled while completing 3,220,428 actions and 94,878 paid mining collections. The replay wrote 61
@@ -6860,7 +7079,7 @@ Not performed; agent client testing is disabled.
 
 Compare scheduled population and role activity, oldest job age, and peak memory during the deployed ramp.
 
-## Mature fresh-world market and checkpoint throughput
+## Mature bot market and checkpoint throughput
 
 HostCram ran revision `7118d3fe` with settings revision 15. Beginner market supply, progressive markets, and regional hub
 supply were enabled. All three were disabled in the settings revision 14 replay above. At 28 minutes of uptime, the
@@ -6927,3 +7146,96 @@ The production observation uses the live player workload and samples durable che
 ### Live acceptance
 
 Agent client testing is disabled.
+
+## Standard market bot throughput on HostCram
+
+The November 22 HostCram checkpoint had 10,000 saved capsuleers in 955 communities. Active configuration revision 22 limited
+the public world to 6,000 active pilots and used the Standard market and a 300-second checkpoint interval. The replay used its
+own world copy, the same catalogs and market snapshot, one simulated player, market and activity reward maintenance, and a
+10,000-pilot cap applied through the world configuration store. HostCram had four vCPUs and 7.76 GiB of RAM. The test container
+had a 7 GiB limit. The public container was restored after each isolated run.
+
+The `0517a2c0` control reached 10,000 scheduled with the deployment's 55% .NET heap limit. It stopped after 35.3 timed seconds
+with managed out-of-memory failures and an oldest due job of 20.65 seconds. The container reported no kernel OOM kill. With a
+70% private test heap limit, the control completed 180.7 measured seconds without a scheduler failure. It processed 314,390
+actions, reached 56.50 seconds p95 oldest job age in the latter half and ended with 6,308 due jobs and 56.96 seconds of delay.
+This control forced a checkpoint every 15 seconds. Some forced checkpoints spent 26–31 seconds syncing the roughly 800 MiB save.
+
+The first candidate switched to the copied world's native 300-second checkpoint interval and kept the same 70% test heap.
+All 10,000 jobs advanced over 900.9 measured seconds and completed 2,131,898 scheduler actions with zero failures. The queue
+still grew. The final five-minute p95 oldest job age was 86.89 seconds and the final age was 90.47 seconds. Warm player frame
+and regional best-ask request p99 were 31.20 and 29.47 ms with zero SQL commands or fitting rebuilds. The runtime completed
+448,694 population refreshes whose deadlines had arrived during the run.
+
+An allocation trace at the start of the 180-second control attributed 16.7% of sampled allocations to Standard region preparation
+and 23.6% to pilot ship-attribute reads. The mature save held about 1.5 million inventory rows, mostly individual ore stacks
+in bot hangars, and about 1.37 million Standard market orders. Standard order identities now use an inline station and source ID
+index. Owner and location indexes cover resident item selection. The regional order loader sizes its per-type arrays directly,
+and a best-ask request selects the winning resident rows before building market reply rows. Scheduler diagnostics maintain
+counts as pilots change blocking reasons.
+
+A miner now adds newly unloaded ore to the oldest compatible stack that can accept the deposit. The move and merge share the
+resident job transaction. Earlier stacks retain their identities and quantities unless selected to receive a deposit. Surplus
+sales select stock from indexed resident rows and keep item ID order and each stack's original quantity. The EVE.js `StackAll`
+reference at `server/src/services/inventory/invBrokerService.js:12085` was checked for owner, type, compartment, and ordering rules.
+
+The warm trace identified ongoing work in miner preparation and NPC population refresh. The frozen HostCram save held 845 active
+mining haulers in 845 systems that were collecting and travelling with zero velocity. The shared NPC simulation already settled
+warp arrivals, but its contact-only movement path stopped these ships short of their pickup. Travelling mining ships can now
+use the existing subwarp movement step when the system has no client motion stamp. The resident pose is visible to the next
+population refresh so it can collect and depart. The offscreen regression requires a subwarp approach, verifies a real cargo
+transfer and retirement after restart, and checks that no client motion stamp was created. The traffic behavior reference is
+[EVE University NPC Mining Operations](https://wiki.eveuniversity.org/NPC_Mining_Operations).
+
+The follow-up also removes redundant resident training-history keys, selects industrial hangar rows using the existing owner and
+location indexes, and keeps Standard market gate distances in compact arrays. Bid range still uses the same directed stargates
+and exact jump count. The frozen save held 2,031,393 training history rows.
+
+`tools/Freeze-SystemReplay.py` includes the active market snapshot generation and verifies the order file checksums.
+`ReplaySustainedBotThroughput` accepts `EDEN_BOT_REPLAY_ACTIVE_PILOT_CAP` for the copy and
+`EDEN_BOT_REPLAY_NATIVE_CHECKPOINTS=1` to use the saved world's checkpoint timer. The report tracks distinct bot job advances
+and distinguishes jobs already due from jobs whose deadline falls after the window. HostCram artifacts are under
+`artifacts/hostcram-10k-standard-20261122/`.
+
+### Automated validation
+
+Commit `6965d649` ran on the same HostCram copy with the native checkpoint interval, a 70% test heap limit, and market and
+activity reward maintenance. The matched columns use the first 600 seconds of each candidate run.
+
+| Measurement | First candidate | `6965d649` |
+| --- | ---: | ---: |
+| Minimum scheduled pilots | 10,000 | 10,000 |
+| Completed actions | 1,417,618 | 1,585,784 |
+| Queue recovery below one second | Did not recover | 85.09 s |
+| Final five-minute oldest job age p95 | 50.37 s | 100.61 ms |
+| Final five-minute oldest job age maximum | 53.73 s | 510.97 ms |
+| Oldest job age at the end | 53.73 s | 109.65 ms |
+| Warm frame p99 | 31.20 ms | 39.68 ms |
+| Warm regional best-ask p99 | 305.95 ms | 300.67 ms |
+
+All 10,000 pilots advanced in the patched run. It recorded zero scheduler failures and zero kernel OOM kills, averaged
+0.88 vCPU, and peaked at 5.89 GiB process RSS. The first native checkpoint showed that 589 of the original 845 stationary
+collecting haulers had left that state. Due NPC population refreshes fell from about 498 per second in the full first candidate
+to about 111 per second in the patched replay. The warmed frame and market requests issued zero SQL commands, connections,
+or fitting rebuilds.
+
+The bot checks passed. The replay's overall verdict failed the 250 ms regional best-ask p99 assertion. The two slowest
+requests waited 603 and 300 ms before processing, and processing took 4.15 and 0.64 ms. The recorded traffic owner holds
+at 95.95, 296.86, and 597.09 seconds were 654, 439, and 482 ms. The first two coincided with those requests. The test stopped at
+the market latency assertion, and inspection of the trace found three traffic owner holds above its 250 ms limit.
+
+The Release build passed without warnings. The final focused test selection passed 35 cases in 29.04 seconds including runner
+overhead. It covered the offscreen hauling scenario, capsuleer ore unloading and escrow, starter manufacturing and courier
+stock, training-history checkpoint retry, Standard market behavior and resident market order uniqueness. Reverting only the NPC
+motion change in a temporary checkout reproduced the new offscreen case failure, with the other four variants passing.
+The clean solution build and formatting check, 13 Python policy and market importer tests, and the snapshot freeze and checksum
+check passed. The full .NET suite was outside the validation scope.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled. The original public container and listener returned after the final replay.
+Live configuration revision 22 still caps active bots at 6,000. The 70% managed heap limit applied to the isolated runs only.
+
+### Optional maintainer checks
+
+None.

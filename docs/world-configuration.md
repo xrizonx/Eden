@@ -15,7 +15,7 @@ A draft saves as **pending restart**. Saving, restoring and importing use the sa
 | --- | --- |
 | Economy & market | Standard, Progressive, Testing, NPC-only and Custom market presets; relevant supply quantities/prices, LP-store datacores, reference history and service costs. |
 | Gathering | Separate ore, ice and gas yield multipliers, mining hold capacity multipliers, and belt renewal settings. |
-| Rewards | NPC bounty ISK, mission ISK, mission loyalty points and positive mission standing-gain multipliers. |
+| Rewards | NPC bounty ISK, bounty and activity SP payout timing, mission ISK, loyalty points and positive standing-gain multipliers. |
 | NPC population | Enable new pirates/anomalies, guards, convoys and mining populations independently. Existing living residents remain. An optional Major Threat anomaly override enables the six advanced nullsec families without sovereignty upgrades. |
 | Exploration | Always resolve cosmic signatures for every pilot, without scanner probes. Off by default. |
 | Progression | Skill training speed, NPC kill-SP and mining-SP multipliers, and starting grants for new pilots. |
@@ -44,16 +44,14 @@ selected one on startup. Enter the administrator password when prompted. The run
 dotnet run --no-build --project src/Eden.Server -- --set-admin-password Corey
 ```
 
-Sign in at the printed URL (by default `http://127.0.0.1:26003/world/setup`) and select a profile.
+Sign in at the printed URL (by default `http://127.0.0.1:26003/world/setup`). New saves use Established Universe careers and
+traffic with the Standard market. Install a compatible snapshot beside the saved world before approving setup. Its captured
+orders are available from first market access without production unlocks. Bots can use activity income to buy PvP ships.
+The existing testing wallet grant for human pilots is enabled on first start. [Market import](#market-presets)
 
-| Profile | Starting rules |
-| --- | --- |
-| **Established Universe** | Established bot careers and traffic, progressive markets, regional NPC and starter supply, and the existing testing wallet grant. |
-| **Fresh Universe** | Humans and bots start at zero ISK with racial corvettes and starter skills and equipment. NPC starter ore buyers, blueprints and skillbooks support the early economy. Bots earn their upgrades. |
-
-For custom starting settings, open **Advanced settings**, copy the selected profile's draft, edit it, and paste the complete JSON
-into the form. For example, set `settings.developmentSupply.testingGrants` to false to create an Established world without testing
-wallet grants. The draft also supports bot limits, market supply, institutional stock and economic overrides.
+For custom starting settings, open **Advanced settings**, download the configuration draft, edit it, and paste the complete JSON
+into the form. Set `settings.developmentSupply.testingGrants` to false to disable testing wallet grants. The draft also supports
+bot limits, market supply, institutional stock and economic overrides.
 
 Select **Create world and start**. Eden validates and saves the choice, then prepares the world. If startup is interrupted after
 approval, restart Eden with the same data directory to resume with the saved choice. When the server is ready, choose **Check again**
@@ -70,11 +68,6 @@ Existing settings are preserved; combinations that do not match a preset appear 
 changes market supply switches only. Wallet grants, balances, owned goods, player orders, service costs and
 reference-history choices retain their settings.
 
-The presets also apply to existing **Fresh-universe** worlds. The profile starts pilots at zero ISK with the
-starter package. Its default market uses starter ore buyers and blueprint and skillbook offers. To select that
-market again under **Custom**, enable progressive regional markets and turn off live orders, testing, regional
-hub supply and beginner supply. Other presets use their own available buyers and sellers.
-
 | Preset | Supply |
 | --- | --- |
 | Standard | Individual captured public live orders, with original supported stations, sides, prices, quantities, ranges, minimum volumes and expiration deadlines. |
@@ -89,10 +82,10 @@ The existing hub and starter supply supplements do not alter imported orders. Th
 are hidden for Standard because the imported quantities and prices are authoritative. Initial wallet grants
 remain under Progression.
 
-Before selecting Standard, open **Optional data** and choose **Import market orders**. Use **Re-import market
-orders** to refresh the snapshot. The server downloads and validates the data in the background, and the page shows
-the installed capture and the import result. Standard requires a compatible snapshot. Testing, Progressive and
-NPC-only markets work without one.
+When setting up a new world, use the command below to import the snapshot. For a running world, open **Optional data**
+and choose **Import market orders** or **Re-import market orders**. The server downloads and validates the data in the background,
+and the page shows the installed capture and the import result. Standard requires a compatible snapshot. Testing, Progressive
+and NPC-only markets work without one.
 
 Market imports require Python 3.8 or newer on the server. The Docker image includes it. On other installations,
 use Python on the server's PATH or set `EDEN_PYTHON` to the executable. To import manually from the repository
@@ -165,6 +158,10 @@ saved world; they do not modify shared catalog definitions or autonomous NPC gat
 - Ore, ice and gas controls scale extraction volume after ordinary equipment and skill bonuses. Cargo space and remaining deposits
   still limit extraction, and existing critical/residue rules remain. Ice requires a completed cycle; its control changes blocks
   per completed cycle rather than cycle duration. Ore and gas retain proportional partial-cycle collection.
+- **Rewards → Bounty tick interval (seconds)** sets how long a pilot's first bounty share or whole activity SP award waits
+  before payout. The default is 1,200 seconds (20 minutes), and the maximum is 86,400 seconds. Enter 0 to pay new awards
+  immediately. Mining can start a tick without an NPC kill. **Save for restart** applies the new interval to newly opened
+  windows, and windows already saved keep their deadlines. [Bounty and activity SP ticks](protocol/combat.md#bounty-and-activity-sp-ticks)
 - Bounty ISK scales the gross amount before corporation tax. Selecting an NPC in space shows that gross amount.
   Kill SP uses that multiplied gross bounty before corporation tax or fleet sharing. The configurable base rate defaults to
   0.25% of gross bounty ISK, multiplied by the kill-SP setting, then rounded down to whole points. For example, a 3,000 ISK NPC
@@ -173,7 +170,7 @@ saved world; they do not modify shared catalog definitions or autonomous NPC gat
   setting, divide by the configurable reference ISK per SP (default 400) and round down once per collection. Yield multipliers also scale SP
   when they increase delivered resources. One ice unit is a whole block: a single block can award SP based on its value,
   and 3 blocks award three blocks' value before rounding. Critical cargo counts; residue, full holds and empty interrupted
-  ice cycles do not. Credits are silent and saved atomically with the harvest. The Progression control accepts 0–100×,
+  ice cycles do not. The pending award is saved with the harvest and settles silently at payout. The Progression control accepts 0–100×,
   defaults to 1× for existing worlds, and activates after **Save for restart** and a restart. Zero disables mining SP.
   The Progression panel exposes both base conversions: `progression.killSkillPointPercent` accepts 0–100%, and
   `progression.miningIskPerSkillPoint` accepts 0.01–1,000,000,000 ISK per SP. Lower mining costs grant more SP.
@@ -415,6 +412,11 @@ Restoring also creates a pending revision.
 Use **Player bots** to configure individual bot activities. **Population** shows the active values after restart.
 [Autonomous population settings](#autonomous-population)
 
+Open **Killboard** to browse server combat history with the administrator account. Choose a **Final blow (kills)**
+type, a **Destroyed (losses)** type, or both. For example, choose **NPC** and **Bot** to find bots killed by NPCs.
+The board lists up to 50 reports per page, newest first, and keeps the filters when you open older reports.
+[Server killboard coverage](protocol/combat.md#server-killboard)
+
 Catalog provides searchable pages across all 442 generated datasets, typed fields, explicit missing/null distinctions, exact source numbers and relationship navigation. Nested collections have their own display pages. Native fields remain read-only in original, active and pending views. Generated types validate records before the browser displays their original payloads; dynamic JSON stays inside this administration/storage boundary.
 
 The editor uses a dark theme throughout settings, catalog browsing, revision history and sign-in, including native form controls, validation messages and keyboard focus indicators.
@@ -601,28 +603,33 @@ Open **Player bots**, make changes, and select **Save for restart**. The **Popul
 settings, occupied slots, saved/paused totals, individual system access and waiting reasons.
 
 - **Bot population** contains the master switch, the world-wide **Active bot cap**
-  (`settings.capsuleers.activePilotCap`) and the switch for preparing unvisited systems in fresh universes
+  (`settings.capsuleers.activePilotCap`), **Run bots without players** (`settings.capsuleers.runWithoutPlayers`, default on),
+  and **Prepare bots in unvisited systems**
   (`settings.capsuleers.prepareUnvisitedSystems`). The cap includes pilots in idle or offscreen work and watched-gate visitors.
   **0** means unlimited. Turning off the master switch pauses and hides all simulated pilots.
-- **Fresh founder cohorts per system** (`settings.capsuleers.freshFounderCohortsPerSystem`) sets one to five sets of eligible
-  starter miners, couriers, and bounty pilots per system in Fresh Universe. The default is one. The active cap and each role's
-  eligibility still apply. Reducing the setting pauses additional cohorts after restart and preserves their pilots and jobs.
 - **Where bots work** applies the default, then the region override, then the solar-system override
   (`settings.capsuleers.systemAccess`). To keep work out of a starter system, choose its region and solar system and
   set the system to **Transit only**. Bots may still cross it by stargate. Choose **Use region rule** to remove the
   system override. Restricted home communities pause, and saved assignments that require a restricted work
   destination wait with their checkpoints intact.
 - **Mining** controls mining fleets and threat awareness.
-- **Hauling & deliveries** controls dedicated agent couriers in fresh universes (`settings.capsuleers.freshCourierPilots`)
-  and new trade-good shipments on civilian routes (`settings.capsuleers.tradeGoodsFreight`). Disabling shipments
-  preserves existing cargo and normal market supply jobs. The freight settings set regional hull variety,
+- **Hauling & deliveries** controls new trade-good shipments on civilian routes (`settings.capsuleers.tradeGoodsFreight`).
+  Disabling shipments preserves existing cargo and normal market supply jobs. The freight settings set regional hull variety,
   ordinary/courier budget ranges in ISK, courier frequency, empty return trips, cargo type IDs and wreck survival.
   [Shipment defaults and cargo type rules](capsuleer-population.md#hauler-freight)
-- **PvE combat & salvage** controls belt ratting, ordinary anomalies, wreck salvage and dedicated fresh-universe
-  bounty hunters (`settings.capsuleers.freshBountyPilots`). Dedicated hunters require belt ratting. Disabling salvage
+- **PvE combat & salvage** controls belt ratting, ordinary anomalies and wreck salvage. Disabling salvage
   stops a pending cycle when the pilot next runs. Ordinary wreck looting can still occur.
 - **Exploration** (`settings.capsuleers.exploration`) lets eligible bots acquire exploration equipment and scan and hack
   high-security pirate data and relic sites. Disabling it sends active explorers back to their departure stations.
+- **Independent nullsec expeditions** (`settings.capsuleers.nullsecExpeditions`, default on) gives eligible pilots
+  routes to nullsec and back through ordinary stargates. The belt ratting and nullsec PvP settings govern what
+  they can do on arrival. [Independent expeditions](capsuleer-population.md#independent-nullsec-expeditions)
+- **Faction warfare patrols** (`settings.capsuleers.militiaPatrols`, default off) enables sorties to reachable
+  current Frontlines in either empire warzone. [Faction warfare bot patrols](protocol/faction-warfare.md#dynamic-faction-warfare-patrols)
+- **Buy PvP ships with activity income** (`settings.capsuleers.earnedPvpShips`) funds new PvP fits through existing bot earnings.
+  Setup enables this for new saves. To enable it on an existing established save, select it under **PvP roams & regional conflicts**
+  and save for restart. With the Progressive market and **Beginner market supply** enabled, eligible lowsec and nullsec NPC traffic
+  stations seed a small supply of the entry PvP hull, fittings and ammunition.
 - **Persistent roaming gangs** (`settings.capsuleers.roamingGangs`, default on) permits coordinated nullsec hunting with
   existing ships. **Roaming gang size** (`settings.capsuleers.roamingGangSize`) accepts 3–6, default 4. The existing roam
   chance controls formation. [Gang behavior and requirements](capsuleer-population.md#persistent-roaming-gangs).
@@ -648,10 +655,11 @@ equipment, wallet, loss, grant record or saved activity is deleted. Raising a li
 before missing station-traffic/miner slots are prepared in entered regions. New gate visitors are prepared on gate watches. A lost ship remains lost.
 Activity deadlines shift by the paused interval; suspended pilots earn no catch-up actions, items or rewards.
 Repeated restarts preserve the original pause and never replay a supply or wallet grant.
-Normal startup retains saved pilots and starts preparation when a human selects a character. Occupied systems get priority.
-With fresh-universe background preparation enabled, Eden also prepares eligible unvisited high-security station
-systems in bounded batches. It respects the active bot cap and work access rules, and preparation stops when the last
-player leaves. Established worlds prepare new communities on demand in occupied systems.
+Normal startup retains saved pilots and starts eligible background jobs before the first character selection.
+Turn off **Run bots without players** to pause bot work and preparation whenever nobody has selected a character.
+With **Prepare bots in unvisited systems** enabled, Eden also prepares eligible unvisited high-security systems with
+stations in bounded batches while bot simulation runs. Occupied systems get priority. The active bot cap and work access rules still
+apply. Turning off unvisited preparation limits new communities to occupied systems.
 Saved identities and possessions are reused, and dormant time produces no catch-up rewards. Completed catalog/settings/snapshot
 fingerprints are reused; interrupted preparation retries missing communities
 without replacing completed pilots. Unsupported or temporarily depleted communities are recorded

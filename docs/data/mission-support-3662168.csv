@@ -2,21 +2,21 @@ missionId,name,template,status,reason
 875,The Guristas Spies,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 888,The Guristas Spies,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 890,The Angel Cartel Spies,BasicKillMission,admitted,Catalog cargo or reviewed encounter
-891,The Guristas Spies,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+891,The Guristas Spies,BasicKillMission,blocked,Requires timed reinforcements
 892,The Angel Cartel Spies,BasicKillMission,admitted,Catalog cargo or reviewed encounter
-893,The Guristas Spies,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+893,The Guristas Spies,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 894,The Serpentis Spies,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 895,The Serpentis Spies,BasicKillMission,blocked,Requires timed reinforcements
 896,The Angel Cartel Spies,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 897,The Angel Cartel Spies,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 898,The Serpentis Spies,BasicKillMission,admitted,Catalog cargo or reviewed encounter
-899,The Serpentis Spies,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+899,The Serpentis Spies,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 900,The Sansha Spies,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 901,The Sansha Spies,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 902,The Sansha Spies,BasicKillMission,admitted,Catalog cargo or reviewed encounter
-903,The Sansha Spies,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-909,The Seven's Brothel,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-910,The Seven's Prison Facility,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+903,The Sansha Spies,BasicKillMission,blocked,Requires a verified Sansha Spy type and completion objective
+909,The Seven's Brothel,BasicKillMission,admitted,Catalog cargo or reviewed encounter
+910,The Seven's Prison Facility,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 911,The Right Hand Of Zazzmatazz,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 912,Save a Man's Career,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 913,Stop The Thief,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -46,13 +46,13 @@ missionId,name,template,status,reason
 937,Seek and Destroy,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 938,Seek and Destroy,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 939,Seek and Destroy,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-1062,The Blood Raider Spies,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-1063,The Blood Raider Spies,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-1064,The Blood Raider Spies,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-1065,The Blood Raider Spies,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+1062,The Blood Raider Spies,BasicKillMission,blocked,Requires pinned hull identity for the Blood Raider Spy frigates
+1063,The Blood Raider Spies,BasicKillMission,blocked,Requires pinned hull identity for the Blood Raider Spy destroyers
+1064,The Blood Raider Spies,BasicKillMission,blocked,Requires pinned hull identity for the Blood Raider Spy battlecruisers
+1065,The Blood Raider Spies,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 1081,Silence The Informant,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 1083,Silence The Informant,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-1084,Attack the Angel Hideout,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+1084,Attack the Angel Hideout,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 1085,Angel Extravaganza,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 1086,Silence The Informant,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 1093,Angel Extravaganza,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -111,16 +111,16 @@ missionId,name,template,status,reason
 1211,Vengeance,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 1212,Vengeance,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 1213,Preliminary Strike,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-1214,The Drone Infestation,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-1215,The Drone Infestation,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+1214,The Drone Infestation,BasicKillMission,admitted,Catalog cargo or reviewed encounter
+1215,The Drone Infestation,BasicKillMission,blocked,Requires a verified reinforcement trigger
 1216,The Missing Convoy,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 1217,The Infested Ruins,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 1218,Rogue Drone Harassment,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-1219,Rogue Drone Harassment,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+1219,Rogue Drone Harassment,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 1220,Rogue Drone Harassment,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-1221,Rogue Drone Harassment,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-1222,Rogue Drone Harassment,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-1223,Rogue Drone Harassment,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+1221,Rogue Drone Harassment,BasicKillMission,admitted,Catalog cargo or reviewed encounter
+1222,Rogue Drone Harassment,BasicKillMission,admitted,Catalog cargo or reviewed encounter
+1223,Rogue Drone Harassment,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 1224,Rogue Drone Harassment,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 1225,Rogue Drone Harassment,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 1226,The Hidden Stash,BasicKillMission,admitted,Catalog cargo or reviewed encounter
@@ -134,7 +134,7 @@ missionId,name,template,status,reason
 1234,The Hidden Stash,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 1235,The Hidden Stash,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 1236,The Black Market Hub,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-1237,The Roving Rogue Drones,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+1237,The Roving Rogue Drones,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 1238,Duo of Death,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 1239,Duo of Death,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 1240,Duo of Death,BasicKillMission,admitted,Catalog cargo or reviewed encounter
@@ -146,7 +146,7 @@ missionId,name,template,status,reason
 1246,Duo of Death,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 1247,Duo of Death,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 1254,Duo of Death,BasicKillMission,admitted,Catalog cargo or reviewed encounter
-1256,The Small Armory,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+1256,The Small Armory,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 1258,The Space Telescope,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 1259,Kidnappers Strike - Ambush in the Dark (1 of 10),GenericStorylineKillMission,blocked,Requires another mission or agent lifecycle
 1273,Secret Project X (1 of 3),GenericStorylineKillMission,blocked,Requires another mission or agent lifecycle
@@ -237,7 +237,7 @@ missionId,name,template,status,reason
 1394,The Sukuuvestaa Incident - In Defense (4 of 6),GenericStorylineKillMission,blocked,Requires another mission or agent lifecycle
 1395,The Sukuuvestaa Incident - The Caldari Agent (5 of 6),GenericStorylineKillMission,blocked,Requires another mission or agent lifecycle
 1397,The Sukuuvestaa Incident - The Constellation Scanner (6 of 6),GenericStorylineKillMission,blocked,Requires another mission or agent lifecycle
-1398,Ritualist Raids,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+1398,Ritualist Raids,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 1400,Nomads - Unwanted Settlers (1 of 5),GenericStorylineKillMission,blocked,Requires another mission or agent lifecycle
 1401,Nomads - Request From The Republic (2 of 5),GenericStorylineCourierMission,blocked,Requires complete mission-chain bindings or additional part mechanics
 1402,Nomads - Secret Military Supplies (3 of 5),GenericStorylineKillMission,blocked,Requires another mission or agent lifecycle
@@ -386,10 +386,10 @@ missionId,name,template,status,reason
 1569,Head Hunter Threat,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 1570,Rogue Drone Harassment,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 1571,Rogue Drone Harassment,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-1572,Rogue Drone Harassment,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-1573,Rogue Drone Harassment,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-1574,Rogue Drone Harassment,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-1575,Rogue Drone Harassment,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+1572,Rogue Drone Harassment,BasicKillMission,admitted,Catalog cargo or reviewed encounter
+1573,Rogue Drone Harassment,BasicKillMission,admitted,Catalog cargo or reviewed encounter
+1574,Rogue Drone Harassment,BasicKillMission,admitted,Catalog cargo or reviewed encounter
+1575,Rogue Drone Harassment,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 1576,Rogue Drone Harassment,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 1578,Rogue Drone Harassment,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 1579,The Black Market Hub,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -917,14 +917,14 @@ missionId,name,template,status,reason
 2247,Intercept The Pirate Smugglers,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2248,Eliminate the Pirate Campers,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 2249,Eliminate the Pirate Campers,BasicKillMission,admitted,Catalog cargo or reviewed encounter
-2250,Eliminate the Stargate Campers,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-2251,Eliminate the Stargate Campers,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+2250,Eliminate the Stargate Campers,BasicKillMission,admitted,Catalog cargo or reviewed encounter
+2251,Eliminate the Stargate Campers,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 2252,Eliminate the Pirate Campers,BasicKillMission,blocked,Report and pinned dungeon level disagree
 2253,Eliminate the Pirate Campers,BasicKillMission,blocked,Requires a verified reinforcement trigger
 2254,Eliminate the Pirate Campers,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 2255,Eliminate the Pirate Campers,BasicKillMission,admitted,Catalog cargo or reviewed encounter
-2256,Eliminate the Stargate Campers,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-2257,Eliminate the Stargate Campers,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+2256,Eliminate the Stargate Campers,BasicKillMission,admitted,Catalog cargo or reviewed encounter
+2257,Eliminate the Stargate Campers,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 2258,Foil The Military Preparations,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2259,Foil The Military Preparations,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2260,Foil The Military Preparations,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -1027,7 +1027,7 @@ missionId,name,template,status,reason
 2388,Police Invasion,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2389,Unauthorized Military Presence,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2390,Unauthorized Military Presence,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-2391,The Score,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+2391,The Score,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 2392,Unauthorized Military Presence,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2393,Unauthorized Military Presence,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2394,Unauthorized Military Presence,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -1042,15 +1042,15 @@ missionId,name,template,status,reason
 2403,Unauthorized Military Presence,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2404,Unauthorized Military Presence,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2405,Unauthorized Military Presence,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-2407,The Score,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+2407,The Score,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 2408,The Score,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2409,The Score,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-2416,The Score,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-2449,The Score,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+2416,The Score,BasicKillMission,admitted,Catalog cargo or reviewed encounter
+2449,The Score,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 2453,The Score,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2459,The Score,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2469,Intercept The Saboteurs,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-2470,The Score,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+2470,The Score,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 2471,Intercept The Saboteurs,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2472,Intercept The Saboteurs,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2473,The Score,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -1076,11 +1076,11 @@ missionId,name,template,status,reason
 2539,The Assault,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2540,The Assault,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2541,Smuggler Interception,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-2542,Smuggler Interception,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+2542,Smuggler Interception,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 2543,Smuggler Interception,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2544,Smuggler Interception,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2545,Smuggler Interception,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-2546,Smuggler Interception,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+2546,Smuggler Interception,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 2547,Smuggler Interception,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2548,Smuggler Interception,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2550,The Mordus Headhunters,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -1094,10 +1094,10 @@ missionId,name,template,status,reason
 2558,The Mordus Headhunters,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2559,Pirate Business,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2560,The Mordus Headhunters,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-2561,The Mordus Headhunters,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-2562,The Mordus Headhunters,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+2561,The Mordus Headhunters,BasicKillMission,admitted,Catalog cargo or reviewed encounter
+2562,The Mordus Headhunters,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 2563,Pirate Business,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-2564,The Mordus Headhunters,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+2564,The Mordus Headhunters,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 2565,Pirate Business,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2566,Pirate Business,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2567,Pirate Business,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -1315,11 +1315,11 @@ missionId,name,template,status,reason
 2789,From Bad To Worse,BasicCourierMission,admitted,Catalog cargo or reviewed encounter
 2790,High Spirits,BasicCourierMission,admitted,Catalog cargo or reviewed encounter
 2791,Transmitter Replacement,BasicCourierMission,admitted,Catalog cargo or reviewed encounter
-2792,Mineral Acquisition,ResearchTradeMission,blocked,Requires verified trade content or another agent lifecycle
-2793,Mineral Acquisition,ResearchTradeMission,blocked,Requires verified trade content or another agent lifecycle
-2794,Mineral Acquisition,ResearchTradeMission,blocked,Requires verified trade content or another agent lifecycle
-2795,Mineral Acquisition,ResearchTradeMission,blocked,Requires verified trade content or another agent lifecycle
-2804,The Special Delivery,ResearchCourierMission,blocked,Requires another mission or agent lifecycle
+2792,Mineral Acquisition,ResearchTradeMission,admitted,Research bonus assignment
+2793,Mineral Acquisition,ResearchTradeMission,admitted,Research bonus assignment
+2794,Mineral Acquisition,ResearchTradeMission,admitted,Research bonus assignment
+2795,Mineral Acquisition,ResearchTradeMission,admitted,Research bonus assignment
+2804,The Special Delivery,ResearchCourierMission,admitted,Research bonus assignment
 2805,Threat From Abroad (1 of 2),StorylineKillMission,blocked,Requires another mission or agent lifecycle
 2806,Threat From Abroad (2 of 2),StorylineKillMission,blocked,Requires another mission or agent lifecycle
 2807,Unwelcome Guests (1 of 2),StorylineKillMission,blocked,Requires another mission or agent lifecycle
@@ -1421,21 +1421,21 @@ missionId,name,template,status,reason
 2921,A Special Delivery,GenericStorylineCourierMission,admitted,Catalog cargo or reviewed encounter
 2922,A Special Delivery,GenericStorylineCourierMission,admitted,Catalog cargo or reviewed encounter
 2924,The Blockade,BasicKillMission,admitted,Catalog cargo or reviewed encounter
-2925,The Blockade,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-2926,The Blockade,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+2925,The Blockade,BasicKillMission,admitted,Catalog cargo or reviewed encounter
+2926,The Blockade,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 2927,The Blockade,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2928,The Blockade,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2929,The Blockade,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2930,The Blockade,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2931,The Blockade,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2932,The Blockade,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-2933,The Blockade,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-2934,The Blockade,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-2935,The Blockade,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+2933,The Blockade,BasicKillMission,admitted,Catalog cargo or reviewed encounter
+2934,The Blockade,BasicKillMission,admitted,Catalog cargo or reviewed encounter
+2935,The Blockade,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 2936,The Blockade,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-2937,The Blockade,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+2937,The Blockade,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 2939,The Blockade,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-2940,The Blockade,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+2940,The Blockade,BasicKillMission,admitted,Catalog cargo or reviewed encounter
 2941,The Blockade,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2942,The Blockade,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 2943,The Blockade,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -1574,107 +1574,107 @@ missionId,name,template,status,reason
 3093,Deadly Arrival,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 3094,Deadly Arrival,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 3095,Deadly Arrival,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-3096,Balancing the Books (1 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-3105,Making Mountains of Molehills (10 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3106,Making Mountains of Molehills (9 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3107,Balancing the Books (4 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3108,Balancing the Books (4 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3109,Balancing the Books (4 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3110,Balancing the Books (4 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
+3096,Balancing the Books (1 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+3105,Making Mountains of Molehills (10 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3106,Making Mountains of Molehills (9 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3107,Balancing the Books (4 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3108,Balancing the Books (4 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3109,Balancing the Books (4 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3110,Balancing the Books (4 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
 3111,Song Of Birds,StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3112,Balancing the Books (5 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-3113,Balancing the Books (5 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-3114,Balancing the Books (5 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-3115,Balancing the Books (5 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-3116,Balancing the Books (6 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3117,Balancing the Books (6 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3118,Balancing the Books (6 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3119,Balancing the Books (6 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3120,Cash Flow for Capsuleers (1 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3121,Cash Flow for Capsuleers (1 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3122,Cash Flow for Capsuleers (1 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3123,Cash Flow for Capsuleers (1 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3124,Balancing the Books (7 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3125,Balancing the Books (7 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3126,Balancing the Books (7 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3127,Balancing the Books (7 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3128,Cash Flow for Capsuleers (4 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3129,Cash Flow for Capsuleers (4 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3130,Cash Flow for Capsuleers (4 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3131,Cash Flow for Capsuleers (4 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3132,Cash Flow for Capsuleers (5 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3133,Cash Flow for Capsuleers (5 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3134,Cash Flow for Capsuleers (5 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3135,Cash Flow for Capsuleers (5 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3136,Cash Flow for Capsuleers (6 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3137,Cash Flow for Capsuleers (6 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3138,Cash Flow for Capsuleers (6 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3139,Cash Flow for Capsuleers (6 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3140,Cash Flow for Capsuleers (7 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3142,Cash Flow for Capsuleers (7 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3143,Cash Flow for Capsuleers (7 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3144,Cash Flow for Capsuleers (7 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3145,Cash Flow for Capsuleers (8 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3146,Cash Flow for Capsuleers (8 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3147,Cash Flow for Capsuleers (8 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3148,Cash Flow for Capsuleers (8 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3149,Cash Flow for Capsuleers (10 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3150,Cash Flow for Capsuleers (10 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3151,Cash Flow for Capsuleers (10 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3152,Cash Flow for Capsuleers (10 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3157,Cash Flow for Capsuleers (2 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3159,Cash Flow for Capsuleers (2 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3160,Cash Flow for Capsuleers (2 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3161,Cash Flow for Capsuleers (2 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3162,Cash Flow for Capsuleers (3 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3163,Cash Flow for Capsuleers (3 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3164,Cash Flow for Capsuleers (3 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3165,Cash Flow for Capsuleers (3 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3166,Making Mountains of Molehills (1 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3168,Making Mountains of Molehills (1 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3170,Balancing the Books (9 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3172,Making Mountains of Molehills (4 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3173,Balancing the Books (10 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3174,Making Mountains of Molehills (4 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3177,Balancing the Books (8 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-3179,Balancing the Books (2 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3180,Balancing the Books (2 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3181,Balancing the Books (2 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3182,Making Mountains of Molehills (3 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3185,Balancing the Books (2 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3198,Making Mountains of Molehills (5 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-3201,Balancing the Books (1 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-3203,Balancing the Books (1 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-3205,Balancing the Books (1 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-3209,Balancing the Books (8 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-3210,Balancing the Books (8 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-3211,Balancing the Books (8 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-3212,Making Mountains of Molehills (9 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3213,Balancing the Books (9 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3214,Balancing the Books (9 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3215,Balancing the Books (9 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3217,Balancing the Books (10 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3218,Balancing the Books (10 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3219,Balancing the Books (10 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3221,Making Mountains of Molehills (8 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3227,Making Mountains of Molehills (5 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-3228,Making Mountains of Molehills (10 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3229,Making Mountains of Molehills (3 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3233,Making Mountains of Molehills (8 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3234,Making Mountains of Molehills (1 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3235,Making Mountains of Molehills (4 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3236,Making Mountains of Molehills (3 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3240,Making Mountains of Molehills (5 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-3241,Making Mountains of Molehills (8 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3242,Making Mountains of Molehills (9 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3243,Making Mountains of Molehills (10 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3244,Making Mountains of Molehills (1 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3245,Making Mountains of Molehills (4 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3246,Making Mountains of Molehills (3 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3250,Making Mountains of Molehills (5 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-3251,Making Mountains of Molehills (8 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-3252,Making Mountains of Molehills (9 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-3253,Making Mountains of Molehills (10 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
+3112,Balancing the Books (5 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+3113,Balancing the Books (5 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+3114,Balancing the Books (5 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+3115,Balancing the Books (5 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+3116,Balancing the Books (6 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3117,Balancing the Books (6 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3118,Balancing the Books (6 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3119,Balancing the Books (6 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3120,Cash Flow for Capsuleers (1 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3121,Cash Flow for Capsuleers (1 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3122,Cash Flow for Capsuleers (1 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3123,Cash Flow for Capsuleers (1 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3124,Balancing the Books (7 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3125,Balancing the Books (7 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3126,Balancing the Books (7 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3127,Balancing the Books (7 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3128,Cash Flow for Capsuleers (4 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3129,Cash Flow for Capsuleers (4 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3130,Cash Flow for Capsuleers (4 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3131,Cash Flow for Capsuleers (4 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3132,Cash Flow for Capsuleers (5 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3133,Cash Flow for Capsuleers (5 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3134,Cash Flow for Capsuleers (5 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3135,Cash Flow for Capsuleers (5 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3136,Cash Flow for Capsuleers (6 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3137,Cash Flow for Capsuleers (6 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3138,Cash Flow for Capsuleers (6 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3139,Cash Flow for Capsuleers (6 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3140,Cash Flow for Capsuleers (7 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3142,Cash Flow for Capsuleers (7 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3143,Cash Flow for Capsuleers (7 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3144,Cash Flow for Capsuleers (7 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3145,Cash Flow for Capsuleers (8 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3146,Cash Flow for Capsuleers (8 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3147,Cash Flow for Capsuleers (8 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3148,Cash Flow for Capsuleers (8 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3149,Cash Flow for Capsuleers (10 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3150,Cash Flow for Capsuleers (10 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3151,Cash Flow for Capsuleers (10 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3152,Cash Flow for Capsuleers (10 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3157,Cash Flow for Capsuleers (2 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3159,Cash Flow for Capsuleers (2 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3160,Cash Flow for Capsuleers (2 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3161,Cash Flow for Capsuleers (2 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3162,Cash Flow for Capsuleers (3 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3163,Cash Flow for Capsuleers (3 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3164,Cash Flow for Capsuleers (3 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3165,Cash Flow for Capsuleers (3 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3166,Making Mountains of Molehills (1 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3168,Making Mountains of Molehills (1 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3170,Balancing the Books (9 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3172,Making Mountains of Molehills (4 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3173,Balancing the Books (10 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3174,Making Mountains of Molehills (4 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3177,Balancing the Books (8 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+3179,Balancing the Books (2 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3180,Balancing the Books (2 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3181,Balancing the Books (2 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3182,Making Mountains of Molehills (3 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3185,Balancing the Books (2 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3198,Making Mountains of Molehills (5 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+3201,Balancing the Books (1 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+3203,Balancing the Books (1 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+3205,Balancing the Books (1 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+3209,Balancing the Books (8 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+3210,Balancing the Books (8 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+3211,Balancing the Books (8 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+3212,Making Mountains of Molehills (9 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3213,Balancing the Books (9 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3214,Balancing the Books (9 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3215,Balancing the Books (9 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3217,Balancing the Books (10 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3218,Balancing the Books (10 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3219,Balancing the Books (10 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3221,Making Mountains of Molehills (8 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3227,Making Mountains of Molehills (5 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+3228,Making Mountains of Molehills (10 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3229,Making Mountains of Molehills (3 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3233,Making Mountains of Molehills (8 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3234,Making Mountains of Molehills (1 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3235,Making Mountains of Molehills (4 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3236,Making Mountains of Molehills (3 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3240,Making Mountains of Molehills (5 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+3241,Making Mountains of Molehills (8 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3242,Making Mountains of Molehills (9 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3243,Making Mountains of Molehills (10 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3244,Making Mountains of Molehills (1 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3245,Making Mountains of Molehills (4 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3246,Making Mountains of Molehills (3 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3250,Making Mountains of Molehills (5 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+3251,Making Mountains of Molehills (8 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+3252,Making Mountains of Molehills (9 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+3253,Making Mountains of Molehills (10 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
 3258,A Feast Fit for a King,BasicCourierMission,admitted,Catalog cargo or reviewed encounter
 3259,A Feast Fit for a King,BasicCourierMission,admitted,Catalog cargo or reviewed encounter
 3318,What Slavery Begets,BasicKillMission,blocked,Requires level-five encounter policy
@@ -2016,7 +2016,7 @@ missionId,name,template,status,reason
 13556,The Insorum Hijacking,GenericStorylineKillMission,blocked,Requires another mission or agent lifecycle
 13557,A Mote in the Eye,GenericStorylineKillMission,blocked,Requires another mission or agent lifecycle
 13558,Knife in the Throat,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-13559,Decapitation,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+13559,Decapitation,BasicKillMission,admitted,Existing faction warfare mission binding
 13560,The Fox Hunt,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13561,Supply Interdiction,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13562,Roid Rage,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -2026,7 +2026,7 @@ missionId,name,template,status,reason
 13566,Proven Loyalty,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13567,Starbase Smashing,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13568,Knife in the Throat,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-13569,Decapitation,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+13569,Decapitation,BasicKillMission,admitted,Existing faction warfare mission binding
 13570,The Fox Hunt,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13571,Supply Interdiction,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13572,Roid Rage,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -2038,7 +2038,7 @@ missionId,name,template,status,reason
 13578,Customs Interdiction (1 of 2),BasicKillMission,blocked,Requires complete mission-chain bindings or additional part mechanics
 13579,Customs Interdiction (2 of 2),BasicKillMission,blocked,Requires complete mission-chain bindings or additional part mechanics
 13580,Knife in the Throat,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-13581,Decapitation,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+13581,Decapitation,BasicKillMission,admitted,Existing faction warfare mission binding
 13582,The Fox Hunt,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13583,Supply Interdiction,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13584,Roid Rage,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -2048,7 +2048,7 @@ missionId,name,template,status,reason
 13588,Proven Loyalty,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13589,Starbase Smashing,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13590,Knife in the Throat,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-13591,Decapitation,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+13591,Decapitation,BasicKillMission,admitted,Existing faction warfare mission binding
 13592,The Fox Hunt,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13593,Supply Interdiction,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13594,Roid Rage,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -2057,7 +2057,7 @@ missionId,name,template,status,reason
 13597,Covert Assistance,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13598,Proven Loyalty,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13599,Starbase Smashing,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-13600,Knife in the Throat,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+13600,Knife in the Throat,BasicKillMission,admitted,Existing faction warfare mission binding
 13601,Only the Good Die Young,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13602,Precursor to Rescue,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13603,Supply Interdiction,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -2066,7 +2066,7 @@ missionId,name,template,status,reason
 13606,Target Practice,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13607,Best Laid Plans,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13608,A Dark Lesson,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-13609,Knife in the Throat,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+13609,Knife in the Throat,BasicKillMission,admitted,Existing faction warfare mission binding
 13610,Only the Good Die Young,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13611,Precursor to Rescue,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13612,Supply Interdiction,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -2076,12 +2076,12 @@ missionId,name,template,status,reason
 13616,Best Laid Plans,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13617,A Dark Lesson,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13618,A Wolf in the Fold,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-13619,Knife in the Throat,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+13619,Knife in the Throat,BasicKillMission,admitted,Existing faction warfare mission binding
 13620,Only the Good Die Young,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13621,Precursor to Rescue,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13622,Supply Interdiction,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13623,Roid Rage,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-13624,Knife in the Throat,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+13624,Knife in the Throat,BasicKillMission,admitted,Existing faction warfare mission binding
 13625,Gate Keepers,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13626,Target Practice,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13627,Only the Good Die Young,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -2100,7 +2100,7 @@ missionId,name,template,status,reason
 13641,Mannar Mining Colony,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13642,Silence Deep as Death,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13643,Communications Cold War,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-13644,A Left Hook,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+13644,A Left Hook,BasicKillMission,admitted,Existing faction warfare mission binding
 13645,Fathers and Sons,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13646,Tightening the Noose,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13647,Supply Interdiction,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -2110,12 +2110,12 @@ missionId,name,template,status,reason
 13651,Contingency Plan,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13652,Morale and Morality,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13653,Chain Reaction,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-13654,A Left Hook,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-13655,A Left Hook,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+13654,A Left Hook,BasicKillMission,admitted,Existing faction warfare mission binding
+13655,A Left Hook,BasicKillMission,admitted,Existing faction warfare mission binding
 13656,Fathers and Sons,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13657,Fathers and Sons,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13658,Tightening the Noose,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-13659,A Left Hook,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+13659,A Left Hook,BasicKillMission,admitted,Existing faction warfare mission binding
 13660,Supply Interdiction,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13661,Tightening the Noose,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13662,Fathers and Sons,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -2148,11 +2148,11 @@ missionId,name,template,status,reason
 13696,Roidiest Rage,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13697,Roidiest Rage,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13698,Halt the Invasion,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-13699,Lethal Strike,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+13699,Lethal Strike,BasicKillMission,admitted,Existing faction warfare mission binding
 13700,The Cost of Hubris,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13701,Shades of Grey,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13702,Uproot,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-13703,Lethal Strike,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+13703,Lethal Strike,BasicKillMission,admitted,Existing faction warfare mission binding
 13704,Shades of Grey,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13705,Dead Men Tell No Tales,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13706,The Cost of Hubris,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -2166,7 +2166,7 @@ missionId,name,template,status,reason
 13714,Roidiest Rage,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13715,Uproot,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13716,Halt the Invasion,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-13717,Lethal Strike,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+13717,Lethal Strike,BasicKillMission,admitted,Existing faction warfare mission binding
 13718,The Cost of Hubris,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13719,Shades of Grey,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13720,Dead Men Tell No Tales,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -2175,7 +2175,7 @@ missionId,name,template,status,reason
 13723,Supply Interdiction,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13724,Roidiest Rage,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13725,Halt the Invasion,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-13726,Lethal Strike,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
+13726,Lethal Strike,BasicKillMission,admitted,Existing faction warfare mission binding
 13727,The Cost of Hubris,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13728,Shades of Grey,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 13729,Uproot,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -2268,271 +2268,271 @@ missionId,name,template,status,reason
 13824,Are You Receiving? (1 of 3),BasicKillMission,blocked,Requires complete mission-chain bindings or additional part mechanics
 13825,Are You Receiving? (2 of 3),BasicKillMission,blocked,Requires complete mission-chain bindings or additional part mechanics
 13826,Are You Receiving? (3 of 3),BasicKillMission,blocked,Requires complete mission-chain bindings or additional part mechanics
-13846,Balancing the Books (3 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-13847,Balancing the Books (3 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-13848,Balancing the Books (3 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-13849,Balancing the Books (3 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-13866,Cash Flow for Capsuleers (9 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-13867,Cash Flow for Capsuleers (9 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-13868,Cash Flow for Capsuleers (9 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-13869,Cash Flow for Capsuleers (9 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-13871,Making Mountains of Molehills (2 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-13872,Making Mountains of Molehills (2 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-13873,Making Mountains of Molehills (2 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-13874,Making Mountains of Molehills (2 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-13875,Making Mountains of Molehills (6 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-13876,Making Mountains of Molehills (6 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-13877,Making Mountains of Molehills (6 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-13878,Making Mountains of Molehills (6 of 10),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-13879,Making Mountains of Molehills (7 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-13880,Making Mountains of Molehills (7 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-13881,Making Mountains of Molehills (7 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-13882,Making Mountains of Molehills (7 of 10),StorylineCourierMission,blocked,Requires another mission or agent lifecycle
-14117,A Beacon Beckons,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14118,Agent Inquiry,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14119,Of Interest,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14120,Retrieving Red,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14121,Alerting Alitura,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14122,Jet-Canning a Janitor,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14123,Chivvying a Chef,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14124,Delivering a Doctor,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14125,Engineering a Rescue,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14126,Going Gallente,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14127,Studying the Scene,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14128,Rendering Assistance,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14129,Lair of the Snakes,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14130,Data Retrieval,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14131,Crossing Enemy Lines,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14132,Passive Observation,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14133,Mercenary Distractions,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14134,House of Records,EpicArcCourierMission,blocked,Requires another mission or agent lifecycle
-14135,An Economy Under Threat,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14136,A Sense of Dread,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14137,Every Drone Inside,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14138,Royal Jelly,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14139,Tracking the Queen (Part 1),EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14140,Nature Pictures,EpicArcCourierMission,blocked,Requires another mission or agent lifecycle
-14141,Tracking or Scanning,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
-14142,Bag of Blood,EpicArcCourierMission,blocked,Requires another mission or agent lifecycle
-14386,Tracking the Queen (Part 2),EpicArcCourierMission,blocked,Requires another mission or agent lifecycle
-14387,Tracking the Queen (Part 3),EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14388,Planting the Body,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14389,Chasing a Nightmare,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14390,Burning Down the Hive,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14391,An Eye on Everything,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14392,The Uses of Force,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14393,Goading the Leader,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14394,Hunting the Lieutenants,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14396,Marked for Death,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14397,Thwarting the Succession,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14398,Certificate of Death,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14399,A Matter of Decorum,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14401,New Friends,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14403,Recovery,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14404,Of Quiet Nights Long Past,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14405,Revelations,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14406,A Call to Trial,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14407,Brothers and Sisters,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14413,A Stranger's Face,EpicArcCourierMission,blocked,Requires another mission or agent lifecycle
-14414,The Sisters and the Spy,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14415,Sealing the Deal,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14416,Chasing Shadows,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14422,Valuable Cargo,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14442,The Missing Piece,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
-14443,Our Man Dagan,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14444,Our Man Dagan,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14445,Our Man Dagan,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14446,Our Man Dagan,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14451,It's Not Over Yet,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14453,The Gallente Commander,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14454,The Minmatar Commander,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14455,The Caldari Commander,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14456,The Amarr Commander,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14467,Dal Segno al Fine,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14468,Dal Segno al Fine,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14469,Dal Segno al Fine,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14470,Dal Segno al Fine,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14490,Trust and Discretion,EpicArcCourierMission,blocked,Requires another mission or agent lifecycle
-14492,"Their loss, our profit.",EpicArcKillMission,blocked,Requires another mission or agent lifecycle
+13846,Balancing the Books (3 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+13847,Balancing the Books (3 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+13848,Balancing the Books (3 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+13849,Balancing the Books (3 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+13866,Cash Flow for Capsuleers (9 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+13867,Cash Flow for Capsuleers (9 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+13868,Cash Flow for Capsuleers (9 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+13869,Cash Flow for Capsuleers (9 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+13871,Making Mountains of Molehills (2 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+13872,Making Mountains of Molehills (2 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+13873,Making Mountains of Molehills (2 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+13874,Making Mountains of Molehills (2 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+13875,Making Mountains of Molehills (6 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+13876,Making Mountains of Molehills (6 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+13877,Making Mountains of Molehills (6 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+13878,Making Mountains of Molehills (6 of 10),StorylineTradeMission,admitted,Pinned career agent chain stage
+13879,Making Mountains of Molehills (7 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+13880,Making Mountains of Molehills (7 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+13881,Making Mountains of Molehills (7 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+13882,Making Mountains of Molehills (7 of 10),StorylineCourierMission,admitted,Pinned career agent chain stage
+14117,A Beacon Beckons,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14118,Agent Inquiry,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14119,Of Interest,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14120,Retrieving Red,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14121,Alerting Alitura,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14122,Jet-Canning a Janitor,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14123,Chivvying a Chef,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14124,Delivering a Doctor,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14125,Engineering a Rescue,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14126,Going Gallente,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14127,Studying the Scene,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14128,Rendering Assistance,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14129,Lair of the Snakes,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14130,Data Retrieval,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14131,Crossing Enemy Lines,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14132,Passive Observation,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14133,Mercenary Distractions,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14134,House of Records,EpicArcCourierMission,admitted,Pinned epic arc graph stage
+14135,An Economy Under Threat,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14136,A Sense of Dread,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14137,Every Drone Inside,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14138,Royal Jelly,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14139,Tracking the Queen (Part 1),EpicArcKillMission,admitted,Pinned epic arc graph stage
+14140,Nature Pictures,EpicArcCourierMission,admitted,Pinned epic arc graph stage
+14141,Tracking or Scanning,EpicArcAgentInteractionMission,admitted,Pinned epic arc graph stage
+14142,Bag of Blood,EpicArcCourierMission,admitted,Pinned epic arc graph stage
+14386,Tracking the Queen (Part 2),EpicArcCourierMission,admitted,Pinned epic arc graph stage
+14387,Tracking the Queen (Part 3),EpicArcKillMission,admitted,Pinned epic arc graph stage
+14388,Planting the Body,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14389,Chasing a Nightmare,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14390,Burning Down the Hive,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14391,An Eye on Everything,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14392,The Uses of Force,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14393,Goading the Leader,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14394,Hunting the Lieutenants,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14396,Marked for Death,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14397,Thwarting the Succession,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14398,Certificate of Death,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14399,A Matter of Decorum,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14401,New Friends,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14403,Recovery,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14404,Of Quiet Nights Long Past,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14405,Revelations,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14406,A Call to Trial,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14407,Brothers and Sisters,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14413,A Stranger's Face,EpicArcCourierMission,admitted,Pinned epic arc graph stage
+14414,The Sisters and the Spy,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14415,Sealing the Deal,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14416,Chasing Shadows,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14422,Valuable Cargo,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14442,The Missing Piece,EpicArcAgentInteractionMission,admitted,Pinned epic arc graph stage
+14443,Our Man Dagan,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14444,Our Man Dagan,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14445,Our Man Dagan,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14446,Our Man Dagan,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14451,It's Not Over Yet,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14453,The Gallente Commander,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14454,The Minmatar Commander,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14455,The Caldari Commander,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14456,The Amarr Commander,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14467,Dal Segno al Fine,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14468,Dal Segno al Fine,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14469,Dal Segno al Fine,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14470,Dal Segno al Fine,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14490,Trust and Discretion,EpicArcCourierMission,admitted,Pinned epic arc graph stage
+14492,"Their loss, our profit.",EpicArcKillMission,admitted,Pinned epic arc graph stage
 14497,04A - Shifting the goods,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
-14511,An Honorable Betrayal,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14548,The Paths that are Hidden,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
+14511,An Honorable Betrayal,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14548,The Paths that are Hidden,EpicArcAgentInteractionMission,admitted,Pinned epic arc graph stage
 14549,Unnamed4,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
-14552,Two Steps Into Hell,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14553,Playing it Safer,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
+14552,Two Steps Into Hell,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14553,Playing it Safer,EpicArcKillMission,admitted,Pinned epic arc graph stage
 14555,05B,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14558,Two Steps into Hell,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14559,Playing it Safer,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
+14558,Two Steps into Hell,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14559,Playing it Safer,EpicArcKillMission,admitted,Pinned epic arc graph stage
 14560,F1,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14576,Return to Isha,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14597,Almost Unmasked,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14599,Some Light Theatrics,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14601,Proof of Intent,EpicArcTradeMission,blocked,Requires verified trade content or another agent lifecycle
-14602,Untouchable,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14603,Meet Sinas,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14607,A General's Best Friend,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
+14576,Return to Isha,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14597,Almost Unmasked,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14599,Some Light Theatrics,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14601,Proof of Intent,EpicArcTradeMission,admitted,Pinned epic arc graph stage
+14602,Untouchable,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14603,Meet Sinas,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14607,A General's Best Friend,EpicArcKillMission,admitted,Pinned epic arc graph stage
 14608,Unnamed1,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14610,Pre-Emptive Opportunity,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14612,Pre-Emptive Opportunities,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14613,The Crimson Decoy,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
+14610,Pre-Emptive Opportunity,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14612,Pre-Emptive Opportunities,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14613,The Crimson Decoy,EpicArcKillMission,admitted,Pinned epic arc graph stage
 14615,Unnamed6,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14616,Meet Sinas,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14619,A General's Best Friend,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14623,Late Reports,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14624,The Outclassed Outpost,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14627,Raging Sansha,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14628,Cowardly Commander,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14633,Aralin Jick,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14645,Background Check,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14646,Longing Leman,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14647,Languishing Lord,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14648,Razing the Outpost,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14746,The Tolle Scar,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14819,Priority One,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14820,The Averon Exchange,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14821,A Different Kind of Director,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14822,Assistance,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14827,Too Close for Comfort,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
-14831,Impetus,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14833,Re-examining Options,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
-14838,Ascending Nobles,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14839,Hunting the Hunter,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14842,Falling into Place,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14843,Interrogation: Catching the Scent,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14847,Right Tool for the Job.,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14848,Right Tool for the Job,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14849,The Intermediary,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14851,A Demonstration,EpicArcTradeMission,blocked,Requires verified trade content or another agent lifecycle
-14852,The Cost of Preservation,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14853,Written by the Victors,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14854,Glowing Embers,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14855,From Way Above,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14856,Friends in High Places,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14860,Fate of a Madman,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
-14861,Making an Arrest,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14862,An Unfortunate End,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14863,Panic Response,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14864,The Right to Rule,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14882,The Breakout,EpicArcTradeMission,blocked,Requires verified trade content or another agent lifecycle
-14884,The Breakout,EpicArcTradeMission,blocked,Requires verified trade content or another agent lifecycle
-14885,Whisper of a Conspiracy,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14886,Whisper of a Conspiracy,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14888,The High or Low Road,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
-14889,Into the Black,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14890,Outside the Scope,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14891,Poor Man's Shakedown,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14892,Hidden Camera,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14893,Underground Circus,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14894,Rendezvous,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14895,Intaki Chase,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14896,Handoff,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14898,Practical Solutions,EpicArcCourierMission,blocked,Requires another mission or agent lifecycle
-14899,Rat in a Corner,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14900,Practical Solutions,EpicArcCourierMission,blocked,Requires another mission or agent lifecycle
-14901,Forewarning,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14903,Forewarning,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14905,With Authority,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14906,Silence Rahsa: The Nation's Path,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14912,A Human Body,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14913,A Metal Mind,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14914,A Digital Soul,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14915,Regal Replacement,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14916,Aiding an Investigator,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14932,My Little Eye,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14934,Dead End Intercept,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14935,Surfacing,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14936,Who Art in Heaven,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14937,Playing all Their Cards,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14942,Places to Hide,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
-14943,Octomet Plantation,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14944,Little Fingers,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14945,Oldest Profession,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14946,Carry On,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14947,Studio I,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14948,Showtime,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
+14616,Meet Sinas,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14619,A General's Best Friend,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14623,Late Reports,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14624,The Outclassed Outpost,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14627,Raging Sansha,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14628,Cowardly Commander,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14633,Aralin Jick,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14645,Background Check,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14646,Longing Leman,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14647,Languishing Lord,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14648,Razing the Outpost,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14746,The Tolle Scar,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14819,Priority One,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14820,The Averon Exchange,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14821,A Different Kind of Director,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14822,Assistance,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14827,Too Close for Comfort,EpicArcAgentInteractionMission,admitted,Pinned epic arc graph stage
+14831,Impetus,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14833,Re-examining Options,EpicArcAgentInteractionMission,admitted,Pinned epic arc graph stage
+14838,Ascending Nobles,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14839,Hunting the Hunter,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14842,Falling into Place,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14843,Interrogation: Catching the Scent,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14847,Right Tool for the Job.,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14848,Right Tool for the Job,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14849,The Intermediary,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14851,A Demonstration,EpicArcTradeMission,admitted,Pinned epic arc graph stage
+14852,The Cost of Preservation,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14853,Written by the Victors,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14854,Glowing Embers,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14855,From Way Above,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14856,Friends in High Places,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14860,Fate of a Madman,EpicArcAgentInteractionMission,admitted,Pinned epic arc graph stage
+14861,Making an Arrest,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14862,An Unfortunate End,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14863,Panic Response,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14864,The Right to Rule,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14882,The Breakout,EpicArcTradeMission,admitted,Pinned epic arc graph stage
+14884,The Breakout,EpicArcTradeMission,admitted,Pinned epic arc graph stage
+14885,Whisper of a Conspiracy,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14886,Whisper of a Conspiracy,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14888,The High or Low Road,EpicArcAgentInteractionMission,admitted,Pinned epic arc graph stage
+14889,Into the Black,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14890,Outside the Scope,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14891,Poor Man's Shakedown,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14892,Hidden Camera,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14893,Underground Circus,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14894,Rendezvous,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14895,Intaki Chase,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14896,Handoff,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14898,Practical Solutions,EpicArcCourierMission,admitted,Pinned epic arc graph stage
+14899,Rat in a Corner,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14900,Practical Solutions,EpicArcCourierMission,admitted,Pinned epic arc graph stage
+14901,Forewarning,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14903,Forewarning,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14905,With Authority,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14906,Silence Rahsa: The Nation's Path,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14912,A Human Body,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14913,A Metal Mind,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14914,A Digital Soul,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14915,Regal Replacement,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14916,Aiding an Investigator,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14932,My Little Eye,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14934,Dead End Intercept,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14935,Surfacing,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14936,Who Art in Heaven,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14937,Playing all Their Cards,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14942,Places to Hide,EpicArcAgentInteractionMission,admitted,Pinned epic arc graph stage
+14943,Octomet Plantation,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14944,Little Fingers,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14945,Oldest Profession,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14946,Carry On,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14947,Studio I,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14948,Showtime,EpicArcKillMission,admitted,Pinned epic arc graph stage
 14949,Where's the Line?,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
-14950,Safe Return,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14951,Everybody Has a Price,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14960,History in the Making,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14961,Church of the Obsidian,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14962,Heresiology,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14963,Wildfire,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14965,Stillwater,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14966,With Great Power,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
-14967,Retraction,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14968,Revelation,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14969,A Difference of Opinion,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
-14970,The Knowledge to Act,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
-14971,Learning by Doing,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14972,The Price of Silence,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14973,Home in Peace,EpicArcCourierMission,blocked,Requires another mission or agent lifecycle
-14975,Across the Line,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-14976,Slipping Away,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-14980,Where's the Line?,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
-14990,Cosmic Anomalies (1 of 5),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-14991,An Introduction to Cosmic Signatures (2 of 5),StorylineKillMission,blocked,Requires another mission or agent lifecycle
+14950,Safe Return,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14951,Everybody Has a Price,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14960,History in the Making,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14961,Church of the Obsidian,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14962,Heresiology,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14963,Wildfire,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14965,Stillwater,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14966,With Great Power,EpicArcAgentInteractionMission,admitted,Pinned epic arc graph stage
+14967,Retraction,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14968,Revelation,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14969,A Difference of Opinion,EpicArcAgentInteractionMission,admitted,Pinned epic arc graph stage
+14970,The Knowledge to Act,EpicArcAgentInteractionMission,admitted,Pinned epic arc graph stage
+14971,Learning by Doing,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14972,The Price of Silence,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14973,Home in Peace,EpicArcCourierMission,admitted,Pinned epic arc graph stage
+14975,Across the Line,EpicArcKillMission,admitted,Pinned epic arc graph stage
+14976,Slipping Away,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+14980,Where's the Line?,EpicArcAgentInteractionMission,admitted,Pinned epic arc graph stage
+14990,Cosmic Anomalies (1 of 5),StorylineTradeMission,admitted,Pinned career agent chain stage
+14991,An Introduction to Cosmic Signatures (2 of 5),StorylineKillMission,admitted,Pinned career agent chain stage
 14992,Ore Site Scanning,StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-14993,Relic Site Scanning (4 of 5),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-14995,Data Site Scanning (3 of 5),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-14996,Gas Site Scanning (5 of 5),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-14997,Cosmic Anomalies (1 of 5),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-14998,Cosmic Anomalies (1 of 5),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-14999,Cosmic Anomalies (1 of 5),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-15000,An Introduction to Cosmic Signatures (2 of 5),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15001,An Introduction to Cosmic Signatures (2 of 5),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15002,An Introduction to Cosmic Signatures (2 of 5),StorylineKillMission,blocked,Requires another mission or agent lifecycle
+14993,Relic Site Scanning (4 of 5),StorylineTradeMission,admitted,Pinned career agent chain stage
+14995,Data Site Scanning (3 of 5),StorylineTradeMission,admitted,Pinned career agent chain stage
+14996,Gas Site Scanning (5 of 5),StorylineTradeMission,admitted,Pinned career agent chain stage
+14997,Cosmic Anomalies (1 of 5),StorylineTradeMission,admitted,Pinned career agent chain stage
+14998,Cosmic Anomalies (1 of 5),StorylineTradeMission,admitted,Pinned career agent chain stage
+14999,Cosmic Anomalies (1 of 5),StorylineTradeMission,admitted,Pinned career agent chain stage
+15000,An Introduction to Cosmic Signatures (2 of 5),StorylineKillMission,admitted,Pinned career agent chain stage
+15001,An Introduction to Cosmic Signatures (2 of 5),StorylineKillMission,admitted,Pinned career agent chain stage
+15002,An Introduction to Cosmic Signatures (2 of 5),StorylineKillMission,admitted,Pinned career agent chain stage
 15003,Ore Site Scanning,StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
 15004,Ore Site Scanning,StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
 15005,Ore Site Scanning,StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-15006,Relic Site Scanning (4 of 5),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-15007,Relic Site Scanning (4 of 5),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-15008,Relic Site Scanning (4 of 5),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-15009,Data Site Scanning (3 of 5),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-15010,Data Site Scanning (3 of 5),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-15011,Data Site Scanning (3 of 5),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-15012,Gas Site Scanning (5 of 5),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-15013,Gas Site Scanning (5 of 5),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-15014,Gas Site Scanning (5 of 5),StorylineTradeMission,blocked,Requires verified trade content or another agent lifecycle
-15015,Enemy of my Enemy,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-15017,Recruitment Drive,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-15018,Intelligence Mining,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15019,Planning the Operation,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
-15020,Sabotage 101,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15021,Brassy Faced Bastard,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15026,Turning Coat,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-15028,New Opportunities,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15029,Fight or Flight,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
-15030,Mistaken Identity,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-15031,Headhunted,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-15032,The Balance of Power,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-15033,Natural Consequences,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15034,Serpentis Fill-In,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15035,Ride to the Rescue,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15036,Clear the Way,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15037,Salvage Heist,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15038,The Best Kind of Revenge,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15039,Wrath of Angels,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15040,Rabbit Trap,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15041,Dominus,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-15042,Dominus,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-15043,The Lesser of Two,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
-15044,The Lesser of Two,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
-15045,Data Destruction,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15046,Situation Normal,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15047,Breaking the Lock,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15053,Upward Momentum,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-15055,Miscommunication,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15056,Fuel Gauge,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15057,Knockout Punch,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15058,New Opportunities,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15059,Culling the Weak,EpicArcAgentInteractionMission,blocked,Requires another mission or agent lifecycle
-15060,Threat Assessment,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-15061,Dread Pirates,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15062,Smoke and Mirrors,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15063,Foxfire,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15064,Spy Games,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15065,Rabbit Hole,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15066,Passing the Buck,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
+15006,Relic Site Scanning (4 of 5),StorylineTradeMission,admitted,Pinned career agent chain stage
+15007,Relic Site Scanning (4 of 5),StorylineTradeMission,admitted,Pinned career agent chain stage
+15008,Relic Site Scanning (4 of 5),StorylineTradeMission,admitted,Pinned career agent chain stage
+15009,Data Site Scanning (3 of 5),StorylineTradeMission,admitted,Pinned career agent chain stage
+15010,Data Site Scanning (3 of 5),StorylineTradeMission,admitted,Pinned career agent chain stage
+15011,Data Site Scanning (3 of 5),StorylineTradeMission,admitted,Pinned career agent chain stage
+15012,Gas Site Scanning (5 of 5),StorylineTradeMission,admitted,Pinned career agent chain stage
+15013,Gas Site Scanning (5 of 5),StorylineTradeMission,admitted,Pinned career agent chain stage
+15014,Gas Site Scanning (5 of 5),StorylineTradeMission,admitted,Pinned career agent chain stage
+15015,Enemy of my Enemy,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+15017,Recruitment Drive,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+15018,Intelligence Mining,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15019,Planning the Operation,EpicArcAgentInteractionMission,admitted,Pinned epic arc graph stage
+15020,Sabotage 101,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15021,Brassy Faced Bastard,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15026,Turning Coat,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+15028,New Opportunities,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15029,Fight or Flight,EpicArcAgentInteractionMission,admitted,Pinned epic arc graph stage
+15030,Mistaken Identity,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+15031,Headhunted,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+15032,The Balance of Power,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+15033,Natural Consequences,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15034,Serpentis Fill-In,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15035,Ride to the Rescue,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15036,Clear the Way,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15037,Salvage Heist,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15038,The Best Kind of Revenge,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15039,Wrath of Angels,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15040,Rabbit Trap,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15041,Dominus,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+15042,Dominus,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+15043,The Lesser of Two,EpicArcAgentInteractionMission,admitted,Pinned epic arc graph stage
+15044,The Lesser of Two,EpicArcAgentInteractionMission,admitted,Pinned epic arc graph stage
+15045,Data Destruction,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15046,Situation Normal,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15047,Breaking the Lock,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15053,Upward Momentum,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+15055,Miscommunication,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15056,Fuel Gauge,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15057,Knockout Punch,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15058,New Opportunities,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15059,Culling the Weak,EpicArcAgentInteractionMission,admitted,Pinned epic arc graph stage
+15060,Threat Assessment,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+15061,Dread Pirates,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15062,Smoke and Mirrors,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15063,Foxfire,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15064,Spy Games,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15065,Rabbit Hole,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15066,Passing the Buck,EpicArcKillMission,admitted,Pinned epic arc graph stage
 15086,Mining Base Camp - Nugoeihuvi Corporation,GenericStorylineKillMission,blocked,Requires another mission or agent lifecycle
 15087,Mining Base Camp - Hyasyoda Corporation,GenericStorylineKillMission,blocked,Requires another mission or agent lifecycle
 15088,Mining Base Camp - Lai Dai Corporation,GenericStorylineKillMission,blocked,Requires another mission or agent lifecycle
@@ -2543,48 +2543,48 @@ missionId,name,template,status,reason
 15094,Troop Build up - Lai Dai Corporation,GenericStorylineKillMission,blocked,Requires another mission or agent lifecycle
 15095,Troop Build up - Kaalakiota Corporation,GenericStorylineKillMission,blocked,Requires another mission or agent lifecycle
 15096,Troop Build up - Sukuuvestaa Corporation,GenericStorylineKillMission,blocked,Requires another mission or agent lifecycle
-15102,The Swap (1 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15103,The Swap (1 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15104,The Swap (1 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15105,The Swap (1 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15106,Angel of Mercy (2 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15107,Angel of Mercy (2 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15108,Angel of Mercy (2 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15109,Angel of Mercy (2 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15110,Your Undivided Attention (3 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15111,Your Undivided Attention (3 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15112,Your Undivided Attention (3 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15113,Your Undivided Attention (3 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15114,A Friend in Need (4 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15115,A Friend in Need (4 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15116,A Friend in Need (4 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15117,A Friend in Need (4 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15118,The Stand (5 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15119,The Stand (5 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15120,The Stand (5 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15121,The Stand (5 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15122,Don't Look Back (6 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15123,Don't Look Back (6 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15124,Don't Look Back (6 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15125,Don't Look Back (6 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15126,Weapon of Choice (7 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15127,Weapon of Choice (7 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15128,Weapon of Choice (7 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15129,Weapon of Choice (7 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15130,The Pacifist (8 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15131,The Pacifist (8 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15132,The Pacifist (8 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15133,The Pacifist (8 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15134,Glue (9 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15135,Glue (9 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15136,Glue (9 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15137,Glue (9 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15138,The Exam (10 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15139,The Exam (10 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15140,The Exam (10 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15141,The Exam (10 of 10),StorylineKillMission,blocked,Requires another mission or agent lifecycle
-15143,Intelligence Mining,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-15144,Fear of Angels,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
+15102,The Swap (1 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15103,The Swap (1 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15104,The Swap (1 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15105,The Swap (1 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15106,Angel of Mercy (2 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15107,Angel of Mercy (2 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15108,Angel of Mercy (2 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15109,Angel of Mercy (2 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15110,Your Undivided Attention (3 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15111,Your Undivided Attention (3 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15112,Your Undivided Attention (3 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15113,Your Undivided Attention (3 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15114,A Friend in Need (4 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15115,A Friend in Need (4 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15116,A Friend in Need (4 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15117,A Friend in Need (4 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15118,The Stand (5 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15119,The Stand (5 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15120,The Stand (5 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15121,The Stand (5 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15122,Don't Look Back (6 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15123,Don't Look Back (6 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15124,Don't Look Back (6 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15125,Don't Look Back (6 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15126,Weapon of Choice (7 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15127,Weapon of Choice (7 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15128,Weapon of Choice (7 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15129,Weapon of Choice (7 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15130,The Pacifist (8 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15131,The Pacifist (8 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15132,The Pacifist (8 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15133,The Pacifist (8 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15134,Glue (9 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15135,Glue (9 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15136,Glue (9 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15137,Glue (9 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15138,The Exam (10 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15139,The Exam (10 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15140,The Exam (10 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15141,The Exam (10 of 10),StorylineKillMission,admitted,Pinned career agent chain stage
+15143,Intelligence Mining,EpicArcKillMission,admitted,Pinned epic arc graph stage
+15144,Fear of Angels,EpicArcKillMission,admitted,Pinned epic arc graph stage
 15168,Onslaught,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 15169,"After The Seven (1 of 5) ""Replacement""",BasicKillMission,blocked,Requires complete mission-chain bindings or additional part mechanics
 15170,Onslaught,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
@@ -2799,95 +2799,95 @@ missionId,name,template,status,reason
 16411,Listening Post,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 16412,Kicking the Nest,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
 16414,Waste Not,BasicKillMission,blocked,Requires verified NPC roster and objective scripts
-17013,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17028,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17029,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17030,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17033,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17034,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17035,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17036,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17037,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17038,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17039,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17040,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17041,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17042,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17043,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17044,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17060,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17061,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17062,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17063,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17064,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17065,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17066,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17067,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17068,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17069,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17070,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17071,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17072,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17073,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17074,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17075,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17076,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17077,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17078,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17079,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17080,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17081,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17082,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17083,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17084,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17085,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17086,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17087,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17088,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17089,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17090,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17091,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17092,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17093,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17094,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17095,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17096,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17097,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17098,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17099,Paragon Requests,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17100,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17101,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17102,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17103,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17104,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17105,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17106,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17107,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17108,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17109,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17110,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17111,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17112,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17113,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17114,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17115,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17116,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17130,The Missing Pilot,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-17131,Pioneering Spirit,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-17132,Shattered Catalyst,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-17133,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
+17013,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17028,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17029,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17030,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17033,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17034,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17035,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17036,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17037,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17038,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17039,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17040,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17041,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17042,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17043,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17044,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17060,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17061,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17062,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17063,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17064,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17065,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17066,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17067,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17068,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17069,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17070,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17071,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17072,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17073,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17074,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17075,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17076,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17077,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17078,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17079,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17080,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17081,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17082,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17083,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17084,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17085,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17086,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17087,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17088,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17089,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17090,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17091,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17092,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17093,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17094,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17095,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17096,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17097,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17098,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17099,Paragon Requests,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17100,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17101,Paragon Requests: Ships for Tips,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17102,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17103,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17104,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17105,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17106,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17107,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17108,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17109,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17110,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17111,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17112,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17113,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17114,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17115,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17116,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
+17130,The Missing Pilot,EpicArcKillMission,admitted,Pinned epic arc graph stage
+17131,Pioneering Spirit,EpicArcKillMission,admitted,Pinned epic arc graph stage
+17132,Shattered Catalyst,EpicArcKillMission,admitted,Pinned epic arc graph stage
+17133,Paragon Requests: Ships for Tips,HeraldryMission,admitted,Paragon packaged hull exchange
 17134,GREAD5 Mission,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
 17135,GREAD4 Mission,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-17179,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17180,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17181,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17182,Paragon Requests: Ships for Tips,HeraldryMission,blocked,Requires another mission or agent lifecycle
-17183,Golgothan Fields,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-17184,Caldari Prime Breakout,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-17185,Intaki Liberation,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-17186,Battle of Pator,EpicArcKillMission,blocked,Requires another mission or agent lifecycle
-17187,Travel to the Amarr,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-17188,Holographic Reenactment,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-17189,Travel to the Gallente,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
-17190,Travel to the Minmatar,EpicArcTalkToAgentMission,blocked,Requires another mission or agent lifecycle
+17179,Paragon Requests: Ships for Tips,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17180,Paragon Requests: Ships for Tips,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17181,Paragon Requests: Ships for Tips,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17182,Paragon Requests: Ships for Tips,HeraldryMission,blocked,"Requires evidence for Paragon ammunition, singleton or standing rewards"
+17183,Golgothan Fields,EpicArcKillMission,admitted,Pinned epic arc graph stage
+17184,Caldari Prime Breakout,EpicArcKillMission,admitted,Pinned epic arc graph stage
+17185,Intaki Liberation,EpicArcKillMission,admitted,Pinned epic arc graph stage
+17186,Battle of Pator,EpicArcKillMission,admitted,Pinned epic arc graph stage
+17187,Travel to the Amarr,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+17188,Holographic Reenactment,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+17189,Travel to the Gallente,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
+17190,Travel to the Minmatar,EpicArcTalkToAgentMission,admitted,Pinned epic arc graph stage
 17192,QA Restricted Modules Test Mission,BasicKillMission,blocked,Requires verified NPC roster and objective scripts

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using Eden.Data.Catalog;
 using Eden.Data.World.Characters;
+using Eden.Data.World.Inventory;
 using Eden.Data.World.Market;
 using Eden.Gameplay.Inventory;
 using Eden.Gameplay.Market;
@@ -22,16 +23,14 @@ internal sealed partial class PilotMarketStore
 {
     private static Pilot Pilot(WorldAction world, long id) => world.Pilots.Find(id) ?? throw new InvalidDataException("Unknown pilot.");
 
+    private static int MarketSystem(WorldAction world, CatalogDbContext catalog, Ship ship) =>
+        ship.Position?.SystemId
+        ?? (ship.StructureId is long structure ? world.StructureSystemId(structure) : Station(catalog, ship.StationId).SolarSystemId);
+
     private static CatalogStationDefinition PurchaseStation(WorldAction world, CatalogDbContext catalog, Pilot pilot, int stationId)
     {
         var station = Station(catalog, stationId);
-        int systemId =
-            pilot.ActiveShip.Position?.SystemId
-            ?? (
-                pilot.ActiveShip.StructureId is long structureId
-                    ? world.StructureSystemId(structureId)
-                    : Station(catalog, pilot.ActiveShip.StationId).SolarSystemId
-            );
+        int systemId = MarketSystem(world, catalog, pilot.ActiveShip);
         if (catalog.RequireSystem(systemId).RegionId != station.RegionId)
         {
             throw new InvalidDataException("Buy from a station in your current region.");
@@ -54,7 +53,7 @@ internal sealed partial class PilotMarketStore
     {
         if (world.Settings.Economy.StandardMarket)
         {
-            SeedStandardRegion(world, catalog, station.RegionId);
+            SeedStandardOrders(ResidentStandardMarket(world), catalog, station.RegionId, typeId is int type ? [type] : null);
             return;
         }
         if (RegionalMarketStore.Enabled(world))
@@ -73,17 +72,6 @@ internal sealed partial class PilotMarketStore
 
     internal static bool UsesInstitutionalOffers(WorldAction world) =>
         RegionalMarketStore.Enabled(world) || MarketKind(world) == NpcMarketKind.Institutional;
-
-    internal EconomyNpcMarketOrder? StarterOreBid(EconomyTransaction world, CatalogDbContext catalog, int stationId, int typeId)
-    {
-        var station = Station(catalog, stationId);
-        new RegionalMarketStore(activity).Advance(world, catalog, station.RegionId, stationId, Now, typeId);
-        return world
-            .StationMarketOrders(stationId, typeId)
-            .SingleOrDefault(order =>
-                order.RegionId == station.RegionId && order.Kind == NpcMarketKind.Regional && order.Bid && order.Remaining > 0
-            );
-    }
 
     private void SeedDevelopment(WorldAction world, CatalogDbContext catalog, CatalogStationDefinition station, int? typeId)
     {
@@ -320,6 +308,10 @@ internal sealed partial class PilotMarketStore
                 includeDemand: false
             );
         }
+        else if (world.Settings.Economy.StandardMarket)
+        {
+            SeedStandardOrders(ResidentStandardMarket(world), catalog, station.RegionId, requested);
+        }
         else if (MarketKind(world) == NpcMarketKind.Development)
         {
             foreach (int type in requested)
@@ -396,8 +388,11 @@ internal sealed partial class PilotMarketStore
     )
     {
         long cutoff = now - TimeSpan.FromDays(MarketDefinitions.NpcOrderDays).Ticks;
-        var npc = types
-            .SelectMany(type => world.StationMarketOrders(stationId, type))
+        var stock =
+            types.Count == 1
+                ? world.StationMarketOrders(stationId, types[0])
+                : world.StationMarketOrdersForTypes(stationId, types.ToHashSet());
+        var npc = stock
             .Where(o =>
                 !o.Bid
                 && o.Remaining > 0

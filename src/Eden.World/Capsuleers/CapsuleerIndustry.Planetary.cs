@@ -1,7 +1,9 @@
+using Eden.Data.Catalog;
 using Eden.Data.World.Corporations;
 using Eden.Data.World.Inventory;
 using Eden.Data.World.Planetary;
 using Eden.Gameplay.Capsuleers;
+using Eden.Gameplay.Configuration;
 using Eden.Gameplay.Docking;
 using Eden.Gameplay.Dogma;
 using Eden.Gameplay.Industry;
@@ -9,9 +11,9 @@ using Eden.Gameplay.Inventory;
 using Eden.Gameplay.Market;
 using Eden.Gameplay.Planetary;
 using Eden.Gameplay.Ships;
+using Eden.Infrastructure.Diagnostics;
 using Eden.World.Catalog;
 using Eden.World.Corporations;
-using Eden.World.Docking;
 using Eden.World.Inventory;
 using Eden.World.Market;
 using Eden.World.Planetary;
@@ -27,9 +29,23 @@ internal sealed partial class CapsuleerIndustry
         (catalog, _) => PlanetaryCatalogReader.Read(catalog).CommodityTiers.Keys.ToHashSet()
     );
 
+    private sealed record PlanetaryStagingCatalog(IReadOnlySet<long> MarketOperations, ILookup<int, PlanetaryType> Pins);
+
+    private static readonly CatalogDefinition<PlanetaryStagingCatalog> s_planetaryStaging = new(
+        "capsuleers/planetary-staging",
+        (catalog, _) =>
+            new(
+                catalog
+                    .Records(CatalogData.Client.Stationoperations)
+                    .Where(operation => operation.Value.Services?.Contains((long)StationService.Market) == true)
+                    .Select(operation => operation.Key)
+                    .ToHashSet(),
+                PlanetaryCatalogReader.Read(catalog).Pins.Values.OrderBy(pin => pin.TypeId).ToLookup(pin => pin.PlanetTypeId)
+            )
+    );
+
     private static bool PlanetaryCommodity(CatalogDbContext catalog, int type) =>
-        catalog.FittingType(type)?.CategoryId is (int)InventoryCategory.PlanetaryCommodity or (int)InventoryCategory.PlanetaryResource
-        && catalog.Definitions.GlobalDefinition(s_planetaryCommodities).Contains(type);
+        PlanetaryMaterial(catalog, type) && catalog.GlobalDefinition(s_planetaryCommodities).Contains(type);
 
     private Collection? PlanPlanetaryCollection(
         EconomyTransaction world,
@@ -131,7 +147,7 @@ internal sealed partial class CapsuleerIndustry
         }
     }
 
-    private sealed record PlanetarySiteChoice(PlanetaryPlanet Planet, int Station, int Center, int Machine, bool Owned);
+    private sealed record PlanetarySiteChoice(PlanetaryPlanet Planet, int Station, int Center, int Machine);
 
     private static PlanetarySiteChoice? PlanetarySite(
         EconomyTransaction world,
@@ -147,76 +163,104 @@ internal sealed partial class CapsuleerIndustry
         {
             return null;
         }
+        using var phase = SessionPerformance.Phase("traffic.findPlanetarySite");
         var owned = world.Filter<SavedPlanetaryColony>(row => row.PilotId == courier.PilotId).Select(row => row.PlanetId).ToHashSet();
         bool room = owned.Count < PlanetaryRules.PlanetLimit(world.Settings.PlanetaryIndustry, PlanetaryCommandCenterSkillLevel);
-        int home = catalog.RequireStation(warehouse).SolarSystemId;
-        var systems = NearbySystems(catalog, home, CapsuleerIndustryRules.MaximumPlanetarySupplyJumps);
+        var catalogStaging = catalog.GlobalDefinition(s_planetaryStaging);
         var machines = step.SchematicId is int schematic ? definitions.Schematics[schematic].PinTypes.ToHashSet() : null;
-        var sites = new List<PlanetarySiteChoice>();
-        foreach (int system in systems.Where(system => !avoided.Contains(system)))
+        Dictionary<int, (int Center, int Machine)> equipment = [];
+        foreach (var pins in catalogStaging.Pins)
         {
-            var station = catalog
-                .Definitions.StationsInSystem(system)
-                .Where(station => StationCapabilities.Has(catalog, station.OperationId, StationService.Market))
-                .OrderByDescending(station => station.Id == warehouse)
-                .ThenBy(station => station.Id)
-                .FirstOrDefault();
-            if (station is null)
+            if (machines is null && !PlanetaryResources.Types(pins.Key).Contains(step.TypeId))
             {
                 continue;
             }
-            foreach (var planet in PlanetaryCatalogReader.ProductionSites(catalog, system))
+            var center = pins.FirstOrDefault(pin => pin.Kind == PlanetaryPinKind.Command);
+            var machine = pins.FirstOrDefault(pin =>
+                machines is null ? pin.Kind == PlanetaryPinKind.Extractor : machines.Contains(pin.TypeId)
+            );
+            if (center is not null && machine is not null && pins.Any(pin => pin.Kind == PlanetaryPinKind.Spaceport))
             {
-                if (
-                    !room && !owned.Contains(planet.Id)
-                    || machines is null && !PlanetaryResources.Types(planet.TypeId).Contains(step.TypeId)
-                )
+                equipment.Add(pins.Key, (center.TypeId, machine.TypeId));
+            }
+        }
+        if (equipment.Count == 0)
+        {
+            return null;
+        }
+
+        var staging = PlanetaryStagingSystems(catalog, warehouse, world.Settings.Capsuleers, catalogStaging.MarketOperations, avoided);
+        var sites = PlanetaryCatalogReader.ProductionSites(catalog, staging.Select(stop => stop.System).ToArray());
+        PlanetarySiteChoice? best = null;
+        (bool NewColony, bool OtherPlanetType, int Jumps, int PlanetId) bestPriority = default;
+        foreach (var (system, jumps, station) in staging)
+        {
+            foreach (var planet in sites[system])
+            {
+                bool existing = owned.Contains(planet.Id);
+                if ((!room && !existing) || !equipment.TryGetValue(planet.TypeId, out var pins))
                 {
                     continue;
                 }
-                var pins = definitions.Pins.Values.Where(pin => pin.PlanetTypeId == planet.TypeId).OrderBy(pin => pin.TypeId).ToArray();
-                var center = pins.FirstOrDefault(pin => pin.Kind == PlanetaryPinKind.Command);
-                var machine = pins.FirstOrDefault(pin =>
-                    machines is null ? pin.Kind == PlanetaryPinKind.Extractor : machines.Contains(pin.TypeId)
-                );
-                if (center is not null && machine is not null && pins.Any(pin => pin.Kind == PlanetaryPinKind.Spaceport))
-                {
-                    sites.Add(new(planet, station.Id, center.TypeId, machine.TypeId, owned.Contains(planet.Id)));
-                }
-            }
-        }
-        var routes = sites
-            .Select(site => site.Station)
-            .Distinct()
-            .ToDictionary(
-                station => station,
-                station =>
-                    CapsuleerTrafficRoutes.ToStation(
-                        catalog,
-                        warehouse,
-                        station,
-                        HullClass.Hauler,
-                        avoided,
-                        CapsuleerIndustryRules.MaximumPlanetarySupplyJumps,
-                        policy: world.Settings.Capsuleers
-                    )
-            );
-        return sites
-            .Select(site => (Site: site, Route: routes[site.Station]))
-            .Where(candidate => candidate.Route is not null)
-            .OrderByDescending(candidate => candidate.Site.Owned)
-            .ThenByDescending(candidate =>
-                candidate.Site.Planet.TypeId
+                bool preferred =
+                    planet.TypeId
                     is PlanetaryResources.Barren
                         or PlanetaryResources.Lava
                         or PlanetaryResources.Gas
                         or PlanetaryResources.Oceanic
-                        or PlanetaryResources.Temperate
-            )
-            .ThenBy(candidate => candidate.Route!.Systems.Length)
-            .ThenBy(candidate => candidate.Site.Planet.Id)
-            .Select(candidate => candidate.Site)
-            .FirstOrDefault();
+                        or PlanetaryResources.Temperate;
+                var priority = (!existing, !preferred, jumps, planet.Id);
+                if (best is null || priority.CompareTo(bestPriority) < 0)
+                {
+                    best = new(planet, station, pins.Center, pins.Machine);
+                    bestPriority = priority;
+                }
+            }
+        }
+        return best;
+    }
+
+    private static IReadOnlyList<(int System, int Jumps, int Station)> PlanetaryStagingSystems(
+        CatalogDbContext catalog,
+        int warehouse,
+        CapsuleerPopulationPolicy policy,
+        IReadOnlySet<long> marketOperations,
+        IReadOnlySet<int> avoided
+    )
+    {
+        int home = catalog.RequireStation(warehouse).SolarSystemId;
+        var geography = catalog.Definitions;
+        if (!policy.CanWork(geography, home))
+        {
+            return [];
+        }
+
+        var nearby = CapsuleerTrafficRoutes.Nearby(
+            catalog,
+            home,
+            HullClass.Hauler,
+            CapsuleerIndustryRules.MaximumPlanetarySupplyJumps,
+            avoided
+        );
+        List<(int System, int Jumps, int Station)> staging = [];
+        foreach (var (system, jumps) in nearby.Systems)
+        {
+            if (avoided.Contains(system) || !policy.CanWork(geography, system))
+            {
+                continue;
+            }
+            var station = geography
+                .StationsInSystem(system)
+                .Where(station => marketOperations.Contains(station.OperationId))
+                .OrderByDescending(station => station.Id == warehouse)
+                .ThenBy(station => station.Id)
+                .FirstOrDefault();
+            if (station is not null)
+            {
+                staging.Add((system, jumps, station.Id));
+            }
+        }
+        return staging;
     }
 
     internal FreightStack[]? LoadPlanetaryInputs(

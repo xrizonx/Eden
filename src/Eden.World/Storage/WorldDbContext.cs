@@ -77,6 +77,7 @@ public sealed partial class WorldDbContext(string path) : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder options)
     {
+        Eden.Infrastructure.Diagnostics.GameplaySqlGuard.Check("world context");
         if (_snapshot is not null)
         {
             if (_projectionOwner is not null)
@@ -85,7 +86,7 @@ public sealed partial class WorldDbContext(string path) : DbContext
             }
             // Detached checkpoint projection uses the same model and SQLite rules,
             // without consulting or invalidating the advancing resident world.
-            options.TracePerformance().UseSqlite(_snapshot, contextOwnsConnection: false);
+            options.TracePerformance("world snapshot").UseSqlite(_snapshot, contextOwnsConnection: false);
             return;
         }
         options
@@ -96,7 +97,7 @@ public sealed partial class WorldDbContext(string path) : DbContext
                 new MarketPreparationTransactions(this),
                 new CombatPersistenceBridge(path)
             )
-            .TracePerformance()
+            .TracePerformance("world")
             .UseSqlite(WorldConnections.Create(path, Participants, IsResidentProjection, CommittedSystems), contextOwnsConnection: true);
     }
 
@@ -225,6 +226,10 @@ public sealed partial class WorldDbContext(string path) : DbContext
             .HasKey(c => new { c.NpcId, c.TypeId });
         model.Entity<WorldNpcMiningCargo>().HasOne<WorldNpc>().WithMany().HasForeignKey(c => c.NpcId);
         PersonalSettingsSchema.Configure(model);
+        PersonalSkillPlanSchema.Configure(model);
+        ExpertSystemSchema.Configure(model);
+        Eden.World.Docking.ShipSkinLicenseSchema.Configure(model);
+        Eden.World.Docking.AppliedShipSkinSchema.Configure(model);
         model.Entity<SavedPilotNote>().ToTable("WorldPilotNote").HasKey(note => new { note.PilotId, note.TargetId });
         model.Entity<SavedPilotNote>().HasOne<Pilot>().WithMany().HasForeignKey(note => note.PilotId);
         model.Entity<SavedLoyaltyBalance>().ToTable("WorldLoyaltyWallet").HasOne<Pilot>().WithMany().HasForeignKey(b => b.PilotId);
@@ -398,6 +403,7 @@ public sealed partial class WorldDbContext(string path) : DbContext
             )
             .HasKey(s => new { s.PilotId, s.Key });
         model.Entity<SavedCharacterSetting>().HasOne<Pilot>().WithMany().HasForeignKey(s => s.PilotId);
+        model.Entity<Eden.Data.World.Modding.SavedWorldModState>().ToTable("WorldModState").HasKey(s => s.Id);
         model.Entity<SavedCharacterSheet>().ToTable("WorldCharacterSheet").HasKey(s => s.PilotId);
         model.Entity<SavedCharacterSheet>().HasOne<Pilot>().WithMany().HasForeignKey(s => s.PilotId);
         model
@@ -580,6 +586,7 @@ public sealed partial class WorldDbContext(string path) : DbContext
         model.Entity<MarketStation>().ToTable("WorldMarketStation").HasKey(s => s.StationId);
         model.Entity<MarketStation>().Property(s => s.SeedVersion).HasDefaultValue(0);
         model.Entity<MarketStation>().Property(s => s.StandardSnapshotTicks).HasDefaultValue(0);
+        model.Entity<SavedStandardMarketType>().ToTable("WorldStandardMarketType");
         model
             .Entity<TestingWalletGrant>()
             .ToTable("WorldTestingGrant", t => t.HasCheckConstraint("CK_TestingGrant_Amounts", "AmountCents > 0 AND BalanceCents >= 0"))

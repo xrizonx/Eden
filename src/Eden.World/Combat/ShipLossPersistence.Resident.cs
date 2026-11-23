@@ -44,6 +44,7 @@ internal static partial class ShipLossPersistence
     )
     {
         long pilotId = pilot.Id;
+        Eden.World.Agents.PilotMissionStore.CareerNpcShipLoss(world, catalog, pilot, npcId);
         PilotDroneStore.Release(world, pilotId, shipId);
         var old = pilot.ActiveShip;
         var moduleIds = world.Set<OwnedItem>().Where(i => i.LocationId == shipId && i.OwnerId == pilotId).Select(i => i.Id).ToArray();
@@ -86,6 +87,7 @@ internal static partial class ShipLossPersistence
                 survivors.Add(stored.Id);
             }
         }
+        Eden.World.Agents.PilotMissionStore.EpicArcCargoDestroyed(world, catalog, pilotId, items, survivors, now);
         var capsuleType =
             (
                 catalog.FittingType(FleetDefinitions.CapsuleType) is { GroupId: FleetDefinitions.CapsuleGroup } replacement

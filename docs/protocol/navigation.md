@@ -8,6 +8,9 @@ These records preserve milestone evidence and historical observations. Dates, sc
 
 ## Contents
 
+- [Focused interdiction at NPC stargates](#focused-interdiction-at-npc-stargates)
+- [Personal map visit history](#personal-map-visit-history)
+- [Subcapital Micro Jump Field Generator](#subcapital-micro-jump-field-generator)
 - [Insider QA tab, November 21, 2026](#insider-qa-tab-november-21-2026)
 - [Gate-arrival cloak, November 17, 2026](#gate-arrival-cloak-november-17-2026)
 - [Distant warping ships in the overview, November 17, 2026](#distant-warping-ships-in-the-overview-november-17-2026)
@@ -47,6 +50,114 @@ These records preserve milestone evidence and historical observations. Dates, sc
 - [Stargate travel, November 2, 2026](#stargate-travel-november-2-2026)
 - [Native player Orbit and moving navigation targets](#native-player-orbit-and-moving-navigation-targets)
 - [Shared ship motion and collision correction](#shared-ship-motion-and-collision-correction)
+
+## Focused interdiction at NPC stargates
+
+An active Focused Warp Disruption or Focused Warp Scrambling script stops combat capitals and Capital Industrial Ships
+from using NPC stargates. Subcapitals, Freighters and Jump Freighters can still use them under focused tackle.
+An ordinary point does not block NPC stargate travel. Ansiblex Jump Bridges follow CCP's separate 22.02 rule for
+warp disruption and bubbles.
+[CCP Phoebe notes](https://www.eveonline.com/news/view/patch-notes-for-phoebe) ·
+[UniWiki Heavy Interdiction Cruisers](https://wiki.eveuniversity.org/HIC) ·
+[CCP 22.02 notes](https://www.eveonline.com/news/view/patch-notes-version-22-02#patch-notes-for-2025-03-12-1)
+
+Eden checks the existing resident tackle row when accepting `beyonce.CmdStargateJump` and again before committing the
+transfer. A focused effect applied during Eden's three-second departure cancels the transfer, refreshes the source
+ballpark, and sends the existing `OnRemoteMessage` notification. A retry at the effect's exact
+expiration can proceed. The successful transfer retains the established session and gate-cloak sequence.
+
+The pinned build **3662168** catalog and the existing HIC activation tests identify effects **6849** and **6848**.
+EVE.js **261108.1**, build **3396210**, checks the same scripted effects and capital hull groups in
+`space/transitions.js` (SHA-256 prefix `89ae36918b01`) and `space/modules/hostileModuleRuntime.js`
+(`db747aa99975`). The existing Destiny gate effects and position formulas are used.
+
+**Automated validation.** The exact method
+`FullyQualifiedName=Eden.Protocol.Tests.Propulsion.HicInterdictionTests.StargateBlocksOnlyFocusedScriptsOnCombatCapitals`
+passed six cases in 17.34 seconds after an 8.61-second build. The final filter below passed 48 cases in 42.73 seconds
+after a 16.13-second build. It includes both scripts, an ordinary point, exempt hulls, a mid-departure interruption
+and source-ballpark recovery, exact expiry, and the existing gate, autopilot and Ansiblex flows.
+
+```text
+FullyQualifiedName~HicInterdictionTests|FullyQualifiedName~GateCloakTests|FullyQualifiedName~GateActivityProtocolTests|FullyQualifiedName~AutoNavigationTests|FullyQualifiedName~CombatCapitalCannotTakeStargateIntoHighSecurityOrWhileInSiege|FullyQualifiedName~AnsiblexChargesGateCapacitorAndRechecksBothEndpointsAtDeparture|FullyQualifiedName~WarmPlayerTravelAndRosterUseResidentWorldAndSurviveCheckpoints
+```
+
+The solution built with zero warnings or errors. The catalog setup and formatting policy suites passed 8 and 9 cases.
+Formatting and whitespace checks passed. The full .NET suite was outside the scope of this run.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** At an NPC stargate in low-security space, try jumping a tackled dreadnought before
+and after the focused effect ends. Repeat with an ordinary warp disruptor or a Jump Freighter.
+
+## Personal map visit history
+
+Build **3662168** calls `map.GetSolarSystemVisits()` from `mapView/filters/mapFilterVisited.pyj` and
+`maps/starModeHandler.pyj`. Both map views read `lastDateTime`, `solarSystemID` and `visits` from the returned rows.
+The original archive has SHA-256 prefix `37fb2af4fa0e`. EVE.js **261108.1**, build **3396210**, provides a direct rowset
+and maintains per-character counts and FILETIMEs in `mapService.js` (`6c06a8e47c57`) and `mapTelemetryState.js`
+(`2e7cd5c31f5c`). [EVE University guide to the Systems Visited filter](https://wiki.eveuniversity.org/Guide_to_AIR_Career_Programme)
+
+Eden records the selected pilot's current system when the session attaches the pilot or accepts a system change. Arrival from another
+system increases the count. A same-system attachment only refreshes the last-visited time. The map includes wormhole
+systems and excludes private Abyssal locations. An Abyssal excursion still makes the return to known space a new visit.
+History starts with the first observed location after upgrading. The route reads the selected character's resident history,
+and the world checkpoint persists its counts, timestamps and last-system marker together. Biomassing clears the pilot's history.
+
+**Automated validation.** The exact method `PersonalVisitsFollowSelectedPilotArrivalsAndSurviveCheckpointReopen` passed
+through `Test-Feature.ps1` in 12.66 seconds after a 22.78-second build. The solution build completed in 6.10 seconds with
+zero warnings or errors. The following focused filter passed 47 tests in 43.56 seconds.
+
+```text
+FullyQualifiedName~Eden.Protocol.Tests.Maps.MapNavigationTests|FullyQualifiedName~Eden.Protocol.Tests.Maps.MapStartupTests|FullyQualifiedName~Eden.Protocol.Tests.Capsuleers.CapsuleerHandoffTests|FullyQualifiedName~CharacterDeletionTests
+```
+
+The tests exercise native rowset shape, selection gating, real stargate transfers, reconnect and checkpoint reopen,
+private-system omission, biomassing and a warm RPC with zero SQL, connections or fitting recalculations. The catalog setup
+and formatting policy suites passed 8 and 9 cases. `Format.ps1 -Check` and the whitespace check passed. The separate missing-catalog test timed out at
+15 seconds in both the worktree build and the available pre-change build. The full .NET suite was outside the scope of this run.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Open **Star Map → Personal → Systems Visited**, make a round trip through a gate, and reopen
+the map after reconnecting.
+
+## Subcapital Micro Jump Field Generator
+
+Build **3662168** gives type **37479**, group **1533**, effect **6208** (`microJumpPortalDrive`), and the engage visual
+`effects.MicroJumpFieldEngage`. The fitted profile pays **85 GJ** for a **9-second** base spool, blooms signature radius by
+**150%**, and sets a **160-second** reactivation delay. Micro Jump Drive Operation and Command Destroyers reduce spool time.
+The pinned fitting restrictions include Command Destroyers and an explicit exception for the Skua. Voluntary movement is
+locked while spooling.
+
+The generator moves the source and up to **24** other eligible ships by **100 km** along the source's heading. Eligibility is
+measured at settlement within **6 km** of surface distance. Capital-sized ships, industrial command ships, ships protected by
+tether or arrival immunity, cloaked ships, and ships under warp scram stay in place. The field can move a ship through an
+ordinary warp disruptor. Passenger motion is preserved and the server publishes displacement after the resident commit.
+
+EVE.js **261108.1**, build **3396210**, implements ship displacement in `microJumpDriveRuntime.js` (`dc0619d26b35`) and
+publishes arrival effects in `moduleRuntimeCallbacks.js` (`60ed639a267d`). Eden follows the pinned July 24.01 rules for
+low-security space. Full safety allows activation, the source receives a weapons timer, and moved pilots receive no
+suspect or criminal flags. This subcapital field applies no post-jump scramble and is unavailable in high-security space.
+Non-ship displacement and same-tick deduplication across separate fields remain open.
+[CCP 24.01 patch notes](https://www.eveonline.com/news/view/patch-notes-version-24-01) ·
+[EVE University propulsion guide](https://wiki.eveuniversity.org/Propulsion_equipment#Micro_Jump_Field_Generator)
+
+**Automated validation.** `SubcapitalMicroJumpFieldMovesEligibleShipsInLowsecAndPersistsPositions` passed three cases in
+12.41 seconds through `Test-Feature.ps1` after a 6.20-second build. The cases verified high-security rejection, capacitor
+payment, signature bloom, authentic effect IDs and sources, transport at the surface range boundary, capital exclusion,
+Crimewatch and resident position through checkpoint reopen. An offline content export verified fitting for type 37479 and
+the field role for all six admitted Command Destroyers. The solution built in 1.11 seconds with zero warnings or errors.
+The following filter passed 78 tests in 59.28 seconds. The catalog setup and formatting policy suites passed 8 and 9 cases.
+`Format.ps1 -Check` and the whitespace check also passed.
+
+```text
+FullyQualifiedName~CapitalTravelTests.SubcapitalMicroJumpFieldMovesEligibleShipsInLowsecAndPersistsPositions|FullyQualifiedName~CapitalTravelTests.CapitalMicroJumpUsesPinnedCostsAndRangeIncludingSarathielInSiege|FullyQualifiedName~CapitalTravelTests.CapitalMicroJumpFieldTranslatesNearbyShipsAndPersistsScramble|FullyQualifiedName~SpatialModuleTests|FullyQualifiedName~SpatialModuleOperationTests|FullyQualifiedName~ShipContentCoverageTests|FullyQualifiedName~StructureTetherTests
+```
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** In low-security space, spool a Command Destroyer's field at full safety with a second pilot
+inside range. Verify the two ships land together and the source receives a weapons timer.
 
 ## Gate-arrival cloak, November 17, 2026
 

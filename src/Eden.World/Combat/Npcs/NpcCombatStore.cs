@@ -3,6 +3,7 @@ using Eden.Data.World.Capsuleers;
 using Eden.Data.World.Characters;
 using Eden.Data.World.Combat;
 using Eden.Data.World.Combat.Npcs;
+using Eden.Gameplay.Capsuleers;
 using Eden.Gameplay.Combat;
 using Eden.Gameplay.Docking;
 using Eden.Gameplay.Dogma;
@@ -10,6 +11,7 @@ using Eden.Gameplay.Drones;
 using Eden.Gameplay.Flight;
 using Eden.Gameplay.Insurance;
 using Eden.Infrastructure.Registration;
+using Eden.World.Capsuleers;
 using Eden.World.Catalog;
 using Eden.World.Characters;
 using Eden.World.Combat.Weapons;
@@ -307,7 +309,10 @@ internal sealed partial class NpcCombatStore(
             return null;
         }
         var home = NpcMotion.Home(npc, catalog);
-        double leash = NpcPopulationRules.Leash(attributes, MissileRange(catalog, npc, attributes), npc.AcquisitionRange);
+        double leash =
+            npc.Role == NpcRole.Sentry
+                ? NpcSentryRules.GridRange(attributes)
+                : NpcPopulationRules.Leash(attributes, MissileRange(catalog, npc, attributes), npc.AcquisitionRange);
         var targetPosition = new SpacePosition(position.X, position.Y, position.Z);
         if (targetPosition.DistanceTo(home) > leash || NpcMotion.Position(npc).DistanceTo(home) > leash)
         {
@@ -339,20 +344,11 @@ internal sealed partial class NpcCombatStore(
             return null;
         }
         NpcMissileStore.Launch(world, catalog, npc, aggression, attributes, pilot, velocity, now, destinyStamp);
+        bool droneTargetAvailable = false;
         if (
-            DroneNpcCombat.TryFire(
-                world,
-                catalog,
-                npc,
-                aggression,
-                attributes,
-                shipId,
-                now,
-                roll,
-                out bool droneTargetAvailable,
-                playerEwar
-            ) is
-            { } droneShot
+            npc.Role != NpcRole.Sentry
+            && DroneNpcCombat.TryFire(world, catalog, npc, aggression, attributes, shipId, now, roll, out droneTargetAvailable, playerEwar)
+                is { } droneShot
         )
         {
             world.SaveChanges();
@@ -387,7 +383,12 @@ internal sealed partial class NpcCombatStore(
             attributes.GetValueOrDefault(DogmaAttributeId.KineticDamage),
             attributes.GetValueOrDefault(DogmaAttributeId.ThermalDamage)
         );
-        damage = damage.Scale(attributes.GetValueOrDefault(DogmaAttributeId.DamageMultiplier));
+        double reduction = RattingRules.IncomingDamageMultiplier(
+            npc.Role,
+            pilot.AccountId == CapsuleerCommunityStore.MinerAccountId,
+            world.Settings.Capsuleers.RatDamageReductionPercent
+        );
+        damage = damage.Scale(attributes.GetValueOrDefault(DogmaAttributeId.DamageMultiplier) * reduction);
         double chance = CombatDamage.HitChance(
             range,
             CombatDamage.AngularVelocity(separation, velocity - NpcMotion.Velocity(npc)),

@@ -24,6 +24,40 @@ namespace Eden.World.Capsuleers;
 
 internal sealed partial class CapsuleerIndustry
 {
+    internal bool TryBoardOwnedReplacement(
+        EconomyTransaction world,
+        CatalogDbContext catalog,
+        DockedPilot pilot,
+        CapsuleerCareer career,
+        long now
+    )
+    {
+        if (
+            pilot.Position is not null
+            || pilot.InStructure
+            || pilot.ShipGroupId != FleetDefinitions.CapsuleGroup
+            || world.Filter<ShipLoss>(loss => loss.CapsuleId == pilot.ShipId).FirstOrDefault(loss => loss.PilotId == pilot.PilotId)
+                is not { } loss
+            || LostKit(catalog, loss) is not { } kit
+        )
+        {
+            return false;
+        }
+        var parts = kit.Parts();
+        if (
+            !CanReplaceKit(world, catalog, pilot.PilotId, career, kit, parts)
+            || MissingParts(
+                parts,
+                Hangar(world, pilot.PilotId, pilot.StationId).Where(item => !item.Singleton).ToLookup(item => item.TypeId)
+            ).Length != 0
+        )
+        {
+            return false;
+        }
+        BoardKit(world, catalog, pilot, kit, now);
+        return true;
+    }
+
     internal ReplacementResult ReplaceShip(
         EconomyTransaction world,
         CatalogDbContext catalog,
@@ -243,7 +277,14 @@ internal sealed partial class CapsuleerIndustry
         return new(false, false, Math.Min(now, orderDeadline), []);
     }
 
-    private void BoardKit(EconomyTransaction world, CatalogDbContext catalog, DockedPilot docked, ReplacementKit kit, long now)
+    private long BoardKit(
+        EconomyTransaction world,
+        CatalogDbContext catalog,
+        DockedPilot docked,
+        ReplacementKit kit,
+        long now,
+        bool requireOnlineFit = false
+    )
     {
         long pilotId = docked.PilotId;
         int station = docked.StationId;
@@ -260,6 +301,15 @@ internal sealed partial class CapsuleerIndustry
         {
             throw new InvalidDataException("Ship kit inventory changed before fitting.");
         }
+        if (
+            requireOnlineFit
+            && world
+                .FittedItems(pilotId, shipId)
+                .Any(item => !item.Online && !InventoryDefinitions.IsRigSlot(item.FlagId) && kit.OnlineSlots.Contains(item.FlagId))
+        )
+        {
+            throw new InvalidDataException("The purchased PvP fitting could not stay online.");
+        }
         PilotFleetStore.Board(world, catalog, pilotId, shipId, docked.ShipId, now);
         if (kit.Magazines.Length > 0)
         {
@@ -270,6 +320,7 @@ internal sealed partial class CapsuleerIndustry
                 PilotAmmunitionStore.Load(world, catalog, pilotId, shipId, modules, sources[charge.Key], station, now);
             }
         }
+        return shipId;
     }
 
     private bool ProcureReplacementPart(

@@ -89,6 +89,8 @@ internal sealed partial class LiveWorld
     internal LiveCombatRuntime? CombatForKnownPilot(long pilot) =>
         _pilotSystems.TryGetValue(pilot, out int system) ? _systems.Get(system).State.Combat : _shared.Combat;
 
+    internal int? KnownPilotSystem(long pilot) => _pilotSystems.TryGetValue(pilot, out int system) ? system : null;
+
     internal LiveCombatRuntime? CombatForSystem(int system) => _systems.Get(system).State.Combat;
 
     internal Eden.Gameplay.Flight.SpacePosition? PublishedPosition(int system, long id)
@@ -263,6 +265,11 @@ internal sealed partial class LiveWorld
 
     private readonly Dictionary<int, HashSet<long>> _capsuleersBySystem = [];
 
+    internal int CapsuleerCountInSystem(int system) => _capsuleersBySystem.GetValueOrDefault(system)?.Count ?? 0;
+
+    internal IEnumerable<int> CapsuleerSystems(Func<int, bool> systemMatches, Func<long, bool> pilotMatches) =>
+        _capsuleersBySystem.Where(entry => systemMatches(entry.Key) && entry.Value.Any(pilotMatches)).Select(entry => entry.Key);
+
     internal void TrackCapsuleer(long pilot, int? previous, int system)
     {
         if (!_ownershipMonitor.IsEntered)
@@ -292,6 +299,10 @@ internal sealed partial class LiveWorld
         ReleaseIfProjected(pilot, CapsuleerJobs, ProjectedCapsuleerJobs);
         ReleaseIfProjected(pilot, MinerCheckpoints, ProjectedMiners);
         ReleaseIfProjected(pilot, HaulerCheckpoints, ProjectedHaulers);
+        if (!HaulerCheckpoints.ContainsKey(pilot))
+        {
+            MilitiaPatrolPilots.Remove(pilot);
+        }
         if (
             !HasCapsuleerState(pilot)
             && !CapsuleerRoutines.HasPending(pilot)

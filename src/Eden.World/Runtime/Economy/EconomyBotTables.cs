@@ -698,36 +698,6 @@ internal sealed partial class ResidentEconomy
             )
         );
         Register(
-            new EconomyTable<Eden.Data.World.Characters.SavedCombatReport, EconomySavedCombatReport>(
-                "WorldCombatReport",
-                row => new(row.Id),
-                row => new(row.Id, row.Data, row.IsLoss, row.PilotId, row.SourceKey, row.Time),
-                state => new Eden.Data.World.Characters.SavedCombatReport
-                {
-                    Id = state.Id,
-                    Data = state.Data,
-                    IsLoss = state.IsLoss,
-                    PilotId = state.PilotId,
-                    SourceKey = state.SourceKey,
-                    Time = state.Time,
-                },
-                ProjectSavedCombatReport,
-                "Id,Data,IsLoss,PilotId,SourceKey,Time",
-                reader =>
-                    new(
-                        reader.GetInt64(1),
-                        reader.GetString(2),
-                        reader.GetBoolean(3),
-                        reader.GetInt64(4),
-                        reader.GetString(5),
-                        reader.GetInt64(6)
-                    ),
-                state => new(state.Id),
-                indexes: [new("Id", row => row.Id), new("PilotId", row => row.PilotId), new("SourceKey", row => row.SourceKey)],
-                primaryColumn: "Id"
-            )
-        );
-        Register(
             new EconomyTable<Eden.Data.World.Characters.SavedHomeStation, EconomySavedHomeStation>(
                 "WorldHomeStation",
                 row => new(row.PilotId),
@@ -1360,17 +1330,35 @@ internal sealed partial class ResidentEconomy
             new EconomyTable<Eden.Data.World.Combat.SavedPilotHostility, EconomySavedPilotHostility>(
                 "WorldPilotHostility",
                 row => new(row.SourceShipId, row.TargetShipId),
-                row => new(row.SourceShipId, row.TargetShipId, row.ExpiresAt, row.LastAttackAt),
+                row =>
+                    new(
+                        row.SourceShipId,
+                        row.TargetShipId,
+                        row.ExpiresAt,
+                        row.LastAttackAt,
+                        row.SecurityPenaltyRecorded,
+                        row.MilitiaPenaltyRecorded
+                    ),
                 state => new Eden.Data.World.Combat.SavedPilotHostility
                 {
                     SourceShipId = state.SourceShipId,
                     TargetShipId = state.TargetShipId,
                     ExpiresAt = state.ExpiresAt,
                     LastAttackAt = state.LastAttackAt,
+                    SecurityPenaltyRecorded = state.SecurityPenaltyRecorded,
+                    MilitiaPenaltyRecorded = state.MilitiaPenaltyRecorded,
                 },
                 ProjectSavedPilotHostility,
-                "SourceShipId,TargetShipId,ExpiresAt,LastAttackAt",
-                reader => new(reader.GetInt64(1), reader.GetInt64(2), reader.GetInt64(3), reader.GetInt64(4)),
+                "SourceShipId,TargetShipId,ExpiresAt,LastAttackAt,SecurityPenaltyRecorded,MilitiaPenaltyRecorded",
+                reader =>
+                    new(
+                        reader.GetInt64(1),
+                        reader.GetInt64(2),
+                        reader.GetInt64(3),
+                        reader.GetInt64(4),
+                        reader.GetBoolean(5),
+                        reader.GetBoolean(6)
+                    ),
                 state => new(state.SourceShipId, state.TargetShipId),
                 indexes: [new("SourceShipId", row => row.SourceShipId), new("TargetShipId", row => row.TargetShipId)],
                 primaryColumn: null
@@ -1404,7 +1392,8 @@ internal sealed partial class ResidentEconomy
                         row.PilotId,
                         row.SystemId,
                         row.Time,
-                        row.TypeId
+                        row.TypeId,
+                        row.AggressedPilotId
                     ),
                 state => new Eden.Data.World.Combat.SavedSecurityTransaction
                 {
@@ -1417,9 +1406,10 @@ internal sealed partial class ResidentEconomy
                     SystemId = state.SystemId,
                     Time = state.Time,
                     TypeId = state.TypeId,
+                    AggressedPilotId = state.AggressedPilotId,
                 },
                 ProjectSavedSecurityTransaction,
-                "Id,CorporationId,Modification,NewValue,NpcId,PilotId,SystemId,Time,TypeId",
+                "Id,CorporationId,Modification,NewValue,NpcId,PilotId,SystemId,Time,TypeId,AggressedPilotId",
                 reader =>
                     new(
                         reader.GetInt64(1),
@@ -1430,7 +1420,8 @@ internal sealed partial class ResidentEconomy
                         reader.GetInt64(6),
                         reader.GetInt32(7),
                         reader.GetInt64(8),
-                        reader.GetInt32(9)
+                        reader.GetInt32(9),
+                        reader.IsDBNull(10) ? null : reader.GetInt64(10)
                     ),
                 state => new(state.Id),
                 indexes:

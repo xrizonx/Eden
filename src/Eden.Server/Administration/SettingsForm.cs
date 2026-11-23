@@ -68,7 +68,6 @@ public sealed class SettingsForm
     public bool AlwaysResolvedSignatures { get; set; }
     public bool StartingSkills { get; set; }
     public bool StartingEquipment { get; set; }
-    private bool FreshUniverse { get; init; }
     public bool FreightVariedHulls { get; set; }
     public long FreightOrdinaryMinimumIsk { get; set; }
     public long FreightOrdinaryMaximumIsk { get; set; }
@@ -81,6 +80,7 @@ public sealed class SettingsForm
 
     public bool SituationalAwareness { get; set; }
     public bool BeltRatting { get; set; }
+    public int RatDamageReductionPercent { get; set; }
     public bool AnomalyRatting { get; set; }
     public bool BotExploration { get; set; }
     public bool BotWreckSalvage { get; set; }
@@ -88,13 +88,9 @@ public sealed class SettingsForm
     [Range(0, CapsuleerPopulationRules.MaximumActivePilotCap)]
     [Display(Name = "Active bot cap")]
     public int ActivePilotCap { get; set; }
+    public bool RunBotsWithoutPlayers { get; set; }
     public bool PrepareUnvisitedSystems { get; set; }
 
-    [Range(FreshCareerRules.DefaultFounderCohorts, FreshCareerRules.MaximumFounderCohorts)]
-    [Display(Name = "Fresh founder cohorts per system")]
-    public int FreshFounderCohortsPerSystem { get; set; } = FreshCareerRules.DefaultFounderCohorts;
-    public bool FreshCourierPilots { get; set; }
-    public bool FreshBountyPilots { get; set; }
     public bool TradeGoodsFreight { get; set; }
     public CapsuleerRegionAccess DefaultRegionAccess { get; set; }
     public ImmutableSortedDictionary<int, CapsuleerRegionAccess> RegionAccess { get; set; } =
@@ -105,7 +101,10 @@ public sealed class SettingsForm
     public bool AutomaticAlliances { get; set; }
     public bool NewSovereigntyClaims { get; set; }
 
+    public bool EarnedPvpShips { get; set; }
     public bool RoamingPvp { get; set; }
+    public bool NullsecExpeditions { get; set; }
+    public bool MilitiaPatrols { get; set; }
     public bool RoamingGangs { get; set; }
     public int RoamingGangSize { get; set; }
     public bool RegionalConflicts { get; set; }
@@ -197,6 +196,10 @@ public sealed class SettingsForm
     [Range(typeof(decimal), "0", "100", ParseLimitsInInvariantCulture = true)]
     [Display(Name = "NPC bounty ISK")]
     public decimal BountyMultiplier { get; set; } = 1;
+
+    [Range(0, ActivityRewardTickRules.MaximumIntervalSeconds)]
+    [Display(Name = "Bounty tick interval (seconds)")]
+    public int BountyTickSeconds { get; set; } = ActivityRewardTickRules.DefaultIntervalSeconds;
 
     [Range(typeof(decimal), "0", "100", ParseLimitsInInvariantCulture = true)]
     [Display(Name = "Mission ISK")]
@@ -309,6 +312,7 @@ public sealed class SettingsForm
             ShipCalibrationMultiplier = settings.ShipFitting.CalibrationMultiplier,
             ShipDroneBandwidthMultiplier = settings.ShipFitting.DroneBandwidthMultiplier,
             BountyMultiplier = settings.Rewards.BountyMultiplier,
+            BountyTickSeconds = settings.Rewards.BountyTickSeconds,
             MissionIskMultiplier = settings.Rewards.MissionIskMultiplier,
             MissionLpMultiplier = settings.Rewards.MissionLpMultiplier,
             MissionStandingMultiplier = settings.Rewards.MissionStandingMultiplier,
@@ -358,7 +362,6 @@ public sealed class SettingsForm
             AlwaysResolvedSignatures = settings.Exploration.AlwaysResolvedSignatures,
             StartingSkills = settings.Progression.GrantStartingSkills,
             StartingEquipment = settings.Progression.GrantStartingEquipment,
-            FreshUniverse = settings.FreshUniverse,
             GlobalProvisioning = settings.Capsuleers.GlobalProvisioning,
             SimulatedPilots = settings.Capsuleers.Enabled,
             SimulatedMiners = settings.Capsuleers.Miners,
@@ -374,14 +377,13 @@ public sealed class SettingsForm
             FreightCargoTypeIds = settings.Capsuleers.Freight.CargoTypeIds,
             SituationalAwareness = settings.Capsuleers.SituationalAwareness,
             BeltRatting = settings.Capsuleers.BeltRatting,
+            RatDamageReductionPercent = settings.Capsuleers.RatDamageReductionPercent,
             AnomalyRatting = settings.Capsuleers.AnomalyRatting,
             BotExploration = settings.Capsuleers.Exploration,
             BotWreckSalvage = settings.Capsuleers.WreckSalvage,
             ActivePilotCap = settings.Capsuleers.ActivePilotCap,
+            RunBotsWithoutPlayers = settings.Capsuleers.RunWithoutPlayers,
             PrepareUnvisitedSystems = settings.Capsuleers.PrepareUnvisitedSystems,
-            FreshFounderCohortsPerSystem = settings.Capsuleers.FreshFounderCohortsPerSystem,
-            FreshCourierPilots = settings.Capsuleers.FreshCourierPilots,
-            FreshBountyPilots = settings.Capsuleers.FreshBountyPilots,
             TradeGoodsFreight = settings.Capsuleers.TradeGoodsFreight,
             DefaultRegionAccess = settings.Capsuleers.DefaultRegionAccess,
             RegionAccess = settings.Capsuleers.RegionAccess,
@@ -389,7 +391,10 @@ public sealed class SettingsForm
             AutomaticRecruitment = settings.Capsuleers.AutomaticRecruitment,
             AutomaticAlliances = settings.Capsuleers.AutomaticAlliances,
             NewSovereigntyClaims = settings.Capsuleers.NewSovereigntyClaims,
+            EarnedPvpShips = settings.Capsuleers.EarnedPvpShips,
             RoamingPvp = settings.Capsuleers.RoamingPvp,
+            NullsecExpeditions = settings.Capsuleers.NullsecExpeditions,
+            MilitiaPatrols = settings.Capsuleers.MilitiaPatrols,
             RoamingGangs = settings.Capsuleers.RoamingGangs,
             RoamingGangSize = settings.Capsuleers.RoamingGangSize,
             RegionalConflicts = settings.Capsuleers.RegionalConflicts,
@@ -414,7 +419,6 @@ public sealed class SettingsForm
     internal WorldSettings Build() =>
         new()
         {
-            FreshUniverse = FreshUniverse,
             Economy = new(
                 ServiceCosts,
                 ManufacturingIndex,
@@ -436,7 +440,7 @@ public sealed class SettingsForm
             Resources = new(RenewBelts, RenewalHourUtc, OreYieldMultiplier, IceYieldMultiplier, GasYieldMultiplier),
             MiningHolds = new(GeneralMiningHoldMultiplier, IceHoldMultiplier, GasHoldMultiplier),
             ShipFitting = new(ShipCpuMultiplier, ShipPowerGridMultiplier, ShipCalibrationMultiplier, ShipDroneBandwidthMultiplier),
-            Rewards = new(BountyMultiplier, MissionIskMultiplier, MissionLpMultiplier, MissionStandingMultiplier),
+            Rewards = new(BountyMultiplier, MissionIskMultiplier, MissionLpMultiplier, MissionStandingMultiplier, BountyTickSeconds),
             Industry = new(ManufacturingSpeed, ResearchSpeed, CopyingSpeed, InventionSpeed, ReprocessingEfficiency),
             PlanetaryIndustry = new(
                 PlanetaryExtractionYieldMultiplier,
@@ -468,14 +472,13 @@ public sealed class SettingsForm
             {
                 SituationalAwareness = SituationalAwareness,
                 BeltRatting = BeltRatting,
+                RatDamageReductionPercent = RatDamageReductionPercent,
                 AnomalyRatting = AnomalyRatting,
                 Exploration = BotExploration,
                 WreckSalvage = BotWreckSalvage,
                 ActivePilotCap = ActivePilotCap,
+                RunWithoutPlayers = RunBotsWithoutPlayers,
                 PrepareUnvisitedSystems = PrepareUnvisitedSystems,
-                FreshFounderCohortsPerSystem = FreshFounderCohortsPerSystem,
-                FreshCourierPilots = FreshCourierPilots,
-                FreshBountyPilots = FreshBountyPilots,
                 TradeGoodsFreight = TradeGoodsFreight,
                 DefaultRegionAccess = DefaultRegionAccess,
                 RegionAccess = RegionAccess,
@@ -483,7 +486,10 @@ public sealed class SettingsForm
                 AutomaticRecruitment = AutomaticRecruitment,
                 AutomaticAlliances = AutomaticAlliances,
                 NewSovereigntyClaims = NewSovereigntyClaims,
+                EarnedPvpShips = EarnedPvpShips,
                 RoamingPvp = RoamingPvp,
+                NullsecExpeditions = NullsecExpeditions,
+                MilitiaPatrols = MilitiaPatrols,
                 RoamingGangs = RoamingGangs,
                 RoamingGangSize = RoamingGangSize,
                 RegionalConflicts = RegionalConflicts,

@@ -38,15 +38,18 @@ public sealed class MissionLayoutTests
 
     private sealed record SavedPlacement(long Id, int TypeId, double X, double Y, double Z, double? AcquisitionRange);
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task WarpingOutOfTheBlockadeDisengagesTheStationaryTowerAndCompletesWarp(bool resident)
+    [Fact]
+    public async Task WarpingOutOfTheBlockadeDisengagesTheStationaryTowerAndCompletesWarp()
     {
         const int towerType = 17606;
         const long accountId = 1000001;
         const long clientId = 42;
-        using MissionFixture f = Create(GuristasBlockade, 1, resident);
+        using MissionFixture f = Create(
+            GuristasBlockade,
+            1,
+            live: true,
+            configure: catalog => PassiveCatalogFixture.LoadCapacitorModules(catalog.Database.GetDbConnection().DataSource)
+        );
         var mission = f.Accept(f.Request());
         f.Missions.Arrive(mission.SystemId, mission.Position);
         using var scope = f.Services.CreateScope();
@@ -141,10 +144,7 @@ public sealed class MissionLayoutTests
         var after = Assert.Single(encounters.List(mission.SystemId, f.Clock.Now), npc => npc.Id == tower.Id);
         Assert.Equal(tower.Position, after.Position);
         Assert.Null(after.Navigation);
-        if (resident)
-        {
-            await services.GetRequiredService<LiveWorld>().FlushAsync();
-        }
+        await services.GetRequiredService<LiveWorld>().FlushAsync();
         var persisted = store.FindPilot(accountId)!;
         Assert.Equal(context.Pilot.Position, persisted.Position);
     }
@@ -248,6 +248,7 @@ public sealed class MissionLayoutTests
 
     [Theory]
     [InlineData(892, 4)]
+    [InlineData(899, 4)]
     [InlineData(1239, 4)]
     [InlineData(1241, 4)]
     [InlineData(1245, 3)]
@@ -302,7 +303,7 @@ public sealed class MissionLayoutTests
         using MissionFixture f = new();
         using CatalogDbContext catalog = new(new WorldDatabase(f.Db.Path).CatalogPath);
         var profiles = MissionCatalog.Read(catalog).Where(p => p.Kind == MissionKind.Combat).ToArray();
-        Assert.Equal(74, profiles.Length);
+        Assert.Equal(113, profiles.Length);
         int restoredScenery = 0;
         FlightProperties hull = new(0, 500, 100_000_000, 0.1f, 100, 3);
         foreach (var profile in profiles)

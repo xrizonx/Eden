@@ -42,9 +42,10 @@ internal sealed partial class CapsuleerScheduler
         int TrainingHull,
         CapsuleerProfession DefaultProfession,
         CapsuleerCareerPlan? TrainingPlan,
+        TrafficSnapshot? PvpSnapshot,
+        CapsuleerIndustry.FactorySupplyPreparation? FactorySupplies,
         bool PrepareMercoxit,
-        bool PrepareInstitutionalOffers,
-        bool FreshCareerTrade
+        bool PrepareMarketOffers
     );
 
     internal PreparationInput? CapturePreparation(CancellationToken cancellationToken = default)
@@ -186,27 +187,33 @@ internal sealed partial class CapsuleerScheduler
                 .ToArray();
         var missing = geometry.SelectMany(capture => capture.Missing).Distinct().ToArray();
         bool dockedWork = stationId != 0 && job.Action is CapsuleerAction.Trade or CapsuleerAction.Prepare;
-        // Resident fresh careers plan their paid deliveries and supply travel in the action itself.
-        bool freshCareerTrade = job.Action == CapsuleerAction.Trade && world is EconomyTransaction && world.Settings.FreshUniverse;
         bool mercoxit =
             dockedWork
             && job.Action == CapsuleerAction.Prepare
-            && !world.Settings.FreshUniverse
             && world.Settings.Capsuleers.Miners
             && world.Set<SavedCapsuleerAgent>().Find(job.PilotId) is { Slot: 0 } miner
             && miner.CommunitySystemId == system;
         var trainingPlan = job.Action == CapsuleerAction.Prepare ? expedition?.CareerPlan : work?.CareerPlan;
         var profession =
             job.Action == CapsuleerAction.Prepare ? CapsuleerProfession.Mining : trainingPlan?.Profession ?? CapsuleerProfession.Hauling;
-        if (
-            dockedWork
-            && world.Settings.FreshUniverse
-            && job.Action == CapsuleerAction.Trade
-            && world.Set<SavedCapsuleerAgent>().Find(job.PilotId) is { } freshAgent
-        )
-        {
-            profession = FreshCareerRules.Profession(freshAgent.Slot);
-        }
+        var policy = world.Settings.Capsuleers;
+        bool preparePvpFits =
+            world is EconomyTransaction
+            && dockedWork
+            && (policy.EarnedPvpShips || job.Action == CapsuleerAction.Trade && policy.MilitiaPatrols);
+        int trainingHull = dockedWork ? resident?.ShipTypeId ?? world.Ships.Find(shipId)?.TypeId ?? 0 : 0;
+        var factorySupplies =
+            dockedWork && job.Action == CapsuleerAction.Trade && world is EconomyTransaction economy && Live is { } live
+                ? CapsuleerIndustry.CaptureFactorySupplies(
+                    economy,
+                    catalog,
+                    live,
+                    job.PilotId,
+                    trainingHull,
+                    work,
+                    clock.GetUtcNow().UtcDateTime.ToFileTimeUtc()
+                )
+                : null;
         return new(
             job,
             system,
@@ -219,8 +226,8 @@ internal sealed partial class CapsuleerScheduler
             Array.AsReadOnly(systems.Order().ToArray()),
             Array.AsReadOnly(missing),
             Array.AsReadOnly(geometry),
-            freshCareerTrade ? null : hauler?.CaptureJourney(world, job),
-            !freshCareerTrade && job.Action == CapsuleerAction.Trade && stationId != 0
+            hauler?.CaptureJourney(world, job),
+            job.Action == CapsuleerAction.Trade && stationId != 0
                 ? TrafficTemplatePreparation.Capture(
                     database,
                     world,
@@ -231,12 +238,13 @@ internal sealed partial class CapsuleerScheduler
                     hauler?.PreparationRoute
                 )
                 : null,
-            dockedWork ? resident?.ShipTypeId ?? world.Ships.Find(shipId)?.TypeId ?? 0 : 0,
+            trainingHull,
             profession,
             trainingPlan,
+            preparePvpFits ? database.Traffic : null,
+            factorySupplies,
             mercoxit,
-            dockedWork && PilotMarketStore.UsesInstitutionalOffers(world),
-            freshCareerTrade
+            dockedWork && (world.Settings.Economy.StandardMarket || PilotMarketStore.UsesInstitutionalOffers(world))
         );
     }
 
@@ -252,11 +260,27 @@ internal sealed partial class CapsuleerScheduler
             && (Live?.PreparationRevision ?? 0) == input.Revision
             && (Live?.TrafficGeometry.Revision ?? 0) == input.Resources
             && (input.Template is null || input.Template.Revision == (Live?.TrafficTemplateRevision ?? 0))
+            && (input.PvpSnapshot is null || ReferenceEquals(input.PvpSnapshot, database.Traffic))
             && database.Catalog.Identity.Generation == input.Catalog;
     }
 
     private void PrepareStationInputs(CatalogDbContext catalog, PreparationInput input)
     {
+        if (input.FactorySupplies is { } factory)
+        {
+            CapsuleerIndustry.PrepareFactorySupplies(catalog, factory, database.Settings.Capsuleers);
+            if (input.PrepareMarketOffers)
+            {
+                foreach (int warehouse in factory.Warehouses)
+                {
+                    market.PrepareMarketOffers(catalog, warehouse);
+                }
+            }
+        }
+        if (input.PvpSnapshot is { } snapshot)
+        {
+            CapsuleerIndustry.PrepareSnapshotPvpFits(catalog, snapshot);
+        }
         if (input.Template is not null)
         {
             TrafficTemplatePreparation.Prepare(database, catalog, input.Template);
@@ -269,19 +293,6 @@ internal sealed partial class CapsuleerScheduler
         if (input.TrainingHull != 0)
         {
             var hull = (HullClass)catalog.RequireItem(input.TrainingHull).GroupId;
-            if (database.Settings.FreshUniverse && input.Job.Action == CapsuleerAction.Trade)
-            {
-                // Recovery uses the same entry fit as a first career purchase.
-                if (hull == HullClass.Corvette)
-                {
-                    CapsuleerCareerTraining.PrepareFreshChoices(catalog, input.DefaultProfession);
-                }
-                else if (hull != HullClass.Capsule)
-                {
-                    CapsuleerCareerTraining.PrepareChoices(catalog, input.TrainingHull, input.DefaultProfession, input.TrainingPlan);
-                }
-                return;
-            }
             var profession =
                 input.Job.Action == CapsuleerAction.Prepare
                     ? CapsuleerProfession.Mining
@@ -400,7 +411,7 @@ internal sealed partial class CapsuleerScheduler
                     geometry[system] = Array.AsReadOnly<StaticSpaceObject>([.. objects, .. resources]);
                 }
             }
-            if (!input.FreshCareerTrade && input.Job.Action is CapsuleerAction.Trade or CapsuleerAction.Prepare)
+            if (input.Job.Action is CapsuleerAction.Trade or CapsuleerAction.Prepare)
             {
                 _ = CapsuleerTrafficRoutes.Read(catalog, input.CommunityId);
             }
@@ -414,11 +425,11 @@ internal sealed partial class CapsuleerScheduler
                 cancellationToken.ThrowIfCancellationRequested();
                 belts[belt] = AsteroidFieldStore.Prepare(catalog, belt);
             }
-            if (!preparedTrade && input.PrepareInstitutionalOffers)
+            if (!preparedTrade && input.PrepareMarketOffers)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                using var institutional = SessionPerformance.Phase("traffic.institutionalOffers");
-                market.PrepareInstitutional(catalog, input.StationId);
+                using var offers = SessionPerformance.Phase("traffic.marketOffers");
+                market.PrepareMarketOffers(catalog, input.StationId);
             }
         }
         catch (InvalidDataException)

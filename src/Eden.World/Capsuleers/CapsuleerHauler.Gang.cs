@@ -66,6 +66,7 @@ internal sealed partial class CapsuleerHauler
         if (
             !database.Settings.Capsuleers.RoamingGangs
             || !database.Settings.Capsuleers.RoamingPvp
+            || !HasCommittedPvpShip
             || Work.Retreating
             || Work.Defense?.Retreating == true
         )
@@ -85,7 +86,7 @@ internal sealed partial class CapsuleerHauler
                 Reason = reason,
             };
 
-    private bool TryGangDeparture()
+    private bool TryGangDeparture(bool authorizedHunt = false)
     {
         if (Live is null)
         {
@@ -94,7 +95,7 @@ internal sealed partial class CapsuleerHauler
         SynchronizeGang(reconcile: true);
         if (Work.Gang is not { } gang || gang.Phase == RoamingGangPhase.Complete)
         {
-            if (!TryFormGang())
+            if (!TryFormGang(authorizedHunt))
             {
                 return false;
             }
@@ -197,7 +198,7 @@ internal sealed partial class CapsuleerHauler
         return true;
     }
 
-    private bool TryFormGang()
+    private bool TryFormGang(bool authorizedHunt)
     {
         var policy = database.Settings.Capsuleers;
         if (
@@ -205,6 +206,8 @@ internal sealed partial class CapsuleerHauler
             || !policy.RoamingGangs
             || !policy.RoamingPvp
             || _background
+            || !HasPvpShip
+            || !authorizedHunt && _operation.World is Eden.World.Runtime.Economy.EconomyTransaction resident && DynamicWorkPilot(resident)
             || Work.Retreating
             || Work.Freight?.Stacks.Length > 0
             || Work.Resupply?.DestinationStationId is not null
@@ -238,8 +241,11 @@ internal sealed partial class CapsuleerHauler
             var saved = world.Pilots.SingleOrDefault(other => other.Id == row.PilotId);
             if (
                 saved is null
+                || (CapsuleerCorporations.Organization(world, row.PilotId).ActiveWorker ?? CapsuleerCareer.Hauling)
+                    != CapsuleerCareer.Hauling
                 || saved.ActiveShip.Position is not null
                 || saved.ActiveShip.StationId != Pilot.StationId
+                || !CapsuleerIndustry.HasPvpShip(world, saved.Id, saved.ActiveShipId)
                 || world.Set<SavedCapsuleerSuspension>().Find(row.PilotId) is not null
                 || regionalGroup is not null
                     && PatrolRules.Unaffiliated(Pilot.CorpId, saved.CorporationId)
@@ -262,6 +268,9 @@ internal sealed partial class CapsuleerHauler
                 || work?.Freight?.Stacks.Length > 0
                 || work?.Ratting is not null
                 || work?.Resupply?.DestinationStationId is not null
+                || work?.CorporationSupply is not null
+                || work?.SovereigntyExpedition is not null
+                || work?.FactorySupply is not null
             )
             {
                 continue;
@@ -272,6 +281,20 @@ internal sealed partial class CapsuleerHauler
                 continue;
             }
             var other = ships.FindPilot(world, saved.AccountId, saved.Id)!;
+            if (
+                world is Eden.World.Runtime.Economy.EconomyTransaction economy
+                && CapsuleerIndustry.Employer(economy, saved.Id, saved.CorporationId) is not null
+                && (
+                    !CapsuleerIndustry.RequiresEarnedPvp(economy)
+                        && CapsuleerIndustry.ReadyHuntReplacements(economy, _operation.Catalog, other)
+                            < CapsuleerWorkRules.MinimumHuntingReplacements
+                    || CapsuleerIndustry.HasStationFactoryJob(economy, other.PilotId, other.StationId)
+                    || CapsuleerIndustry.HasWorkDemand(economy, _operation.Catalog, other, Now)
+                )
+            )
+            {
+                continue;
+            }
             if (CapsuleerDefenseRules.Retreat(health.Read(other.PilotId, Now), true))
             {
                 continue;

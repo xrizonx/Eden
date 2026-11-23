@@ -113,15 +113,21 @@ internal sealed partial class WreckStore
 
     internal static void Create(WorldAction world, CatalogDbContext catalog, WorldNpc npc, Pilot pilot, long now)
     {
+        const int pirateCapsuleType = 27287; // Build-3662168 Enforcer objective, without a catalog wreck.
+        if (npc.AnchorKind == NpcAnchorKind.Mission && npc.TypeId == pirateCapsuleType)
+        {
+            return;
+        }
         var ded = Eden.World.Exploration.CombatAnomalyStore.DedLoot(world, catalog, npc);
         if (npc.Role == NpcRole.MissionStructure && ded is null)
         {
             return;
         }
         var definition = catalog.Read(CatalogData.Client.Types, (long)npc.TypeId);
+        var militia = MilitiaLoot(catalog, npc);
         var type = definition?.WreckTypeID is long wreckType
             ? (catalog.FittingType(wreckType) is { GroupId: WreckDefinitions.Group } wreckDefinition ? wreckDefinition : null)
-            : null;
+            : militia?.Wreck;
         bool container = ded is not null && (npc.Role == NpcRole.MissionStructure || type is null);
         if (container)
         {
@@ -152,6 +158,16 @@ internal sealed partial class WreckStore
         )
         {
             pilot = world.Pilots.Find(mission.PilotId) ?? pilot;
+        }
+        else
+        {
+            pilot =
+                LootRightsRules
+                    .RankNpcWreckOwners(PilotInteractionHistoryStore.DamageContributions(world, npc.Id))
+                    .Select(id => world.Pilots.Find(id))
+                    .OfType<Pilot>()
+                    .FirstOrDefault()
+                ?? pilot;
         }
         var wreck = world
             .Set<WorldWreck>()
@@ -198,7 +214,8 @@ internal sealed partial class WreckStore
             }
             return;
         }
-        foreach (var drop in Drops(world, catalog, npc).Concat(Eden.World.Agents.PilotMissionStore.KeyLoot(world, npc, now)))
+        var drops = militia is null ? Drops(world, catalog, npc) : [militia.Drop];
+        foreach (var drop in drops.Concat(Eden.World.Agents.PilotMissionStore.KeyLoot(world, npc, now)))
         {
             _ = catalog.RequireItem(drop.TypeId);
             world

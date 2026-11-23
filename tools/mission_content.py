@@ -8,6 +8,7 @@ import copy
 import json
 import re
 from collections import Counter
+from pathlib import Path
 from mission_fixed_agents import data_center_definitions
 
 # Build-3662168 destructible Habitat; the similarly named scenery is not an objective.
@@ -18,9 +19,15 @@ ATTRIBUTE_ENHANCER_GROUP = 745
 UNREPORTED_GROUP_RANGE = 25000
 
 KNOWN_BLOCKERS = {
+    891: 'Requires timed reinforcements',
     895: 'Requires timed reinforcements',
+    903: 'Requires a verified Sansha Spy type and completion objective',
+    1062: 'Requires pinned hull identity for the Blood Raider Spy frigates',
+    1063: 'Requires pinned hull identity for the Blood Raider Spy destroyers',
+    1064: 'Requires pinned hull identity for the Blood Raider Spy battlecruisers',
     929: 'Requires a verified reinforcement trigger',
     934: 'Requires a verified reinforcement trigger',
+    1215: 'Requires a verified reinforcement trigger',
     2252: 'Report and pinned dungeon level disagree',
     2253: 'Requires a verified reinforcement trigger',
     15552: 'Requires level-five storyline reward policy',
@@ -51,6 +58,43 @@ COURIER_CHAINS = [
 def source(db, dataset, key):
     row = db.execute('SELECT Data FROM SourceRecord WHERE Dataset=? AND Key=?', (dataset, str(key))).fetchone()
     return json.loads(row[0]) if row else None
+
+
+def ship_types(db):
+    return {key for key, in db.execute('SELECT t.Id FROM ItemType t JOIN ItemGroup g ON g.Id=t.GroupId WHERE g.CategoryId=6')}
+
+
+def militia_mission_ids():
+    bindings = Path(__file__).resolve().parent.parent / 'src/Eden.Data/Catalog/FactionWarfare/MilitiaMissionBindings.cs'
+    return {int(key) for key in re.findall(r'^\s+new\((\d+), \d+, MilitiaFaction\.', bindings.read_text(encoding='utf-8'), re.MULTILINE)}
+
+
+def career_mission_ids():
+    return mission_manifest_ids('career-missions-3662168.json')
+
+
+def epic_mission_ids():
+    return mission_manifest_ids('epic-arc-missions-3662168.json')
+
+
+def mission_manifest_ids(name):
+    manifest = Path(__file__).resolve().parent.parent / 'src/Eden.World/Agents' / name
+    return {row['missionId'] for row in json.loads(manifest.read_text(encoding='utf-8'))['missions']}
+
+
+def special_agent_mission(mid, data, hulls):
+    template = data['contentTemplate'].rsplit('_', 1)[-1]
+    if (2792 <= mid <= 2795 and template == 'ResearchTradeMission') or (mid == 2804 and template == 'ResearchCourierMission'):
+        return 'Research bonus assignment'
+    cargo = data.get('courierMission') or {}
+    if (template == 'HeraldryMission' and data.get('agentTypeID') == 13 and data.get('corporationID') == 1000419
+            and data.get('hasStandingRewards') == 0 and not data.get('killMission')
+            and 0 < data.get('expirationTime', 0) <= 10080
+            and data.get('fixedLpRewardAlpha', 0) > 0 and data.get('fixedLpRewardOmega', 0) > 0
+            and cargo.get('objectiveSingleton') == 0 and cargo.get('objectiveTypeID') in hulls
+            and cargo.get('objectiveQuantity') == 1):
+        return 'Paragon packaged hull exchange'
+    return None
 
 
 def trade_definitions(db):
@@ -205,6 +249,113 @@ def extend(db, missions, group):
             definition['structures'] = [dict(objectId=targets[0]['objectID'], required=True, completesMission=True)]
         missions.append(definition)
 
+    # Both reports identify group three as the objective. The spies are Corpatis Exorcists.
+    encounter(1065, 500012, 'The_Blood_Raider_Spies_(Level_4)', 208031,
+              [group('Corpatis Bishop/Corpatis Seer', 3, 5000, required=False),
+               group('Corpus Harbinger/Corpus Oracle', 1, 5000, required=False),
+               group('Corpior Visionary/Corpior Converter', 3, 35000, required=False),
+               group('Corpum Shadow Sage/Corpum Dark Priest', 3, 35000, required=False),
+               group('Corpus Archon/Corpus Prophet', 3, 35000, required=False),
+               group('Corpior Cleric/Corpior Friar', 3, 55000),
+               group('Corpatis Exorcist', 3, 55000)], 70433)
+
+    # EVE-Survival identifies the named Angel ships and the optional Rogue Drone group.
+    drone_faction = 500025
+    infester_group = 805
+    cleaners = group('Belphegor Apis/Mammon Apis', 2, 30000, required=False, enemyFaction=drone_faction)
+    cleaners['types'].extend(group('Infester Alvi', 2, 30000, npc_group=infester_group)['types'])
+    encounter(1084, 500011, 'Attack_the_Angel_Hideout', 191574,
+              [cleaners,
+               group('Gistii Outlaw/Gistii Thug', 3, 60000),
+               group('Gistii Ambusher/Gistii Raider', 2, 60000),
+               group('Gistum Predator', 1, 60000)])
+
+    # The reports allow direct warp in normal space and require the boss and escort.
+    encounter(909, 500021, 'The_Seven%27s_Brothel', 232779,
+              [group('Tower Sentry Drone I', 1, 30000, required=False),
+               group('Seven Grunt/Seven Death Dealer', 2, 40000, required=False),
+               group('Rogue Mercenary Thorn', 1, 60000),
+               group('Kruul/Sarrah', 1, 60000),
+               group('Seven Grunt/Seven Death Dealer', 2, 70000, required=False)], deadspace=False)
+    encounter(910, 500021, 'The_Seven%27s_Prison_Facility', 205377,
+              [group('Tower Sentry Angel I', 2, 45000, required=False),
+               group('Tower Sentry Angel II', 1, 50000, required=False),
+               group('Seven Grunt/Seven Death Dealer/Seven Deathguard', 3, 40000, required=False),
+               group('Seven Assassin/Seven Thug', 1, 55000),
+               group('Olufami/Elena Gazky/Schmidt', 1, 55000)], deadspace=False)
+
+    # Each pair shares the full native kill objective and the same reported DED roster.
+    for ids, dungeon_id, level, revision, roster in [
+        ((2256, 2257), 785, 2, 191678,
+         [('DED Soldier 3rd Class', 3), ('DED Special Ops Piranha', 3), ('DED Special Ops Panther', 1)]),
+        ((2250, 2251), 780, 3, 191679,
+         [('DED Soldier 1st Class/DED Special Ops Piranha', 5), ('DED Officer 1st Class/DED Special Ops Raptor', 3)]),
+    ]:
+        for mid in ids:
+            objective = source(db, 'client/missions', mid)['killMission']
+            if objective != dict(dungeonID=dungeon_id, objectiveQuantity=0):
+                raise ValueError(f'Unreviewed Eliminate the Stargate Campers objective for mission {mid}')
+            encounter(mid, 500006, f'Eliminate_the_Stargate_Campers_(Level_{level})', revision,
+                      [group(name, count, UNREPORTED_GROUP_RANGE) for name, count in roster], deadspace=False)
+
+    def guarded_structure(mid, faction, title, revision, rooms, gates, objective, first, second):
+        mission = source(db, 'client/missions', mid)
+        kill = mission['killMission']
+        dungeon = source(db, 'client/dungeons', kill['dungeonID'])
+        native_rooms = dungeon['rooms']
+        if (dungeon['factionID'] != faction or kill['objectiveQuantity'] != 0 or kill.get('objectiveTypeID')
+                or len(native_rooms) != len(rooms) or dungeon['entryObjectID'] != rooms[0][1]
+                or [g['fromObjectID'] for g in dungeon['connections']] != list(gates)
+                or any(str(entry) not in native_rooms[str(rid)]['objects'] for rid, entry in rooms)
+                or any(str(gate) not in native_rooms[str(rid)]['objects'] for (rid, _), gate in zip(rooms, gates))):
+            raise ValueError(f'Unreviewed guarded mission topology for mission {mid}')
+        room_id, _ = rooms[2]
+        object_id, type_id = objective
+        target = native_rooms[str(room_id)]['objects'].get(str(object_id), {})
+        if target.get('typeID') != type_id:
+            raise ValueError(f'Unreviewed structure objective for mission {mid}')
+        missions.append(dict(
+            missionId=mid, level=dungeon['difficulty'], difficulty=500, storyline=False, offerOrder=1,
+            source='https://wiki.eveuniversity.org/' + title, sourceRevision=f'oldid={revision}',
+            rooms=[dict(roomId=rid, entryObjectId=entry) for rid, entry in rooms],
+            gates=[dict(fromObjectId=gates[0], destinationRoomId=rooms[1][0]),
+                   dict(fromObjectId=gates[1], destinationRoomId=room_id, requiresClear=True)],
+            structures=[dict(objectId=object_id, required=True)],
+            waves=[dict(roomId=rooms[1][0], groups=first), dict(roomId=room_id, groups=second)]))
+
+    guarded_structure(
+        1256, 500011, 'The_Small_Armory', 203906,
+        [(3330, 63951), (3331, 63953), (3332, 63973)], (63950, 63952), (63988, 16215),
+        [group('Gistatis Legionnaire/Gistatis Primus', 2, 42500),
+         group('Angel Heavy Missile Battery', 2, 42500, required=False),
+         group('Tower Sentry Angel II', 2, 42500, required=False),
+         group('Gistii Hunter/Gistii Impaler', 3, 30000),
+         group('Gistior Shatterer/Gistior Defacer', 2, 30000),
+         group('Gistum Marauder/Gistum Liquidator/Gistum Phalanx', 2, 30000),
+         group('Gistii Hunter/Gistii Impaler', 3, 77500),
+         group('Gistum Marauder/Gistum Liquidator', 1, 77500),
+         group('Gistatis Primus/Gistatis Tribuni', 1, 77500)],
+        [group('Gistior Shatterer/Gistior Defacer', 4, 65000, required=False),
+         group('Gistum Breaker/Gistum Defeater', 2, 65000, required=False),
+         group('Angel Webifier/Angel Viper', 2, 115000, required=False),
+         group('Gistum Breaker/Gistum Defeater/Gistum Centurion', 2, 115000, required=False)])
+
+    # The dated player report confirms that the first-pocket batteries may survive the gate passage.
+    guarded_structure(
+        1398, 500012, 'Ritualist_Raids', 222184,
+        [(19092, 845142), (19093, 845143), (19094, 845166)], (845141, 845144), (845167, 16727),
+        [group('Corpii Collector/Corpii Seeker', 3, 32500),
+         group('Corpior Cleric/Corpior Devoter/Corpior Friar/Corpior Templar', 9, 32500),
+         group('Corpatis Bishop/Corpatis Shade/Corpatis Fanatic/Corpatis Seer', 4, 32500),
+         group('Corpus Monsignor/Corpus Harbinger/Corpus Oracle', 2, 32500),
+         group('Blood Cruise Missile Battery', 2, 32500, required=False)],
+        [group('Corpii Engraver/Corpii Reaver', 3, 27500, required=False),
+         group('Corpior Devoter/Corpior Cleric/Corpior Friar', 6, 27500),
+         group('Corpatis Bishop/Corpatis Seer/Corpatis Shade', 9, 27500, required=False),
+         group('Corpus Patriarch/Corpus Pope', 2, 27500),
+         group('Blood Raider Sentry Gun', 6, 27500, required=False),
+         group('Blood Heavy Missile Battery', 6, 27500, required=False)])
+
     hidden = [
         (1227, 500020, 'Serpentis', 1, 192024, 590136, [('Coreli Initiate', 12, 15000)]),
         (1228, 500010, 'Guristas_Pirates', 1, 192019, 590184, [('Pithi Arrogator/Pithi Imputor', 5, 20000)]),
@@ -262,12 +413,23 @@ def extend(db, missions, group):
                group('Pithior Guerilla', 1, 30000, required=False),
                group('Pithi Demolisher/Pithi Destructor', 2, 57000),
                group('Pithior Renegade/Pithior Anarchist', 2, 57000)], 53018)
+    # Three Ferox spies pay the pinned Pithatis Enforcer bounty in EVEInfo's level-three run reports.
+    encounter(893, 500010, 'The_Guristas_Spies_(Level_3)', 192011,
+              [group('Pithatis Enforcer', 3, 30000), group('Pithior Anarchist', 3, 60000, required=False),
+               group('Pithatis Assaulter', 1, 60000, required=False)], 53027)
     # The report's "Infanty" is a typo for the pinned Corelior Infantry type.
     encounter(898, 500020, 'The_Serpentis_Spies_(Level_3)', 223606,
               [group('Corelior Infantry/Corelior Soldier', 3, 30000, required=False),
                group('Corelum Chief Infantry/Corelum Chief Sentinel', 1, 30000, required=False),
                group('Tower Sentry Serpentis I', 2, 62000, required=False),
                group('Coreli Agent/Coreli Spy', 5, 71000), group('Serpentis Spy', 3, 71000)], 53182)
+    # EVE-Survival's single ship group matches the native 137 km anchor and EVEInfo identifies the Brutix hulls.
+    encounter(899, 500020, 'The_Serpentis_Spies_(Level_4)', 192060,
+              [group('Tower Sentry Serpentis I', 3, 60000, required=False),
+               group('Tower Sentry Serpentis II', 2, 60000, required=False),
+               group('Tower Sentry Serpentis III', 2, 60000, required=False),
+               group('Corelior Soldier/Corelior Infantry', 4, 137000), group('Corelatis Captain', 2, 137000),
+               group('Corelatis Captain Sentry', 1, 137000), group('Core Port Admiral', 1, 137000)], 70406)
     # University reports give the spy display names. The corresponding EVE-Survival
     # SanshaSpies2/3/4 reports explicitly identify their underlying catalog hulls:
     # Centior Cannibal; Centatis Specter; and Centatis Devil/Wraith, respectively.
@@ -297,6 +459,143 @@ def extend(db, missions, group):
     encounter(2255, 500011, 'Eliminate_the_Pirate_Campers_(Angel_Cartel)', 203561,
               [group('Gistior Defacer/Gistior Shatterer', 5, 5000),
                group('Gistum Depredator/Gistum Predator/Gistum Smasher/Gistum Crusher', 3, 5000)], deadspace=False)
+
+    # The level-one reports identify the center group by the Ghost Ship. The level-two
+    # objective is the group around the monument. Other groups can be left alive.
+    score = [
+        (2407, 500011, '(Angel_Cartel)_(Level_1)', 209646, 653506,
+         [('Gistii Raider/Gistii Hunter', 2, 45000, False), ('Gistii Nomad/Gistii Ambusher', 1, 45000, False),
+          ('Gistii Nomad/Gistii Ambusher', 1, 48000, True), ('Gistii Hunter/Gistii Raider', 1, 48000, True),
+          ('Gistii Ruffian', 1, 48000, True), ('Gistior Defacer/Gistior Haunter', 1, 48000, True),
+          ('Gistii Nomad/Gistii Ambusher', 3, 45000, False)]),
+        (2391, 500010, '(Guristas_Pirates)_(Level_1)', 192048, 653574,
+         [('Pithi Saboteur/Pithi Despoiler', 3, 40000, False),
+          ('Pithi Saboteur/Pithi Despoiler/Pithi Wrecker', 3, 50000, True),
+          ('Pithior Renegade/Pithior Anarchist', 1, 50000, True),
+          ('Pithi Plunderer/Pithi Wrecker/Pithi Destructor', 3, 40000, False)]),
+        (2416, 500012, '(Blood_Raiders)', 192046, 652800,
+         [('Corpii Collector/Corpii Seeker', 2, 40000, False), ('Corpior Converter', 1, 40000, False),
+          ('Corpii Follower/Corpii Seeker', 5, 48000, False), ('Corpii Herald/Corpii Upholder', 3, 62000, True),
+          ('Corpior Templar', 1, 62000, True), ('Corpum Arch Reaver', 1, 62000, True)]),
+        (2449, 500020, '(Serpentis)_(level_2)', 192055, 652824,
+         [('Coreli Initiate/Coreli Scout/Coreli Watchman/Coreli Patroller', 5, 40000, False),
+          ('Coreli Initiate/Coreli Scout', 4, 50000, False), ('Corelior Soldier/Corelior Infantry', 1, 50000, False),
+          ('Coreli Spy/Coreli Agent', 3, 62000, True), ('Corelior Trooper', 2, 62000, True),
+          ('Corelum Chief Spy', 1, 62000, True)]),
+    ]
+    for mid, faction, variant, revision, entry, roster in score:
+        encounter(mid, faction, f'The_Score_{variant}', revision,
+                  [group(names, count, distance, required=required) for names, count, distance, required in roster], entry)
+
+    # The Guristas level-three variant locks the second gate until its first
+    # pocket is cleared. Only the radio telescope group is required in pocket two.
+    first_pocket, second_pocket = 14777, 14778
+    missions.append(dict(
+        missionId=2470, level=3, difficulty=500, storyline=False, offerOrder=1,
+        source='https://wiki.eveuniversity.org/The_Score_(Guristas_Pirates)_(Level_3)', sourceRevision='oldid=223423',
+        rooms=[dict(roomId=14776, entryObjectId=642754), dict(roomId=first_pocket, entryObjectId=642757),
+               dict(roomId=second_pocket, entryObjectId=642866)],
+        gates=[dict(fromObjectId=642755, destinationRoomId=first_pocket),
+               dict(fromObjectId=642756, destinationRoomId=second_pocket, requiresClear=True)],
+        waves=[
+            dict(roomId=first_pocket, groups=[
+                group('Pithi Destructor', 1, 50000), group('Pithum Mortifier/Pithum Inferno', 2, 50000),
+                group('Pithi Destructor', 1, 54000), group('Pithum Mortifier/Pithum Inferno', 2, 54000),
+                group('Pithi Demolisher', 1, 62000), group('Pithior Terrorist', 1, 62000)]),
+            dict(roomId=second_pocket, groups=[
+                group('Pithi Plunderer', 1, 62000, required=False), group('Pithum Inferno', 2, 62000, required=False),
+                group('Pithi Destructor/Pithi Demolisher', 2, 64000, required=False),
+                group('Pithum Eraser', 1, 64000, required=False),
+                group('Pithi Destructor/Pithi Demolisher', 2, 70000), group('Pithum Mortifier', 1, 70000),
+                group('Pithatis Enforcer/Pithatis Assaulter', 1, 70000)]),
+        ]))
+
+    # Both reports identify clearing pocket one and defeating pocket two's third group.
+    # Keep one Mammoth in that group and use native room anchors for reported ranges.
+    first_pocket, second_pocket = 14937, 14938
+    missions.append(dict(
+        missionId=2561, level=4, difficulty=500, storyline=False, offerOrder=1,
+        source='https://wiki.eveuniversity.org/The_Mordus_Headhunters_(Level_4)', sourceRevision='oldid=231829',
+        rooms=[dict(roomId=14936, entryObjectId=649926), dict(roomId=first_pocket, entryObjectId=649928),
+               dict(roomId=second_pocket, entryObjectId=649991)],
+        gates=[dict(fromObjectId=649927, destinationRoomId=first_pocket),
+               dict(fromObjectId=649979, destinationRoomId=second_pocket, requiresClear=True)],
+        waves=[
+            dict(roomId=first_pocket, groups=[
+                group('Mordus Leopard/Mordus Lion', 5, 22000),
+                group('Mordus Phanti/Mordus Gigamar/Mordus Sequestor', 3, 22000),
+                group('Mordus Gladius', 4, 78000), group('Mordus Bounty Hunter', 2, 78000),
+                group('Mordus Puma/Mordus Lion', 5, 78000),
+                group('Mordus Katana/Mordus Gladius', 6, 83000), group('Mordus Bobcat', 4, 83000),
+                group('Mordus Sequestor', 2, 83000)]),
+            dict(roomId=second_pocket, groups=[
+                group('Mordus Sabre/Mordus Katana', 8, 18000, required=False),
+                group('Mordus Bounty Hunter', 2, 18000, required=False),
+                group('Mordus Gladius', 5, 50000, required=False),
+                group('Mordus Bobcat/Mordus Cheetah/Mordus Leopard/Mordus Lion/Mordus Puma', 12, 50000, required=False),
+                group('Mordus Sequestor/Mordus Phanti/Mordus Gigamar', 5, 50000, required=False),
+                group('Mordus Katana', 4, 80000), group('Mordus Leopard/Mordus Lion', 5, 80000),
+                group('Mordus Sequestor', 2, 80000), group('Mordus Mammoth', 1, 80000),
+                group('Mordus Katana/Mordus Bounty Hunter', 5, 100000, required=False),
+                group('Mordus Bounty Hunter', 2, 100000, required=False),
+                group('Mordus Cheetah/Mordus Puma', 8, 100000, required=False)]),
+        ]))
+
+    militants = 25373
+    for mid, faction, title, revision, entry, carrier, groups in [
+        (2542, 500011, '(Angel_Cartel)_(Level_2)', 231043, 671874, 'Angel Cartel Personnel Transport',
+         [group('Gistii Hijacker/Gistii Rogue/Gistii Ruffian/Gistii Nomad', 6, 35000, required=False),
+          group('Gistii Hijacker/Gistii Rogue', 8, 50000), group('Gistior Defacer/Gistior Haunter', 1, 50000),
+          group('Gistum Depredator/Gistum Predator', 1, 50000)]),
+        (2546, 500019, "(Sansha's_Nation)", 191943, 653071, 'Sanshas Personnel Transport',
+         [group('Centii Butcher/Centii Manslayer/Centii Minion/Centii Servant', 3, 40000, required=False),
+          group('Centii Slavehunter/Centii Savage/Centii Minion', 6, 45000),
+          group('Centum Ravager', 1, 45000)]),
+    ]:
+        objective = source(db, 'client/missions', mid)['killMission']
+        if objective.get('objectiveTypeID') != militants or objective.get('objectiveQuantity') != 10:
+            raise ValueError(f'Unreviewed transport cargo for mission {mid}')
+        transport = group(carrier, 2, groups[-1]['range'], lootTypeId=militants, lootQuantity=objective['objectiveQuantity'])
+        encounter(mid, faction, f'Smuggler_Interception_{title}', revision, [*groups, transport], entry)
+
+    # These dungeons use the generic mission faction in the pinned catalog. The
+    # encounter actors are Rogue Drones. The Silo is the localized name of type 18012.
+    def drone_group(names, count, distance, npc_group, **flags):
+        return group(names, count, distance, npc_group=npc_group, enemyFaction=drone_faction, **flags)
+
+    for mid, level, revision, rooms, gate_ids, rosters in [
+        (1219, 2, 191890, [(13916, 585972), (13917, 585975), (13918, 586052)], [585971, 586019], [
+            [drone_group('Infester Alvi/Splinter Alvi/Sunder Alvi/Raider Alvi', 6, 20000, infester_group),
+             drone_group('Splinter Alvi/Render Alvi', 5, 64000, infester_group)],
+            [drone_group('Wrecker Alvum', 1, 12000, 803)]]),
+        (1222, 3, 201909, [(13903, 585561), (13904, 585564), (13905, 585641)], [585560, 585608], [
+            [drone_group('Annihilator Alvum', 4, 19000, 803), drone_group('Devastator Alvum', 4, 22000, 803),
+             drone_group('Raider Alvi/Sunder Alvi', 2, 45000, infester_group),
+             drone_group('Violator Alvum', 2, 45000, 803), drone_group('Viral Infector Alvum', 3, 65000, 803)],
+            [drone_group('Devastator Alvum/Violator Alvum/Viral Infector Alvum', 8, 20000, 803),
+             drone_group('Defeater Alvatis/Enforcer Alvatis', 1, 32000, 801),
+             drone_group('Violator Alvum/Viral Infector Alvum/Disintegrator Alvum', 1, 32000, 803),
+             drone_group('Bomber Alvum', 1, 32000, 803, required=False)]]),
+    ]:
+        # Level three uses the reported variant that requires both objective groups in pocket two.
+        missions.append(dict(missionId=mid, level=level, difficulty=500, storyline=False, offerOrder=1,
+                             source=f'https://wiki.eveuniversity.org/Rogue_Drone_Harassment_(Level_{level})',
+                             sourceRevision=f'oldid={revision}',
+                             rooms=[dict(roomId=room_id, entryObjectId=entry_id) for room_id, entry_id in rooms],
+                             gates=[dict(fromObjectId=gate_id, destinationRoomId=rooms[i + 1][0], requiresClear=i > 0)
+                                    for i, gate_id in enumerate(gate_ids)],
+                             waves=[dict(roomId=room_id, groups=groups) for (room_id, _), groups in zip(rooms[1:], rosters)]))
+
+    encounter(1237, 500021, 'The_Roving_Rogue_Drones', 203054,
+              [group('Belphegor Apis/Mammon Apis', 4, 55000, enemyFaction=drone_faction),
+               group('Infester Alvi', 1, 55000, npc_group=infester_group, enemyFaction=drone_faction)], 59191)
+    encounter(1214, 500021, 'The_Drone_Infestation_(Level_1)', 230772,
+              [group('Belphegor Apis/Mammon Apis', 2, 30000, required=False, enemyFaction=drone_faction),
+               group('Infester Alvi', 1, 30000, npc_group=infester_group, required=False, enemyFaction=drone_faction),
+               group('Belphegor Apis/Mammon Apis', 2, 45000, required=False, enemyFaction=drone_faction),
+               group('Infester Alvi', 1, 45000, npc_group=infester_group, required=False, enemyFaction=drone_faction),
+               group('Drone Point Defense Battery', 1, 45000, required=False, enemyFaction=drone_faction)],
+              582811, structure_type=18012)
 
     seek = [
         (931, 500011, 'Angel_Cartel', 1, 191907, 758908,
@@ -422,15 +721,32 @@ def extend(db, missions, group):
     encounters = {tuple(sorted(source(db, 'client/missions', m['missionId'])['killMission'].items())): m
                   for m in missions if m['waves']}
     audit = []
+    hulls = ship_types(db)
+    militia = militia_mission_ids()
+    career = career_mission_ids()
+    epic = epic_mission_ids()
     for key, raw in db.execute("SELECT Key,Data FROM SourceRecord WHERE Dataset='client/missions' ORDER BY CAST(Key AS INTEGER)"):
         mid, data = int(key), json.loads(raw)
         sde = source(db, 'sde/missions', mid)
         name = sde.get('name', {}).get('en', str(mid))
         template = data['contentTemplate'].rsplit('_', 1)[-1]
+        special_agent = special_agent_mission(mid, data, hulls)
+        if mid in militia:
+            if template != 'BasicKillMission' or not data.get('killMission', {}).get('dungeonID'):
+                raise ValueError(f'Militia binding {mid} needs a catalog encounter')
+            special_agent = 'Existing faction warfare mission binding'
+        if mid in career:
+            special_agent = 'Pinned career agent chain stage'
+        if mid in epic:
+            special_agent = 'Pinned epic arc graph stage'
         if mid in KNOWN_BLOCKERS:
             reason = KNOWN_BLOCKERS[mid]
         elif mid in admitted:
             reason = None
+        elif special_agent:
+            reason = None
+        elif template == 'HeraldryMission':
+            reason = 'Requires evidence for Paragon ammunition, singleton or standing rewards'
         elif template == 'BasicMiningMission':
             if mid in MINING_MISSIONS:
                 missions.append(mining_definition(db, mid, data))
@@ -468,7 +784,7 @@ def extend(db, missions, group):
         else:
             reason = 'Requires another mission or agent lifecycle'
         audit.append(dict(missionId=mid, name=name, template=template, status='blocked' if reason else 'admitted',
-                          reason=reason or ('Catalog mining deposits' if template == 'BasicMiningMission'
+                          reason=reason or special_agent or ('Catalog mining deposits' if template == 'BasicMiningMission'
                                             else 'Catalog cargo or reviewed encounter')))
     return audit
 

@@ -2,6 +2,185 @@
 
 [Documentation](../README.md) / [Protocol index](../protocol.md)
 
+## Dragging loaded charges between fitting slots
+
+The build 3662168 fitting window reads the first returned destination stack ID when a pilot drags a fitted charge
+to another module. `FittingSlotController.FitCharges` calls `DogmaLocation.UnloadAmmoToContainer` with ship cargo
+as the destination, substitutes the returned item ID for the source sublocation tuple and then loads the charge.
+`UnloadAmmoToContainer` returns the actual `dogmaIM.UnloadAmmo` reply. Eden previously moved the ammunition but
+returned Python None, so the client kept the old sublocation instead of loading the new cargo stack.
+
+`UnloadAmmo` now returns a Python list of destination stack IDs from the committed inventory changes for ships and
+structures. A partial transfer returns the split stack's ID. An unload that moves no charges returns Python None.
+`LoadAmmo` continues to return Python None. The fitting window's second call uses the existing loading, compatibility
+and reload checks.
+
+Static inspection used the original client archive SHA-256
+`37FB2AF4FA0EC5C8FA320F34CD28C8B7DBF4917418336B38CBA20A7860DB0368`. EVE.js 261108.1 for build 3396210
+returns the same list or None in `moduleOperation.js` (SHA-256 prefix `C27F281DEB63`). Eden reuses its existing
+Blue list serialization and the pinned 75mm Gatling Rail I and Antimatter Charge S test inputs.
+[CCP fitting window](https://support.eveonline.com/hc/en-us/articles/213287845-Fitting-Window) ·
+[EVE University fitting by dragging charges](https://wiki.eveuniversity.org/Enforcer_(Career_Agent))
+
+**Automated validation.** Both cases of
+`FullyQualifiedName=Eden.Protocol.Tests.Ammunition.AmmunitionTests.NativeSlotToSlotDragReloadsFromTheStackReturnedByUnload`
+reproduced the Python None reply before the correction. The final exact filter selected that method,
+`NativeLoadingPrimesTheTupleSublocationAndReloadStateForReconnect`,
+`AcceptsTheSimulationAmmoSetAndContinuesWithTheNativeLoadCall` and
+`NativeBayLoadTuplePrimingPartialUnloadAndPersonalWithdrawalUseCorporationCustody`. All five cases passed in 32.32
+seconds. Full and partial ship transfers load another gun using the decoded stack ID and conserve rounds. The simulation
+case covers empty unloads and the structure case checks the corporation's destination stack.
+
+The solution build passed in 7.31 seconds with zero warnings or errors. All 86 cases in `AmmunitionTests`,
+`WeaponBankTests`, `ApplyFittingTests`, `PilotFittingTests` and `StructureAmmunitionTests` passed. The build and
+affected tests took 55.11 seconds. The catalog and formatting policy suites passed eight and nine tests. The added
+documentation links, file encoding, whitespace and `git diff --check` passed. `Format.ps1 -Check` passed across
+3,150 files. The build, tests and policy checks took 95.03 seconds in total.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Drag loaded ammunition from one fitted railgun onto another compatible railgun in the
+fitting window and check that the charge leaves the first module and reloads in the second.
+
+## Module online state in space
+
+Pilots can switch fitted, idle modules online or offline in normal flight without a nearby fitting service. Offlining
+does not cost capacitor. Onlining away from an eligible fitting service requires at least 95% charge and reduces it to
+33% of capacity. Docked pilots and pilots with access to Eden's mobile fitting service can online modules without that
+charge. A weapons timer prevents use of the fitting service, so the ordinary capacitor rule applies to onlining. Installing
+or removing a module in space still requires a fitting service.
+
+Build 3662168 `OnlineEffect.Start` in `eve/common/script/dogma/online.pyj` checks `CanFitItemInSpace` before charging
+capacitor. `appConst.pyj` specifies 95 and 33 for the minimum and remainder. Below the threshold the native
+`NotEnoughCapacitorForOnline` error reports the module type and current and required charge percentages. Both
+`dogmaIM.SetModuleOnline` and `TakeModuleOffline` and the bound Godma `online` effect calls use the same resident
+operation. Capacitor and module online state commit together and are saved by the existing checkpoint.
+
+The original client archive SHA-256 is `37FB2AF4FA0EC5C8FA320F34CD28C8B7DBF4917418336B38CBA20A7860DB0368`.
+EVE.js 261108.1 for build 3396210 also supports in-space toggles and checks for 95% charge in
+`moduleOperation.js` (SHA-256 prefix `C27F281DEB63`). It uses a 5% remainder. Eden takes the value from its pinned
+client. The tests use the build-3662168 Venture and Civilian Gatling Railgun catalog records.
+[EVE University modules](https://wiki.eveuniversity.org/Modules#Offline) ·
+[EVE University Orca fitting service](https://wiki.eveuniversity.org/Orca_Guide)
+
+**Automated validation.** The solution build passed in 20.31 seconds with zero warnings or errors. The exact-method
+filter selected `FittedModuleTogglesAwayFromServiceAndOnlyOnliningChargesCapacitor`,
+`VentureRefitsAtRorqualAndRespectsRangeAndWeaponsDeadline` and
+`GameplayRejectionShowsTextAndKeepsTheModuleAndSessionIntact`. All seven cases passed in 14.25 seconds. They cover both
+native routes, refusal below 95%, success at 95%, capacitor and online-state persistence, idempotent retries, fitting-service
+exemption, the weapons timer and the original invalid-operation dialog.
+
+The same filter plus the `PilotFittingTests`, `FittingConstraintTests`, `DeveloperFittingTests` and `MicrowarpdriveTests`
+classes passed all 42 cases in 26.89 seconds. The catalog and formatting policy suites passed eight and nine tests.
+`Format.ps1 -Check` passed across 3,150 files. The affected run and policy checks took 73.21 seconds in total.
+The new documentation links, file encoding, whitespace and `git diff --check` passed.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Toggle an idle module offline and online outside fitting-service range. After it goes
+online, try to online a second fitted module before the capacitor recovers.
+
+## Trained skills in fitting simulation
+
+The build 3662168 fitting simulator reads the selected character's skill modifiers from its local dogma location. If that
+location has not been created, `ClientDogmaInstanceManager._GetBrainForGhostFitting` calls
+`dogmaIM.GetAllInfo(characterID, None, None)` and consumes `charInfo` as the four-part brain. Ordinary `StateManager.Prime`
+passes three flags to `GetAllInfo` and unpacks `charInfo` as a character item map and a brain. Eden recognizes the simulator
+request for the selected pilot and returns the four-part brain directly in `charInfo`. Normal ship and structure priming
+continue to use the two-part `charInfo` tuple.
+
+The brain now sends the hull bonuses that authoritative fitting already applies for trained CPU, power grid, capacitor
+capacity and recharge, targeting range and scan resolution, and shield, armor and structure HP and shield recharge.
+Bootstrap and skill-change notifications use the same modifiers, including effective Expert System levels.
+
+Combat drones receive owner-required-skill modifiers for the trained size and racial specialization skills, Drone
+Interfacing, Drone Navigation, Drone Sharpshooting and Drone Durability. The client applies each modifier to drones whose
+catalog prerequisites match its selector. Catalog effects 316 and 504 carry trained drone count and avionics bonuses for
+the local graph. Godma item primes supply effective counts and range for live readouts. The pinned client applies a
+five-drone minimum to its fitting preview limit.
+
+The original client archive SHA-256 is
+`37FB2AF4FA0EC5C8FA320F34CD28C8B7DBF4917418336B38CBA20A7860DB0368`. Static inspection covered
+`clientDogmaIM._GetBrainForGhostFitting`, `StateManager.Prime`, `FittingDogmaLocation.GetMaxActiveDrones`,
+`CharacterDogmaItem.Load`, and `BaseDogmaLocation._UpdateShipEffectsFromBrain`. Build 3662168 supplies hull effects
+397, 490, 2432, 485, 507, 699, 392, 271, 446 and 486 and drone effects 316, 504 and 6663–6667. The pinned
+`DroneDmgBonus` Python effect 1730 establishes the size and specialization selectors. EVE.js 261108.1 for build 3396210
+uses the same effect selector in `fittingBrainBuilder.js` (SHA-256 prefix `6DBAEFBE0CC7`).
+[EVE University fitting skills](https://wiki.eveuniversity.org/Fitting_Skills) ·
+[EVE University drone skills](https://wiki.eveuniversity.org/Skills:Drones)
+
+**Automated validation.** `Test-Feature.ps1` passed 13 cases after a 15.50-second build and 22.71-second test command.
+The filter selected `EarnedShipAttributeSkillsMatchTheAuthoritativeFit`,
+`NativeDronePrimeUsesSkilledHpAndDamageForTooltipsAndBayDamageGauges`, `NativePrimeAndFittingBrainCarryDroneControlAndTracking`,
+`NativeExpertSystemUnlocksRetrieverAndStripMinerUntilExactExpiryThenSupportsRemoval` and
+`DockedControlInstallsAthanorCoreFuelAndServiceAndCheckpointsTheRealShip`. Coverage includes untrained through level V,
+the simulator's reply at a station and under structure control, an active Expert System and the different skill selectors
+on Warrior I and II. On `8e41f234`, the same filter with the entire `ExpertSystemTests` class passed 15 cases in 18.15 seconds
+after a 19.15-second solution build. Catalog and formatting policy checks passed eight and nine tests respectively.
+`Format.ps1 -Check` passed in 56.39 seconds.
+
+The broader check on `6bef7afb` with this change passed 466 of 467 cases in 6 minutes 14 seconds. The filter selected
+`PilotBrainTests`, `PilotFittingTests`, `AmmunitionTests`, `CombatDroneTests`, `DroneHullTests`, `DroneEquipmentTests`,
+`ExpertSystemTests`, `StructureControlTests`, `TypedCallResultTests`, `FreeSkillPointServiceTests`, `PilotHealthTests`,
+`TargetingTests`, `FittingConfigurationTests` and `FittingSnapshotTests` by fully qualified name substring.
+`ModuleAndBrainReadsShareTheCommittedGraphAndReturnIndependentAttributes` counted 10 SQL commands against a limit of 9.
+The exact-method replay on unchanged `6bef7afb` reproduced the same failure in 13.07 seconds. The full suite was outside
+the scope of this run.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Simulate the same fit on pilots with different capacitor and shield skills. Compare
+Warrior I and II with Minmatar Drone Specialization trained and check the simulated drone control range.
+
+## Marauder Bastion modules
+
+The pinned build **3662168** catalog gives Bastion Module I type **33400**, group **515**, and default effect **6658**
+(`moduleBonusBastionModule`, `effects.SiegeMode`). The four Navy and Fleet variants share the effect and use their own
+catalog values (types **93999**, **94008**, **94009**, and **94010**). Each fits one module per Marauder, requires Advanced
+Weapon Upgrades V and Energy Grid Upgrades V, and has a **60-second** cycle without fuel or capacitor cost. The 50 catalog
+modifiers cover mobility, weapon cadence and range, local repairs, damage resistance and remote assistance. Rate of fire is
+exempt from stacking penalties. Bastion's range, repair amount and resistance bonuses share the corresponding stacking
+groups. Rapid Heavy Missile Launchers receive neither Bastion's cadence bonus nor its missile range bonus.
+
+EVE.js **261108.1**, build **3396210**, identifies the effect and enforces movement restrictions in `shipActionRestrictions.js`
+(`d394bb2c65f1`) and stops propulsion on activation in `scene/modules.js` (`9dece322a041`).
+[Bastion behavior](https://wiki.eveuniversity.org/Marauders#Bastion_Module) ·
+[CCP balance notes](https://www.eveonline.com/news/view/patch-notes-version-23-01)
+
+Eden activates Bastion through the native dogma call. An active cycle stops propulsion and locks movement, warp, docking and
+tethering. The weapons timer ends 60 seconds after the last active cycle. Deactivating the module cancels repeats and lets
+the current cycle finish. Repeats are scheduled while the pilot stays connected. The world checkpoint preserves the active
+cycle and weapons timer, and the ship resumes its native Bastion effect on reconnect while the cycle is active.
+[Ship content inventory](../ship-content-coverage.json)
+
+**Automated validation.** The exact method `MarauderBastionRunsWithoutFuelAndRestoresItsDeadlineAfterCheckpoint` passed
+through `Test-Feature.ps1` in 8.67 seconds after a 10.00-second build. It covers activation without fuel, interruption of
+active propulsion, the native effect and 60-second cycle, weapon cadence and shield resistance, checkpoint reopen,
+the weapons timer, timed repeats and deactivation. The pinned-catalog export verified fitting and operation admission for
+all five module types and the Bastion role on all five Marauder hulls.
+
+Before rebasing, the following focused filter passed **209 tests** in 242.28 seconds.
+
+```text
+FullyQualifiedName~TechTwoHullTests|FullyQualifiedName~ShipContentCoverageTests|FullyQualifiedName~PropulsionTests|FullyQualifiedName~StructureTetherTests|FullyQualifiedName~CrimewatchTests|FullyQualifiedName~CapitalTravelTests.MarauderBastionRunsWithoutFuelAndRestoresItsDeadlineAfterCheckpoint|FullyQualifiedName~CapitalTravelTests.RevelationJumpsAndPaysForSiegeThroughCheckpointReopen|FullyQualifiedName~CapitalTravelTests.ApostleJumpsAndAppliesPaidTriageArmorRepair|FullyQualifiedName~CapitalTravelTests.CombatCapitalCannotTakeStargateIntoHighSecurityOrWhileInSiege
+```
+
+After rebasing onto `3cdda38f`, the solution built in 15.70 seconds with zero warnings or errors. The overlap filter passed
+**15 tests** in 16.64 seconds, including the career-agent repair lesson and the resident remote-repair path.
+
+```text
+FullyQualifiedName~CapitalTravelTests.MarauderBastionRunsWithoutFuelAndRestoresItsDeadlineAfterCheckpoint|FullyQualifiedName~CapitalTravelTests.RevelationJumpsAndPaysForSiegeThroughCheckpointReopen|FullyQualifiedName~CapitalTravelTests.ApostleJumpsAndAppliesPaidTriageArmorRepair|FullyQualifiedName~CapitalTravelTests.CombatCapitalCannotTakeStargateIntoHighSecurityOrWhileInSiege|FullyQualifiedName~CareerMissionTests.SoldierModuleLessonsRequireTheMatchingTargetAndPaidRepairCycle|FullyQualifiedName~RemoteRepairTests.WarmRemoteRepairPaysAndSettlesOnceOnResidentWorld|FullyQualifiedName~ShipContentCoverageTests
+```
+
+The final exact-method replay on `1547ae5f` passed in 8.39 seconds after an 11.58-second build. The catalog setup and
+formatting policy suites passed 8 and 9 cases. `Format.ps1 -Check` and the whitespace check passed. The full .NET suite
+was outside the scope of this run.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Activate Bastion in a Marauder with a running afterburner. Confirm the transformation,
+immobilization, module timer and remaining weapons timer when the cycle finishes.
+
 ## Configurable ship fitting budgets
 
 World configuration scales final CPU output, power output, calibration capacity and drone
@@ -67,6 +246,38 @@ policy suites, and formatting verification passed.
 **Live acceptance.** Not performed. Agent client testing is disabled.
 
 **Optional maintainer checks.** None.
+
+## Multifit rig checkbox on packaged ships, November 22, 2026
+
+Clicking **Fit Ships** with a packaged Venture and matching hangar stock returned `Invalid ship fitting request`.
+Build **3662168** `MultiFitWnd.DoFitShips` forwards `rigCB.GetValue()` through `fittingSvc.DoFitManyShips`
+as the `ship.FitShips` keyword `fitRigs`. In `carbonui/control/checkbox.pyj`, `SetChecked` stores an integer and
+`GetValue` returns it. `fittingSvc.LoadFitting` sends a Boolean on the assembled-ship `FitFitting` route.
+The Multifit adapter accepts `0`, `1` and Boolean values and converts them before the shared fitting parser.
+Invalid values fail before the resident world assembles a hull or consumes stock.
+
+Inert inspection used pinned archive SHA-256 `37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`.
+The `multiFitWnd.pyj` decoded payload SHA-256 is `7072a6670bfbfe081bc3e2b4a665dc379607b7edf36dc823d9719c42005290e4`.
+The `checkbox.pyj` decoded payload SHA-256 is `2e32ab9a3d825a7d4e9255214ecdfd635ee79841b6df0f0813ab63bd2c627e1b`.
+All three client modules match the staged overlay byte-for-byte. The
+[native batch record](#native-multifit-batches-november-15-2026) identifies the EVE.js snapshot and notes the
+historical EVE University ship-supply procedure. Carbon Blue distinguishes integer zero and one from the Boolean tags.
+[Carbon Blue Marshal.cpp at fcbf0c2][multifit-carbon]
+
+**Automated validation.** The exact filter
+`FullyQualifiedName=Eden.Protocol.Tests.Fittings.MultifitTests.NativeRigCheckboxFitsPackagedShipsAndPreservesTheFinalPackageId`
+reproduced `Invalid ship fitting request` in all three cases before the fix. After the fix, all three passed in 26.69 s
+(17.14 s build), covering one and two packaged Ventures, rig selection and preservation of the final package ID.
+The combined `FullyQualifiedName~Eden.Protocol.Tests.Fittings.MultifitTests` and
+`FullyQualifiedName~Eden.Protocol.Tests.Fittings.ApplyFittingTests` filter passed 30 cases in 48.86 s.
+The solution build passed in 2.21 s with zero warnings or errors. The catalog and formatting policy suites passed 8 and 9 cases.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Click **Fit Ships** on one packaged Venture with the modules in the Item Hangar.
+For a fit with a rig, select **Fit Rigs** and confirm the rig is installed on the assembled hull.
+
+[multifit-carbon]: https://github.com/carbonengine/blue/blob/fcbf0c2e7f092568adb82edb7b8fb97df75ad4ae/src/Marshal.cpp
 
 ## Multifit exhausted-stack notifications, November 17, 2026
 
@@ -717,6 +928,34 @@ Sources: unchanged staged `code.ccp`, SHA-256 **37FB2AF4FA0EC5C8FA320F34CD28C8B7
 
 **Optional maintainer checks:** After updating/rebuilding/restarting the server, save the Brutix Navy Issue as a personal fitting, reopen the fitting browser and reconnect to confirm it remains available. Overwrite the same plan, rename it and delete the test entry.
 
+## Grouped turrets on the target bracket
+
+In build 3662168, `targetInBar.ProcessShipEffect` adds an icon keyed by the effect's module ID when the
+notification names that target. On bracket creation, `godma.GetActiveModulesOnTargetID` also selects by
+the target recorded on each active module. Inert inspection used the pinned `code.ccp` archive
+SHA-256 `37FB2AF4FA0EC5C8FA320F34CD28C8B7DBF4917418336B38CBA20A7860DB0368`.
+
+Eden previously sent the target on every member's active effect. The turret bank now assigns the target to
+the master in its start and stop notifications and in the active effect shown by ship primes. Every member
+still has a cycle state and its own Destiny firing effect. The reference EVE.js
+`space/runtime/scene/modules.js` publishes individual firing graphics for grouped turrets.
+
+**Automated validation**
+
+The two-gun regression on `cba9c4e6` produced two notifications carrying the same target. The fixed test
+activates through a non-master gun and checks for one targeted start and stop, a targetless active effect
+on the other gun, and two firing graphics. The exact test passed in 12.17 seconds including runner startup.
+The combined class filter for `WeaponBankTests`, `PilotCombatTests`, `PilotTurretTests`,
+`RemainingModuleHeatTests`, and `NaniteRepairProtocolTests` passed 90 cases in 75.50 seconds. All 17 Python
+policy cases and the repository formatting check passed.
+
+After rebasing onto `ce56936d`, the solution built in 59.67 seconds with zero warnings or errors and the
+`WeaponBankTests` and `FlightBoundaryTests` filter passed all 37 cases in 91.20 seconds.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
 ## Persistent weapon grouping
 
 Build 3662168's dogma location calls now support `LinkWeapons(ship, master, source)`, `MergeModuleGroups`, `PeelAndLink`, `UnlinkModule(ship, master)`, `DestroyWeaponBank`, `LinkAllWeapons` and `UnlinkAllModules`. Link/merge/peel/group-all return the complete master-to-slave-list map. Unlink returns the detached slave ID. Destroy and ungroup-all return None. The client updates its bank cache from these replies. The third member of the four-member ship-state tuple carries the same map for login and boarding. Fitting changes notify `OnWeaponBanksChanged(ship, banks)`.
@@ -780,6 +1019,8 @@ Checked the same pinned build **3662168**, `code.ccp` SHA-256 **37fb2af4fa0ec5c8
 The starter policy adds the 75mm gun at **1,000 ISK**, plus Iron and Antimatter at **1 ISK per round**, with finite stocks of 100 guns and 100,000 of each charge at visited market stations. Existing orders, stock and history stay intact. Other small Tech I hybrid types can use the family implementation when available as owned equipment; the starter market initially offers only the 75mm gun. Required skills, high-slot/turret limits and combined CPU/grid remain enforced.
 
 Pinned `DogmaLocation.LoadChargesToModule` and `LoadAmmoToModules` call `dogmaIM.LoadAmmo(shipID, moduleIDList, chargeItemIDList, ammoLocationID)`. `UnloadAmmoFromModules` passes a module list; `UnloadAmmoToContainer` passes a single module, a `(locationID, ownerID, flagID)` destination and optional quantity. The HUD's native unload menu uses current-ship cargo. One ammunition handler owns both methods; source IDs must be distinct owned stacks of one compatible charge type in ordinary cargo or the current docked station hangar. Unload supports partial quantities for a single module. Invalid batches and capacity failures roll back the entire transfer.
+
+See [dragging loaded charges between fitting slots](#dragging-loaded-charges-between-fitting-slots) for the unload reply.
 
 Loaded rounds remain actual owned stacks whose durable `LocationId` is the fitted module's ID. They are absent from ordinary cargo until unloaded. The wire identity is the native **(shipID, flagID, chargeTypeID)** sublocation. Godma primes carry a null `invItem`, that tuple identity, charge attributes including **805 / quantity**, and no active effects. Mixed-key `shipInfo` uses the existing `BlueDictionary` type. `shipState.instanceFlagQuantityCache` contains a four-column native DBRow `(locationID, flagID, typeID, quantity)` per slot, as consumed by `BaseDogmaLocation.LoadSublocations` and `GetQuantityFromCache`. Quantity changes use the tuple as the item key; zero quantity removes the exhausted sublocation. The existing reduction opcode now carries the inventory descriptor's reduce state; no new opcode is introduced.
 

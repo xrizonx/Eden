@@ -67,6 +67,7 @@ public sealed record LiveCombatShip(
     CombatTimer? NpcAggression = null
 )
 {
+    public bool AutonomousPilot { get; init; }
     public IReadOnlyDictionary<long, long> LocalCooldowns { get; init; } = new Dictionary<long, long>();
 
     public LiveCombatShip SettleRepairs(long now)
@@ -126,6 +127,7 @@ public sealed record LiveCombatNpc(
 {
     public NpcAnchorKind AnchorKind { get; init; }
     public long AnchorId { get; init; }
+    public bool RequiresMissionDamageSettlement { get; init; }
     public NpcStandingThresholds? StandingThresholds { get; init; }
     public IReadOnlyList<ElectronicWarfareContact> IncomingElectronicWarfare { get; init; } = [];
 

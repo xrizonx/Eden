@@ -40,7 +40,9 @@ These records preserve milestone evidence and historical observations. Dates, sc
 - [Persistent home stations and docked clone transfer](#persistent-home-stations-and-docked-clone-transfer)
 - [Catalog agent directory and saved agents](#catalog-agent-directory-and-saved-agents)
 - [Persistent personal jump clones](#persistent-personal-jump-clones)
+- [Pochven NPC clone bays](#pochven-npc-clone-bays)
 - [Persistent account redemption](#persistent-account-redemption)
+- [Direct Expert System redemption](#direct-expert-system-redemption)
 - [Persistent unallocated skill points](#persistent-unallocated-skill-points)
 - [Persistent learning implants](#persistent-learning-implants)
 - [Persistent cerebral accelerators](#persistent-cerebral-accelerators)
@@ -86,7 +88,7 @@ The solution built in 26.60 seconds with zero warnings or errors. The focused ru
 `BoosterServiceTests`, `ImplantServiceTests`, `FreeSkillPointServiceTests`, `TrainingSpeedClientTests`, `FreePointClientTests`,
 `ConcordOverviewTests`, `PilotLoginTests` and `PlanetaryClientTests`. Exact method filters also covered the rendered settings
 page, revision save and export, repeated Blazor saves, training with booster expiry and clone changes, implant-driven queue
-rebasing, and `FreshProfileStartsEmptyAndPersistsAcrossRestart`. The catalog and formatting policy suites passed 8 and 9
+rebasing and startup on a new save. The catalog and formatting policy suites passed 8 and 9
 checks respectively. Formatting and diff checks passed. The milestone sequence took 157 seconds. Client adapter checks ran
 headlessly.
 
@@ -567,7 +569,7 @@ Inert inspection of the pinned `clonejumpsvc.pyj`, `jumpClonesPanel.pyj` and sta
 
 Installation requires station service **24**, Jump Clone Facility. Capacity comes from earned Infomorph Psychology **24242**, Advanced **33407** and Elite **73910**, with ranks **1/5/12** from the catalog. Each trained effective level adds one body. Pinned race-specific Alpha grades cap Psychology at I and exclude the other clone skills. Alpha pilots can continue using bodies acquired as Omega, consistent with [CCP's Alpha facts](https://support.eveonline.com/hc/en-us/articles/213811425-Alpha-Clones-and-Omega-Clone-lapsing-Quick-Facts). Capacity is checked for new installations rather than deleting existing bodies after a lapse. Character primes and native brain modifiers expose `maxJumpClones` **979** and `cloneJumpCoolDown` **1921** using the same effective skills as the server. Infomorph skill completion also sends character attribute updates to the existing godma cache, so the panel need not reconnect to observe its new cooldown or capacity.
 
-Cross-station jumps require a capsule and a **24-hour** cooldown reduced by one hour per effective Infomorph Synchronizing **33399** level (catalog rank **2**). The exact deadline is allowed. Swapping within the current NPC station bypasses that check and neither clears nor restarts an existing cross-station timer, following [CCP's 20.07 patch](https://www.eveonline.com/news/view/patch-notes-version-20-07) and the pinned panel's `validate_jump_to`. A body is left at departure even if that station lacks an installation facility; no capacity is consumed by the swap. Remote wormhole destinations other than **Thera 31000005** and Pochven are rejected, following [CCP's jump-clone restrictions](https://support.eveonline.com/hc/en-us/articles/203217202-Jump-Clones). [Mobile capital vat bays](capital-logistics.md#mobile-jump-clones) now support invite-based installation and capsule arrivals from NPC stations. Special Pochven standings and installation rules, Upwell cloning services and non-learning implant effects remain open.
+Cross-station jumps require a capsule and a **24-hour** cooldown reduced by one hour per effective Infomorph Synchronizing **33399** level (catalog rank **2**). The exact deadline is allowed. Swapping within the current NPC station bypasses that check and neither clears nor restarts an existing cross-station timer, following [CCP's 20.07 patch](https://www.eveonline.com/news/view/patch-notes-version-20-07) and the pinned panel's `validate_jump_to`. In ordinary NPC stations, a body is left at departure even if that station lacks an installation facility. A swap does not consume extra capacity. Remote jumps involving Pochven or wormhole systems other than **Thera 31000005** are rejected. See [CCP's jump-clone restrictions](https://support.eveonline.com/hc/en-us/articles/203217202-Jump-Clones) and [Pochven NPC clone bays](#pochven-npc-clone-bays). [Mobile capital vat bays](capital-logistics.md#mobile-jump-clones) support invite-based installation and capsule arrivals from NPC stations. Upwell cloning services and non-learning implant effects remain open.
 
 The native client automatically calls `ship.LeaveShip(currentShipID)` when starting a jump from a hull. Eden now supports that docked operation, preserving the old ship, modules and cargo and selecting an existing local Capsule **670** or creating one. A clone jump retires only the departure capsule and selects a new capsule at the destination; it does not record a pod death, insurance payout or recovery grant. Home station and other assets stay in place. Actual home-clone self-destruction retires the active named body while preserving stored bodies and the jump timer. Old location bindings are released, and inventory changes, the brain, clone-cache invalidation and balance notifications precede the native session delta. Service bindings require the client's exact current-location/group tuple rather than None or an arbitrary location.
 
@@ -578,6 +580,18 @@ World version **47** adds `WorldJumpClone`, `WorldJumpCloneTimer` and `WorldJump
 **Live acceptance.** Not performed; agent client testing is disabled.
 
 **Optional maintainer checks.** Inspect Jump Clones preflight, installed names and wallet entries in the native character sheet. Try the automatic ship departure, a cross-station jump and same-station swaps, then reconnect to inspect state. Native rendering, input and scene transitions remain unverified.
+
+## Pochven NPC clone bays
+
+Pochven NPC stations with a Jump Clone Facility accept installation and same-station swaps at **+3.00** personal Triglavian Collective standing. Clone jumps between stations and from an NPC station to a ship vat still apply the regional restriction at both ends. Local swaps use the existing capsule, implant, **900,000 ISK** fee and checkpoint paths. An existing remote cooldown is preserved.
+
+CCP's [Triglavian Space service table](https://support.eveonline.com/hc/en-us/articles/360017005339-Triglavian-Space) and the [EVE University Pochven guide](https://wiki.eveuniversity.org/Pochven) give the local-use threshold. Inert inspection of the pinned build **3662168** archive confirmed that `clonejumpsvc.pyj` uses the standard NPC station install and jump calls and that `appConst.pyj` excludes Triglavian standings from social skill modifiers. The pinned catalog lists station service **24** on all six operations used by Pochven NPC stations. EVE.js snapshot `261108.1`, `services/station/jumpCloneRuntime.js`, confirms shared station pricing and a same-location cooldown exemption and has no Pochven-specific standing check.
+
+**Automated validation.** The exact `PochvenCloneFacilitiesRequireStandingAndOnlyAllowLocalSwaps` regression passed in **10.03 seconds** after a **13.03-second** build. The focused jump clone, implant and home station filter passed **77 tests** in **32.96 seconds**. The two Rorqual clone vat methods passed **3 cases** in **17 seconds**. The test covers the standing boundary, rejected remote jumps, wallet charges, unchanged cooldown and checkpoint reload with no world SQL for the measured swap operations.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Install and switch to a clone at a Pochven NPC clone bay with +3.00 standing while a remote cooldown is active.
 
 ## Native redemption pairs and batched training queues, November 9, 2026
 
@@ -641,7 +655,7 @@ runs are retained under ignored test artifacts. No full .NET suite was requested
 
 `RedemptionHandler` replaces the empty account-level `userSvc.GetRedeemTokens()` reply and owns native `ClaimRedeemTokens(tokens, charID, useHomeStation=False)`, `TrashRedeemTokens(keys)` and selected-pilot `ReverseRedeem(itemID)`. The queue is private to the authenticated account and works before character selection. Issuance is a trusted local administrator operation through `--grant-redeem`, documented in the [Windows guide](../development-client.md#issuing-account-redeem-rewards); there is no issuance RPC or automatic reward fixture in a real save.
 
-Native queue rows are `utillib.KeyVal` records with `tokenID`, nullable `massTokenID`, `typeID`, `quantity`, literal/localization label and description, nullable fixed `stationID`, FILETIME `dateTime` and `expireDateTime`, `soulbound=False`, `isAutoInject=False` and `blueprintInfo=None`. Ordinary grants use personal token IDs and no mass campaign identity. The new panel sends a **list of three-key dictionaries** (`tokenID`, `massTokenID`, `typeID`); trash sends a **list of two-member tuples** `(tokenID, massTokenID)`. Eden rejects forged extra fields, mixed container forms, unsupported mass IDs, duplicates and extra options. Only the optional native boolean `useHomeStation` is accepted. Eden's explicit request bound is **one to 100 distinct tokens**.
+Ordinary native queue rows are `utillib.KeyVal` records with `tokenID`, nullable `massTokenID`, `typeID`, `quantity`, literal/localization label and description, nullable fixed `stationID`, FILETIME `dateTime` and `expireDateTime`, `soulbound=False`, `isAutoInject=False` and `blueprintInfo=None`. Ordinary grants use personal token IDs and no mass campaign identity. The new panel sends a **list of three-key dictionaries** (`tokenID`, `massTokenID`, `typeID`); trash sends a **list of two-member tuples** `(tokenID, massTokenID)`. Eden rejects forged extra fields, mixed container forms, unsupported mass IDs, duplicates and extra options. Only the optional native boolean `useHomeStation` is accepted. Eden's explicit request bound is **one to 100 distinct tokens**.
 
 Claims re-read the target pilot's account, position and home station inside the transaction. Ordinary delivery uses its current NPC station while docked, or its saved home station when requested, including from space. A fixed-station token overrides that destination. Foreign target pilots reject without changes. Unavailable, foreign, expired or mismatched tokens produce private per-token errors while eligible rewards proceed. At this milestone the native report dictionary contained `charID`, `stationID` (None for mixed/no destinations), `skillpoints=0`, `itemsCreated` and `errors`; fixed SP fulfillment is added below. Each created-item dictionary includes `itemID`, `typeID`, `quantity` and `stationID`; each error is `(tokenID, exceptions.UserError('CustomInfo', values))`. The existing outbound exception constructor carries the information and request type. The inbound codec deliberately does not instantiate exception reductions; tests inspect those outbound constructors inertly, while ordinary reply fields also receive native encode/decode coverage. No codec allowlist was broadened.
 
@@ -651,7 +665,7 @@ World version **55** adds `WorldRedeemToken` with an account foreign key, unique
 
 Successful local operations emit `OnRedeemingQueueUpdated()` after commit and ordered native inventory changes only when the selected recipient can see the destination hangar. Other clients poll their own queue once per second after the first queue fetch, detecting external command grants, claims, trash and expiry without a process-local signal. The production session loop can monitor account state before a pilot exists; the account tick flushes notifications without creating a flight. Snapshot identity comparison suppresses repeated notifications, and another account's changes remain invisible. Leaving a pilot does not stop the account's redemption monitoring.
 
-References: inert inspection of build **3662168** `code.ccp`, SHA-256 **37FB2AF4FA0EC5C8FA320F34CD28C8B7DBF4917418336B38CBA20A7860DB0368**, including `eve/client/script/ui/services/redeemsvc.pyj`, `ui/shared/redeem/redeemItem.pyj`, `redeemItemsContainer.pyj`, and `redeem/client/ui.pyj`, `redeem/data.pyj`. The client consumes per-token errors, report items grouped by station and `OnRedeemingQueueUpdated`, and owns confirmation prompts, local seen-item state and `OnTokensRedeemed`. Consulted [Carbon Blue Marshal.cpp at fcbf0c2e7f092568adb82edb7b8fb97df75ad4ae](https://github.com/carbonengine/blue/blob/fcbf0c2e7f092568adb82edb7b8fb97df75ad4ae/src/Marshal.cpp), `ReadObjectNewobj`, alongside Eden's existing KeyVal and `exceptions.UserError` outbound adapters. No client or gameplay Python was executed. This initial milestone excluded special activation, skill-point/currency/subscription rewards, mass campaigns, SKIN/personalization activation and blueprint metadata. Fixed SP and currency rewards are implemented below; the other excluded categories still reject instead of fabricating inventory fulfillment.
+References: inert inspection of build **3662168** `code.ccp`, SHA-256 **37FB2AF4FA0EC5C8FA320F34CD28C8B7DBF4917418336B38CBA20A7860DB0368**, including `eve/client/script/ui/services/redeemsvc.pyj`, `ui/shared/redeem/redeemItem.pyj`, `redeemItemsContainer.pyj`, and `redeem/client/ui.pyj`, `redeem/data.pyj`. The client consumes per-token errors, report items grouped by station and `OnRedeemingQueueUpdated`, and owns confirmation prompts, local seen-item state and `OnTokensRedeemed`. Consulted [Carbon Blue Marshal.cpp at fcbf0c2e7f092568adb82edb7b8fb97df75ad4ae](https://github.com/carbonengine/blue/blob/fcbf0c2e7f092568adb82edb7b8fb97df75ad4ae/src/Marshal.cpp), `ReadObjectNewobj`, alongside Eden's existing KeyVal and `exceptions.UserError` outbound adapters. No client or gameplay Python was executed. This initial milestone covered physical inventory. Later milestones added fixed SP, currency, and [direct Expert System activation](#direct-expert-system-redemption).
 
 **Automated validation.** Development compilation corrected a list-pattern spelling and two xUnit assertion-style diagnostics before executing their affected tests. The first persistence run passed **8 of 19** cases, with missing mineral fixture/catalog category data and an assumed second station causing the failures; corrected coverage passed **20 cases** in **four seconds**. The first native-service run passed **4 of 5** cases; the remaining assertion tried to feed an outbound exception into the deliberately restricted inbound decoder. The corrected test inspects that existing constructor inertly, and all **five** native-service cases passed in **four seconds**. Expanded persistence/command checks passed **23 of 24** cases in **nine seconds**; the failed assembly assertion used a minimal Ibis fixture without assembly metadata. A focused correction using the existing supported Venture fixture passed all **four catalog variants** in **three seconds**, before adding four reversal-rejection cases. The final required root sequence passed **553 affected tests**, including **34 redemption cases**, in **32 seconds**, with `FullyQualifiedName~Redemption|FullyQualifiedName~WorldMigrationTests|FullyQualifiedName~HomeStation|FullyQualifiedName~PilotInventoryTests|FullyQualifiedName~InventoryPersistenceTests|FullyQualifiedName~PilotFleetTests|FullyQualifiedName~Eden.Protocol.Tests.PilotSessions|FullyQualifiedName~Eden.Protocol.Tests.Hosting|FullyQualifiedName~Eden.Protocol.Tests.Launcher|FullyQualifiedName~MarketTests|FullyQualifiedName~BlueMarshalTests|FullyQualifiedName~ShipInventoryRulesTests` and `xUnit.MaxParallelThreads=4`. Tool/solution restores, build with zero warnings/errors, Python catalog (**3**) and formatting-policy (**9**) suites, formatting (**518 files**), diff verification and documentation links/unique anchors passed. The final sequence took **56.86 seconds** overall. Coverage includes the real administrator command invoked twice without listeners, grant/claim races, restart, genuine version-54 migration, exact expiry, native account reads and argument shapes, per-token private errors, real inventory and ship assembly, current/home/fixed destinations, foreign and malformed requests, atomic late-write rollback, intact-stack reversal, unchanged-state rejection and actual timer-driven account notifications before pilot selection. Ignored TRX artifacts retain the failed and corrected runs. No full .NET suite was authorized or run.
 
@@ -888,6 +902,130 @@ Build 3662168 sends tracked-plan and personal-plan queries over the bidirectiona
 **Live Windows client.** With Amarr Frigate I actively training, opening Skills returned the tracked-plan response. Certified Plans displayed its AIR page. Personal Plans displayed **No personal skill plans created yet** and **Create Plan**. The recurring Skill Plan Service unavailable notice from the earlier queue check did not appear. The host recorded successful active-plan and list requests. Other gateway services, including PLEX and career goals, remain unsupported.
 
 **Automated checks.** Restore, build and formatting passed. All 62 tests passed, including checks for correlation, response type, the no-plan UUID, and rejection of an unsupported request.
+
+## Persistent personal skill plans
+
+The build **3662168** `skillPlanRequestsMessenger.pyj` sends personal plan requests through the gateway. The corresponding
+`eve_public.character.skill.plan` descriptors return identifiers from `GetAll` and full attributes from `Get`. Both use
+16-byte UUIDs in network byte order. The original client archive has SHA-256 prefix `37fb2af4fa0e`. EVE.js **261108.1**,
+build **3396210**, stores the equivalent plans in `skillPlanGatewayService.js` (`79dae729edbd`) and `skillPlanState.js`
+(`c246937f2106`). [CCP skill plans](https://support.eveonline.com/hc/en-us/articles/4406388028178-Skill-Plans-and-How-They-Work) ·
+[EVE University skill plans](https://wiki.eveuniversity.org/Skill_Plans)
+
+Pilots can create, list, edit, and delete personal plans. The gateway checks the authenticated account against the
+character in the request, and each pilot's plans and tracked choice persist through resident checkpoints. Names,
+descriptions, and skill requirements can be edited independently. Requirement order and distinct levels of the same skill
+are retained. Build 3662168 limits each pilot to ten plans, with 150 skill levels and five milestones per plan. Plan names
+and descriptions have 50- and 1,000-character limits respectively.
+
+Milestones can target an item or a skill level and carry a description. The client uses the personal milestone gateway
+to load, create, and remove them. Pilots can track one owned personal plan or certified catalog plan. The zero UUID clears
+tracking. Deleting an active personal plan clears tracking with it. Corporation plans and public sharing remain open.
+
+**Automated validation.** The three exact methods passed in 8.60 s after a 16.54 s build. They cover native response
+identity, simultaneous edits, ordered skills, both milestone shapes, two-pilot isolation, certified and personal tracking,
+restart and validation limits.
+
+```text
+FullyQualifiedName=Eden.Protocol.Tests.Gateway.PersonalSkillPlanGatewayTests.PersonalPlanAndMilestonesRetainNativeOrderAndTrackingAcrossCheckpoint|FullyQualifiedName=Eden.Protocol.Tests.Gateway.PersonalSkillPlanGatewayTests.InvalidChangesKeepPlanContentsAndEnforceNativeLimits|FullyQualifiedName=Eden.Protocol.Tests.Gateway.GatewayRequestsTests.SkillPlanResponsesCarryTheCorrectTypeAndRequestIdentity
+```
+
+The solution built in 0.92 s with no warnings or errors. The initial combined run passed 73 tests and timed out in
+`CopyAllowsAnotherPaidShotAndKeepsEachCapturedGenerationCoherent` while firing during a paused checkpoint copy.
+The same timeout reproduced in the exact test on `554e385e` before this change. The following filter excluded that
+single case and passed all 73 remaining tests in 35.57 s. Both Python policy suites passed their 17 tests.
+
+```text
+(FullyQualifiedName~Eden.Protocol.Tests.Gateway|FullyQualifiedName~Eden.Protocol.Tests.Persistence.WorldInitializationTests|FullyQualifiedName~Eden.Protocol.Tests.Persistence.WorldMigrationTests|FullyQualifiedName~Eden.Protocol.Tests.Persistence.CheckpointOwnershipTests|FullyQualifiedName~BiomassPreparationCancellationAndFinalDeletionUseNativeRepliesAcrossSessions)&FullyQualifiedName!=Eden.Protocol.Tests.Persistence.CheckpointOwnershipTests.CopyAllowsAnotherPaidShotAndKeepsEachCapturedGenerationCoherent
+```
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Create a personal plan in the Skill Catalogue with two skills and a milestone. Track
+it, reconnect to verify its ordering and tracking, then delete it and confirm the tracked plan clears.
+
+## Resident Expert Systems
+
+Build **3662168** `expertSystems/client/service.pyj` calls `expertSystemMgr.GetMyExpertSystems`, `ConsumeExpertSystem(itemID)`,
+and `RemoveMyExpertSystem(typeID)`. The reply maps Expert System type IDs to absolute installation and expiry FILETIMEs.
+`OnExpertSystemsUpdated` sends that map, an added flag, and the affected type ID. The pinned `CharacterSkillEntry` uses
+its fifth field for the virtual level and retains separate trained level and skill points. The original client archive
+has SHA-256 prefix `37fb2af4fa0e`.
+
+EVE.js **261108.1**, build **3396210**, implements this in `expertSystemMgrService.js` (`882bbaba6e11`),
+`expertSystemRuntime.js` (`607888ef5ae3`), and `expertSystemProjection.js` (`f5031ac60458`). The pinned catalog
+`client/expertsystems` contains 16 visible, nonretired systems with seven-day durations. The client loads each system's
+skill grants from that catalog. [CCP Expert Systems](https://www.eveonline.com/news/view/expert-systems-now-live) ·
+[EVE University Character Sheet](https://wiki.eveuniversity.org/Character_Sheet#Expert_Systems)
+
+Consuming an eligible item saves the system and removes one inventory unit in one resident transaction. A pilot can run
+three different systems. An active system with at most 30 days remaining can be extended by another copy. Its original
+installation time is kept. Removing a system lowers the active grants immediately. Expiry applies at the saved deadline
+and creates a type **253** notice in the pilot's inbox when the session settles the expiration.
+
+Active systems provide virtual levels for operating ships and modules and calculating fitted bonuses. Overlapping grants
+use the highest available level alongside the pilot's trained level. Skill points, skill training, and extraction use the
+permanent skill records. Rental state and inventory custody survive checkpoints and restart.
+
+**Automated validation.** Two exact methods passed in 14.95 s after an 18.46 s build. They cover a real pinned Mining
+Barge system, native Retriever boarding and Strip Miner fitting, virtual skill rows, the exact warm-cache deadline,
+expiry notices, restart, and atomic inventory custody. They also check the concurrent-install limit and top-up window.
+
+```text
+FullyQualifiedName=Eden.Protocol.Tests.Skills.ExpertSystemTests.NativeExpertSystemUnlocksRetrieverAndStripMinerUntilExactExpiryThenSupportsRemoval|FullyQualifiedName=Eden.Protocol.Tests.Skills.ExpertSystemTests.NativeExpertSystemLimitsPreserveItemsAndAllowTopUpWhileSlotsAreFull
+```
+
+The initial expanded run passed 537 of 557 cases with one optional market replay skipped. Fourteen failures came from
+existing trained-skill readers running without a resident world. They now receive an empty rental projection without
+opening SQL. The other five failures, a legacy fitting query-budget assertion and four gameplay-error packet
+assertions, reproduced without this change on both `872a7ea5` and `9ed725ee`.
+
+The rebased run registered `client/expertsystems` in the prepared catalog. Both native cases, the earned-navigation
+brain case, and the unallocated-SP application case passed in 21.10 s after a 38.78 s build. The installation-limit
+case exercises native reads and consumption under `GameplaySqlGuard`.
+
+The solution built in 0.86 s with zero warnings or errors. The following final filter passed all 457 cases in 253.79 s,
+including the previously affected trained-skill readers. The catalog and formatting policy suites passed all 17 cases.
+
+```text
+(FullyQualifiedName~Eden.Protocol.Tests.Skills|FullyQualifiedName~Eden.Protocol.Tests.PilotSessions.FreeSkillPointServiceTests|FullyQualifiedName~Eden.Protocol.Tests.Inventory.DeveloperToolsTests|FullyQualifiedName~Eden.Protocol.Tests.PilotSessions.PilotServicesTests|FullyQualifiedName~Eden.Protocol.Tests.Combat.FittingSnapshotTests|FullyQualifiedName~Eden.Protocol.Tests.Fittings.ResidentFittingSelectionTests|FullyQualifiedName~Eden.Protocol.Tests.Propulsion.PropulsionTests|FullyQualifiedName~Eden.Protocol.Tests.Mining|FullyQualifiedName~Eden.Protocol.Tests.Combat.PilotDroneTests|FullyQualifiedName~Eden.Protocol.Tests.Persistence.WorldMigrationTests|FullyQualifiedName~Eden.Protocol.Tests.Persistence.SkillExtractor)&FullyQualifiedName!=Eden.Protocol.Tests.Combat.FittingSnapshotTests.ModuleAndBrainReadsShareTheCommittedGraphAndReturnIndependentAttributes&FullyQualifiedName!~GameplayRejectionShowsTextAndKeepsTheModuleAndSessionIntact
+```
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Activate the Mining Barge Expert System on a pilot without Mining Barge trained. Inspect
+the virtual levels, board a Retriever and fit a Strip Miner I, then remove the Expert System and check the module and
+hull requirements.
+
+## Direct Expert System redemption
+
+Build **3662168** uses `userSvc.ClaimRedeemTokens` for Expert System rewards from both the redeem panel and character
+selection. The queue's `soulbound` and `isAutoInject` fields tell the client these rewards activate on the target pilot.
+`characterSlots.pyj` reads `isk_balance` after each successful claim. EVE.js **261108.1**, build **3396210**, installs
+Expert Systems directly in `userService.js` (`ef2e6cded872`) and scales the duration by token quantity.
+[CCP automatic Expert System redemption](https://www.eveonline.com/news/view/expert-systems-and-accelerators-landing-in-the-nes)
+
+The existing account grant path accepts activatable Expert System types. A claim consumes the token and grants the
+rental in one resident transaction. Expert rewards produce an installation without a station delivery. A rejected
+installation leaves that token pending, and other valid rewards in the batch can settle independently. A selected
+recipient receives the existing Expert System and virtual-skill updates. Unselected recipients load the grant at entry.
+
+**Automated validation.** The exact filter
+`Eden.Protocol.Tests.Skills.ExpertSystemTests.NativeExpertTokenClaimInstallsAndPreservesFailedTokensAcrossRestart`
+passed in 11.19 s after an 18.11 s build. It covers native preselection and selected claims, quantity-scaled duration,
+automatic token flags, mixed rewards, SQL-guarded activation, restart, replay, and rejection without consuming the token.
+
+The solution built in 1.08 s with zero warnings or errors. The following filter passed all 163 tests in 73.95 s. The
+catalog and formatting policy suites passed all 17 cases.
+
+```text
+FullyQualifiedName~Eden.Protocol.Tests.Skills.ExpertSystemTests|FullyQualifiedName~Eden.Protocol.Tests.PilotSessions.RedemptionServiceTests|FullyQualifiedName~Eden.Protocol.Tests.Persistence.RedemptionTests|FullyQualifiedName~Eden.Protocol.Tests.Persistence.CurrencyRewardTests|FullyQualifiedName~Eden.Protocol.Tests.Persistence.SkillPointRewardTests|FullyQualifiedName~Eden.Protocol.Tests.Inventory.DeveloperToolsTests
+```
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Claim an Expert System from the redeem queue at character selection, then enter with
+the recipient and inspect the Expert Systems tab for the rental.
 
 ## Character creation and first spawn, November 2, 2026
 

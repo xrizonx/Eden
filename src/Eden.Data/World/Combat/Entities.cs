@@ -130,6 +130,8 @@ public sealed class SavedPilotHostility
     public long TargetShipId { get; set; }
     public long ExpiresAt { get; set; }
     public long LastAttackAt { get; set; }
+    public bool SecurityPenaltyRecorded { get; set; }
+    public bool MilitiaPenaltyRecorded { get; set; }
 }
 
 public sealed class SavedSecurityStatus
@@ -150,8 +152,20 @@ public sealed class SavedSecurityTransaction
     public double Modification { get; set; }
     public double NewValue { get; set; }
 
+    public long? AggressedPilotId { get; set; }
+
     public SecurityStatusTransaction Snapshot() =>
-        new(Id, Time, SecurityEvent.PirateNpcKilled, CorporationId, SystemId, Modification, NewValue, NpcId, TypeId);
+        new(
+            Id,
+            Time,
+            AggressedPilotId.HasValue ? SecurityEvent.IllegalAggression : SecurityEvent.PirateNpcKilled,
+            AggressedPilotId ?? CorporationId,
+            SystemId,
+            Modification,
+            NewValue,
+            NpcId,
+            TypeId
+        );
 }
 
 public sealed class SavedWeaponLink

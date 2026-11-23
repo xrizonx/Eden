@@ -1,11 +1,14 @@
 using Eden.Data.World.Combat;
 using Eden.Data.World.Drones;
+using Eden.Data.World.FactionWarfare;
 using Eden.Data.World.Fittings;
 using Eden.Data.World.Inventory;
 using Eden.Data.World.Structures;
 using Eden.Data.World.Thermal;
 using Eden.Gameplay.Combat;
+using Eden.Gameplay.Docking;
 using Eden.Gameplay.Dogma;
+using Eden.Gameplay.FactionWarfare;
 using Eden.Gameplay.Flight;
 using Eden.Gameplay.Inventory;
 using Eden.Gameplay.Structures;
@@ -25,6 +28,51 @@ namespace Eden.Protocol.Tests.Structures;
 public sealed class StructureTetherTests
 {
     private static readonly TetherFlightState s_flight = new(true, false, false, false, false);
+
+    [Fact]
+    public async Task MovingWithoutLocalStructuresOrSavedTetherDoesNotWaitForSharedOwnership()
+    {
+        using var f = StructureAttackTests.Prepare();
+        var structure = f.Online();
+        const int remote = 30000142;
+        long ship = f.ShipId;
+        var tethering = f.Db.Services.GetRequiredService<IPilotTethering>();
+        f.Db.Store.SetPosition(ship, structure.Position, remote);
+        var live = f.Db.Services.GetRequiredService<LiveWorld>();
+        using ManualResetEventSlim entered = new();
+        using ManualResetEventSlim release = new();
+        var paused = Task.Run(() =>
+        {
+            using var shared = live.EnterShared("paused tether coordination");
+            entered.Set();
+            Assert.True(release.Wait(TimeSpan.FromSeconds(15)));
+        });
+        try
+        {
+            Assert.True(entered.Wait(TimeSpan.FromSeconds(15)));
+            await Task.Run(() =>
+                {
+                    Assert.Null(tethering.Advance(f.PilotId, s_flight));
+                    Assert.False(tethering.Protected(ship));
+                })
+                .WaitAsync(TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            release.Set();
+            await paused;
+        }
+
+        f.Db.Store.SetPosition(ship, structure.Position, structure.SystemId);
+        Assert.Equal(structure.Id, tethering.Advance(f.PilotId, s_flight)!.StructureId);
+        Assert.True(tethering.Protected(ship));
+
+        f.Db.Store.SetPosition(ship, structure.Position, remote);
+        Assert.Null(tethering.Advance(f.PilotId, s_flight));
+        Assert.False(tethering.Protected(ship));
+        using var check = StructureAttackTests.Scope(f);
+        Assert.Null(check.World.Set<SavedPilotTether>().Find(ship));
+    }
 
     [Fact]
     public void LegacySpacePositionsResolveTheirSystemFromTheLastStation()
@@ -222,6 +270,51 @@ public sealed class StructureTetherTests
         }
         Assert.False(tethering.Protected(f.ShipId));
         Assert.Null(tethering.Advance(f.PilotId, s_flight));
+    }
+
+    [Fact]
+    public void MilitiaTetherRechecksOccupationAndFrontlineWhilePreservingCapsuleAndAccessRules()
+    {
+        const int system = 30002059;
+        const int neighbor = 30002056;
+        using var f = StructureAttackTests.Prepare();
+        var structure = f.Online();
+        f.Structures.SetAccess(f.PilotId, structure.Id, true, []);
+        var pilot = f.Db.Store.FindPilot(1000002)!;
+        using (var action = new WorldActionScope(new(f.Db.Path), new(systems: [StructureTests.Fixture.SystemId, system])))
+        {
+            action.World.Set<SavedStructure>().Find(structure.Id)!.SystemId = system;
+            action.World.Add(new SavedMilitiaEnlistment { PilotId = pilot.PilotId, DirectFaction = MilitiaFaction.Minmatar });
+            action.Commit();
+        }
+        f.Db.Store.SetPosition(pilot.ShipId, structure.Position, system);
+        var tethering = f.Db.Services.GetRequiredService<IPilotTethering>();
+        Assert.NotNull(tethering.Advance(pilot.PilotId, s_flight));
+
+        using (var action = new WorldActionScope(new(f.Db.Path), new(systems: [system])))
+        {
+            action.World.Add(new SavedWarzoneOccupation { SystemId = system, Occupier = MilitiaFaction.Amarr });
+            action.Commit();
+        }
+        Assert.True(tethering.Protected(pilot.ShipId));
+
+        using (var action = new WorldActionScope(new(f.Db.Path), new(systems: [neighbor])))
+        {
+            action.World.Add(new SavedWarzoneOccupation { SystemId = neighbor, Occupier = MilitiaFaction.Amarr });
+            action.Commit();
+        }
+        Assert.False(tethering.Protected(pilot.ShipId));
+        Assert.Null(tethering.Advance(pilot.PilotId, s_flight));
+
+        using (var action = new WorldActionScope(new(f.Db.Path), new(systems: [system], pilots: [pilot.PilotId])))
+        {
+            action.World.Ships.Find(pilot.ShipId)!.TypeId = FleetDefinitions.CapsuleType;
+            action.Commit();
+        }
+        Assert.NotNull(tethering.Advance(pilot.PilotId, s_flight));
+        f.Structures.SetAccess(f.PilotId, structure.Id, true, [new(pilot.PilotId, false)]);
+        Assert.False(tethering.Protected(pilot.ShipId));
+        Assert.Null(tethering.Advance(pilot.PilotId, s_flight));
     }
 
     [Fact]

@@ -2,13 +2,27 @@
 
 [Documentation index](README.md) / [Implementation evidence](protocol/capsuleers.md#galaxy-wide-station-and-gate-traffic)
 
+## Inspecting bots and organizations
+
+In server administration, open **Population** and choose **Bots**, **Corporations**, or **Alliances**. Search by
+name or ID, or by ticker for organizations. Open a result to inspect it, follow links between related entries,
+and use **Refresh population** to update the current view.
+
+- **Bots** show their current activity, recorded objective, waiting reason when available, location, ship, wallet,
+  next scheduled action, training queue, and career or PvP hull goal when recorded.
+- **Corporations** show the CEO, headquarters, wallet, roster, pending applications, relocating bots, open
+  industry jobs, and sovereignty assignments for bot-founded corporations.
+- **Alliances** show the executor, member corporations, due bills, claimed systems, and bot sovereignty assignments
+  for alliances founded by a bot or containing a bot-founded corporation.
+
+Enabled bots can retain an assignment while the simulation is paused. Time until a bot's next action is measured in
+active simulation time. Skill queue timestamps are in UTC. [Implementation record](protocol/capsuleers.md#population-inspector)
+
 ## Population controls
 
-Open **Player bots** in the server web editor. **Bot population** sets the world-wide cap and fresh-universe
-background preparation. **Where bots work** sets work or transit access by region or solar system. Dedicated
-miners, fresh-universe couriers and fresh-universe bounty hunters have controls in their activity sections.
-Expand **Ambient traffic** for station travelers and watched-gate visitors. Save for restart and restart the server
-to apply the revision.
+Open **Player bots** in the server web editor. **Bot population** sets the world-wide cap. **Where bots work** sets
+work or transit access by region or solar system. Expand **Ambient traffic** for station travelers and watched-gate
+visitors. Save for restart and restart the server to apply the revision.
 
 Reducing a limit pauses excess pilots and preserves their identities, ships, possessions, losses and activity. When
 slots reopen, Eden reuses eligible saved pilots before preparing new ones.
@@ -17,18 +31,19 @@ the main population switch pauses both, including miners. Reciprocal gate observ
 Suspended jobs retain their remaining timing and cannot produce offline rewards or duplicate starter grants.
 See [configuration details](world-configuration.md#autonomous-population).
 
-The station-traffic multiplier scales each established system's geography-based traveler roster. Established worlds prepare
-new rosters as players enter systems. Fresh worlds can prepare eligible unvisited high-security station systems while
-someone has a selected character. Occupied systems get priority. Existing travelers can continue through empty
-systems and dedicated miners can work the belts in their home systems.
+The station-traffic multiplier scales each established system's geography-based traveler roster. With **Prepare bots in
+unvisited systems** enabled, Eden prepares eligible high-security systems with stations while the bot simulation runs.
+Occupied systems get priority. Existing travelers can continue through empty systems and dedicated miners can work
+the belts in their home systems.
 
 Watching either end of a stargate can bring additional visitors through it. Those pilots use the same ships, station
-waits and gate transfers throughout their trips. An established visitor can continue while either system is occupied,
-even after a player moves away from the gate. Players on the receiving side see arrivals appear in Local. Active
-roaming gangs and escorted shipments can also cross empty systems while anyone is playing.
+waits and gate transfers throughout their trips. An established visitor can continue when players move away from the
+gate. Players on the receiving side see arrivals appear in Local. Active roaming gangs and escorted shipments can also
+cross empty systems.
 
-When the last player leaves the world, the simulation clock pauses. Re-entry resumes eligible pilots from saved
-positions and deadlines. [Returning traffic](protocol/capsuleers.md#traffic-returning-to-occupied-systems--november-17-2026)
+**Run bots without players** is on by default. Background travel and work continue while the server runs. Turning it off pauses
+the bot clock whenever no player has selected a character. Server restarts resume from saved time without replaying downtime.
+[Unattended capsuleer traffic](protocol/capsuleers.md#unattended-capsuleer-simulation--november-23-2026)
 
 A failed community expansion rolls back that community while others continue. Completed communities survive and are reused on restart.
 Unexpected system and gate-visitor preparation failures retry automatically while the system remains eligible for
@@ -47,6 +62,19 @@ The **Population** page shows active cap usage, region and system access, and co
 watched-system pilots. Prepared totals include saved communities in empty systems. Deferred systems keep a
 pending-preparation label. Use **Refresh population** while pilots travel. Local shows pilots currently in your
 system. Delayed Local keeps its normal privacy rules.
+
+## Activity-funded PvP ships
+
+A new established world starts with the Standard market and **Buy PvP ships with activity income** enabled. To enable this
+on an existing established save, open **Player bots → PvP roams & regional conflicts**, select that option, save for
+restart and restart the server.
+
+An eligible pilot chooses a complete fit from the installed zKillboard traffic snapshot and saves that goal. It trains
+the hull and fitting skills at dock and earns ISK in its current ship. Ratters earn bounties, and miners can sell surplus
+ore after checking production and moon-supply needs. The pilot spends only personal ISK above its starting cash and
+can shop at a reachable market for the full fit. After boarding, it looks for a higher-stage hull or a better-equipped
+fit at the same stage. The pilot keeps its previous ships and can rat between PvP sorties to fund the next goal.
+[Import zKillboard traffic](#zkill-backed-travelers) · [Fit progression and validation](protocol/capsuleers.md#bot-pvp-fit-progression-and-rat-damage)
 
 ## Mining fleets
 
@@ -69,9 +97,8 @@ the region for corporations with paid advertisements. An application, an offer a
 
 Look up a member in Local or station guests and open its corporation in Show Info to see the CEO, ticker and headquarters.
 Membership persists across restarts, density changes and ship loss. Pilots with prior player-corporation employment
-keep their employment choices. In established worlds, the first bot founder in each headquarters system receives
-Corporation Management I and a one-time allowance for the normal 1,599,800 ISK fee. Later founders and all fresh-world
-founders need the skill and pay from their own wallets. [Autonomous recruitment](protocol/capsuleers.md#autonomous-corporation-recruitment)
+keep their employment choices. The first bot founder in each headquarters system receives
+Corporation Management I and a one-time allowance for the normal 1,599,800 ISK fee. Later founders need the skill and pay from their own wallets. [Autonomous recruitment](protocol/capsuleers.md#autonomous-corporation-recruitment)
 
 New charters draw from several naming styles and save their chosen name, ticker and logo at founding. Existing
 charters retain their names unless an administrator confirms a refresh for a legacy-generated bot charter with
@@ -179,11 +206,35 @@ Bubble use defaults on. With the full catalog, 12% of newly generated nullsec co
 Change the percentage or disable bubble launches in the simulated pilot settings. New camp Sabres have an autocannon,
 a scrambler and three real disruption probes. Simulated travelers obey bubble drag and catch geometry and can burn clear.
 
+## Faction warfare patrols
+
+Enable **Faction warfare patrols** under **Player bots → PvP roams & regional conflicts** and save for restart.
+Eligible pilots look for reachable current Frontlines in either empire warzone. They select a staging station and
+an eligible complex based on their faction, standing, fit, and access, and use normal stargates and acceleration
+gates. They can travel and fight while a player is selected elsewhere. Changes in the front, access, or site
+availability can end a sortie and send the pilot back to an accessible dock.
+[Patrol operations and rewards](protocol/faction-warfare.md#dynamic-faction-warfare-patrols)
+
+## Independent nullsec expeditions
+
+Armed pilots can set out for nullsec using gates from a reachable station. A sortie uses the pilot's owned ship,
+available ammunition, and remembered threats to choose among viable routes. With earned PvP enabled, pilots can
+use activity income to buy a suitable fit from actual local offers. A stationless system can be the
+destination when the pilot has a reachable return dock. The pilot can advance while a player is selected elsewhere.
+The Population inspector shows the recorded journey while it is active.
+[Expedition selection and persistence](protocol/capsuleers.md#independent-nullsec-expeditions)
+
 ## PvP roams
 
-Nullsec PvP roams default on. The default roam chance is 30% per eligible departure and 35% of new generated nullsec
-traffic pilots can receive combat fits. Both percentages accept 0 to 100. Existing fitted pilots can take a patrol after
-docking. They visit up to four local belts and gates, hold briefly on each grid and return to their station.
+Nullsec PvP roams default on. The default roam chance is 75% per eligible departure, and 80% of new nullsec traffic
+pilots are selected for combat fits. The roam chance applies to local patrols, gang formation and independent
+roaming expeditions. Independent belt-ratting expeditions use a separate 10% draw and yield to a selected roam when
+the pilot can do both. Both configurable percentages accept 0 to 100.
+
+Existing worlds retain their saved values. Set **Roam chance per departure (%)** to 75 and **Combat fits among
+generated nullsec pilots (%)** to 80 in **Player bots** to adopt the new defaults on restart. The combat-fit share
+applies to new pilots. Existing pilots use the combat ships they already own or can acquire through their work.
+Local patrols visit up to four belts and gates, hold briefly on each grid and return to their station.
 Armed travelers also use the roam chance at outbound nullsec gates, including in stationless systems. A pilot selected
 to hunt waits 18–40 seconds for a visible target, can stay longer in a fight, then continues the original trip.
 Pilots delivering freight, shopping for supplies or retreating continue through the gate.
@@ -202,8 +253,8 @@ and armor repairers. Battlecruisers carry 10MN afterburners and battleships carr
 
 New combat pilots can fly all 296 combat-capable frigate through battleship hulls supported by the pinned
 build. Of eligible non-interdictor combat draws, 40% use the sixteen authored fits and 40% choose among the
-280 additional hulls. The remaining 20% use the traffic snapshot, with a Merlin fallback if no imported fit
-is available. Pilots keep the ships assigned to them. See the
+280 additional hulls. The remaining 20% can use an armed combat fit from the traffic snapshot, with a Merlin
+fallback if the imported choice is absent or fitted for mining. Pilots keep the ships assigned to them. See the
 [catalog coverage and sixteen exceptions](protocol/capsuleers.md#catalog-wide-frigate-through-battleship-patrols).
 [Battlecruiser and battleship fits and combat checks](protocol/capsuleers.md#battlecruisers-and-battleships-for-solo-patrols-and-gangs),
 [Patrol cruiser fits and combat checks](protocol/capsuleers.md#cruisers-for-solo-patrols-and-gangs),
@@ -293,7 +344,8 @@ An optional local `traffic.sqlite` beside the world database supplies real pilot
 
 In server administration, open **Optional data** and choose **Import zKillboard traffic**. The page shows the
 installed UTC range, counts, and import status. Use **Re-import zKillboard traffic** to download a new weekly snapshot,
-then restart Eden to adopt it. The import keeps running if you close the page.
+then wait for **Import complete** before restarting Eden to adopt it. The import keeps running if you close the page.
+If Eden stops during an import, it resumes on startup and reuses compatible cache entries for the latest published week.
 
 Create or refresh the snapshot from the repository root:
 
@@ -321,11 +373,15 @@ See the [implementation and automated evidence](protocol/capsuleers.md#zkill-bac
 
 Maintenance sleeps until its next due job or a relevant input change. Quiet background retry waits retain their
 saved deadline; observed and defending pilots keep timely checks. Player arrival and committed aggression can wake
-an already-running traveler early without replaying paid work. Unobserved local encounters still pause, and the
-human-active clock still stops when the last player leaves. See the
+an already-running traveler early without replaying paid work. Some local encounters still require an observer.
+See the
 [scheduling replay and validation](protocol/capsuleers.md#deadline-driven-maintenance-november-9-2026).
 
 ### Belt ratting, ship variety and paid resupply
+
+Under **Player bots → PvE combat & salvage**, **Rat damage reduction (%)** defaults to 25%. It reduces the turret and
+missile damage pirate NPCs deal to bot ships. The ratting encounter assessment uses the same reduction. Set it to
+0 for full damage or 100 to prevent pirate NPC weapon damage to bot ships.
 
 Existing combat-fit travelers can choose a local belt-ratting sortie on one third of eligible dock departures while
 any human pilot is selected, including when the traveler's system has no human observer.
@@ -438,7 +494,7 @@ Home roster slots reserve recurring locals alongside regional and long-distance 
 
 A watched reciprocal gate pair introduces at most four durable visitors with staggered departures and distinct owned ships. The first visitor can already be finishing a moving approach on the unobserved source side. Remaining visitors wait docked at their real source stations and fly the full departure route. New visitors spread their first stops across eligible station systems in each distance band. Gate arrivals use a stable spread around the arrival shell. Both ends share those identities. Watching the opposite side preserves each traveler's direction and deadline. Subsequent trips begin at the pilot's actual docked station and favor a destination other than the previous origin when alternatives exist. Visitors make an onward stop before routing home, keeping a continuing circuit. Homeward legs follow real compatible paths.
 
-Established travelers continue on the shared human play clock through unobserved systems. Background alignment, analytic warp, approach, docking and gate-transfer deadlines retain the same navigation and ownership checks. Observed systems use ordinary flight samples. Empty worlds pause the shared clock. A witnessed departure completes once. Tackle, retreat, loss, cargo and equipment retain their normal effects.
+Established travelers continue on the shared simulation clock through unobserved systems. Background alignment, analytic warp, approach, docking and gate-transfer deadlines retain the same navigation and ownership checks. Observed systems use ordinary flight samples. A witnessed departure completes once. Tackle, retreat, loss, cargo and equipment retain their normal effects.
 
 Locals wait 135–165 seconds at stations. Visitors wait 615–645 seconds. First departures use the busy/quiet gate cadence to stagger the four visitors across successive intervals. The first arrival includes the actual station-to-gate flight. Waiting and navigation progress survive restarts.
 
@@ -466,7 +522,7 @@ See the [implementation and validation record](protocol/capsuleers.md#observed-c
 
 The following sections record the schema 116–118 rollout and its historical measurements. Use
 [population controls](#population-controls) for current admission and [bot development milestones](bot-development-plan.md)
-for later fresh-universe work.
+for the current established-world direction.
 
 ## Agreed outcome
 
@@ -475,10 +531,10 @@ Build a persistent population of autonomous economic pilots across New Eden. Sta
 Eligibility requires supported high-security mining, a market station and a reciprocal route to another supported market. Unsupported systems receive explicit deferral reasons rather than fabricated jobs. The eventual system registry covers every catalog system.
 
 Any selected human pilot activates their system, including while docked. Multiple human pilots keep a system active until the last one leaves.
-While anyone is selected, established miners and haulers can work in unobserved systems. Existing bounded batches admit background roles.
+Established miners and haulers can work in unobserved systems. Existing bounded batches admit background roles.
 Mining and belt sorties use their normal resource, navigation and combat rules. Factories run at eligible NPC stations and fitted player
 structures the operator can access. An industrial pilot can carry owned supplies to a local structure, mine from it between jobs, and
-deliver completed production to the structure's Item Hangar. Scheduled bot factory jobs count time on the shared human-active clock.
+deliver completed production to the structure's Item Hangar. Scheduled bot factory jobs count time on the shared simulation clock.
 [Offscreen operations](protocol/capsuleers.md#offscreen-mining-belt-ratting-and-industry) ·
 [Player-structure bot factories](protocol/capsuleers.md#player-structure-bot-factories)
 
@@ -499,7 +555,11 @@ This sequence keeps the existing miner and hauler available while the common run
 
 `IHumanPresence` holds a lease for each selected flight session. Selection registers docked and undocked pilots; system changes transfer the lease; logoff, disposal and disconnect remove it. Chat authentication, channel membership and chat transport disconnections do not control the activity clock. An explicit session update entry point supports simulated sessions and future coordination. Presence is an internal trusted host contract, not a client request.
 
-The human-active clock accumulates monotonic elapsed time once while any selection exists. Overlapping sessions do not multiply it. It retains fractions between timestamp samples and stores whole .NET ticks. Startup begins with no selected humans and resumes the saved elapsed value without offline catch-up. The resident owner captures the clock and relational image together; projection and file writing happen outside the owner. Failed saves retain the current state for retry. Production durability follows the ordinary checkpoint interval and graceful shutdown policy. The maintenance loop admits due jobs against this clock. Delayed wakes drain due work in bounded turns, while an empty world pauses all role jobs.
+The simulation clock accumulates monotonic elapsed time once, regardless of player count. It retains fractions between timestamp
+samples and stores whole .NET ticks. Startup resumes the saved elapsed value without offline catch-up. The resident owner captures
+the clock and related world state together, then projects and writes the checkpoint outside the owner. Failed saves retain the
+current state for retry. The maintenance loop admits due jobs against this clock and drains delayed work in bounded turns.
+When **Run bots without players** is off, the clock accrues time only while at least one human has selected a pilot.
 
 `CapsuleerJobQueue` orders current jobs by due time, pilot ID and action sequence. It keeps one ordered entry per agent, replaces externally revised jobs in logarithmic time, and rejects stale revisions. A turn admits at most 64 actions with a 10 ms soft budget; an atomic action finishes before yielding. The host runner uses the defined 50 ms wake interval. Exceptions leave the failed action due. The turn result reports completed work, registered jobs, oldest due time and an overrun flag.
 
@@ -519,7 +579,7 @@ World access precedes `WorldDatabase.MotionLock` in NPC contacts, anomalies, ele
 
 The world-owned `SystemSimulationRegistry` moves observed systems through Background, Activating, Active, Deactivating and back to Background. Any selected human, including a docked pilot, keeps their system active. Multiple leases share one activation generation; only the first arrival or last departure changes it. All systems begin unobserved after restart. Connection modes and presentation generations are transient; saved job revisions, deadlines and the existing checkpoint generation remain the durable replay guards. Startup now registers every catalog system, including explicit reasons for unsupported locations.
 
-`ICapsuleerHandoff` settles relevant system work before selected-human service dispatch, initial snapshots, selections and system transfers. Account and roster dispatch do not advance autonomous jobs. System barriers include the community haulers whose saved source or destination is that system, including inbound gate transfers. Other systems retain their own overdue work for maintenance. Its asynchronous barrier captures one human-active deadline at entry, releases the owner and yields between bounded queue turns, then performs the synchronous command under the same owner as the final due check. Each system retains a monotonic settled boundary while the global maintenance watermark catches up. Later wall-clock advancement cannot extend that request indefinitely. Maintenance immediately yields into another bounded turn while overdue, returning to the normal wake interval once current. It never holds a monitor across a network write or an asynchronous yield. Already-due work can finish at the frozen clock boundary after disconnect; the clock does not advance while no human is selected. A failed entry retains the previous membership. A disconnect removes its lease even if a due action fails, keeping the clock paused and the failed action retryable.
+`ICapsuleerHandoff` settles relevant system work before selected-human service dispatch, initial snapshots, selections and system transfers. Account and roster dispatch do not advance autonomous jobs. System barriers include the community haulers whose saved source or destination is that system, including inbound gate transfers. Other systems retain their own overdue work for maintenance. Its asynchronous barrier captures one simulation deadline at entry, releases the owner and yields between bounded queue turns, then performs the synchronous command under the same owner as the final due check. Each system retains a monotonic settled boundary while the global maintenance watermark catches up. Later wall-clock advancement cannot extend that request indefinitely. Maintenance immediately yields into another bounded turn while overdue, returning to the normal wake interval once current. It never holds a monitor across a network write or an asynchronous yield. A failed entry retains the previous membership. A disconnect removes its lease even if a due action fails and keeps the failed action retryable.
 
 Native flight motion and autonomous mutations enter the same `IWorldSynchronization` owner. The separate database motion gate retains owner-first ordering. This avoids a new scene/world inversion around login or snapshots. The factory acquires selection before loading its initial objects and releases the lease if construction fails. Transfers publish the settled destination before its native snapshot.
 

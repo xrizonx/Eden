@@ -37,6 +37,10 @@ internal sealed partial class CapsuleerHauler
 
     private CapsuleerAttacker? ProactiveTarget()
     {
+        if (Work.MilitiaPatrol is { } militiaPatrol)
+        {
+            return MilitiaProactiveTarget(militiaPatrol);
+        }
         if (Work.Ratting is { Patrol: { } patrol } sortie)
         {
             return Pilot.Position is not null && !_background ? PatrolTarget(sortie, patrol) : null;
@@ -51,7 +55,7 @@ internal sealed partial class CapsuleerHauler
             _work = Work with { Ratting = activity with { Phase = RattingPhase.Looting, TargetId = 0 } };
             return null;
         }
-        if (activity.RemainingTicks <= 0 || !ratting.Assess(Pilot, enemies, Now, FreshCombat).Capable)
+        if (activity.RemainingTicks <= 0 || !ratting.Assess(Pilot, enemies, Now).Capable)
         {
             _work = Work with { Ratting = activity with { Phase = RattingPhase.Returning }, Retreating = enemies.Length > 0 };
             return null;
@@ -135,19 +139,20 @@ internal sealed partial class CapsuleerHauler
         return false;
     }
 
-    private bool TryLaunchSortie(ResupplyProgress supplies, CombatAnomaly? site, FittingCalculation? fit = null)
+    private bool TryLaunchSortie(
+        ResupplyProgress supplies,
+        CombatAnomaly? site,
+        FittingCalculation? fit = null,
+        bool intentionalHunt = false,
+        bool fundingFit = false
+    )
     {
         var policy = database.Settings.Capsuleers;
         if (!policy.BeltRatting && (_background || !policy.AnomalyRatting && !policy.RoamingPvp && !policy.GateCamps))
         {
             return false;
         }
-        if (
-            (!FreshCombat || Pilot.ShipGroupId != (int)HullClass.Corvette)
-            && (
-                TrafficRules.LightHull((HullClass)Pilot.ShipGroupId) || !CapsuleerPatrolFit.CombatHull(_operation.Catalog, Pilot.ShipTypeId)
-            )
-        )
+        if (TrafficRules.LightHull((HullClass)Pilot.ShipGroupId) || !CapsuleerPatrolFit.CombatHull(_operation.Catalog, Pilot.ShipTypeId))
         {
             return false;
         }
@@ -167,11 +172,26 @@ internal sealed partial class CapsuleerHauler
         }
         long sequence = checked(Work.ActivitySequence + 1);
         _work = Work with { ActivitySequence = sequence };
-        if (!FreshCombat && !_background && (TryLaunchCamp(sequence, profile) || TryLaunchPatrol(sequence)))
+        if (intentionalHunt)
+        {
+            return !_background
+                && HasPvpShip
+                && (
+                    CapsuleerIndustry.RequiresEarnedPvp(_operation.World) && TryLaunchCamp(sequence, profile)
+                    || policy.RoamPercent > 0 && TryLaunchPatrol(sequence, intentional: true)
+                );
+        }
+        if (
+            !fundingFit
+            && !_background
+            && HasPvpShip
+            && (_operation.World is not Eden.World.Runtime.Economy.EconomyTransaction work || !DynamicWorkPilot(work))
+            && (TryLaunchCamp(sequence, profile) || TryLaunchPatrol(sequence))
+        )
         {
             return true;
         }
-        if (!FreshCombat && (supplies.Requirements.Any(r => !r.Drone) || !RattingRules.Choose(pilotId, sequence)))
+        if (supplies.Requirements.Any(r => !r.Drone) || !RattingRules.Choose(pilotId, sequence))
         {
             return false;
         }
@@ -291,6 +311,9 @@ internal sealed partial class CapsuleerHauler
                 _work = Work with { Ratting = null };
                 BeginTravel();
                 break;
+            case RattingPhase.Returning when OnNullsecExpedition:
+                ReturnFromNullsecDestination(activity);
+                break;
             case RattingPhase.Returning:
                 if (Work.TargetId != activity.StationId || _target?.Id != activity.StationId || Work.WaitingReason is not null)
                 {
@@ -343,7 +366,7 @@ internal sealed partial class CapsuleerHauler
                     ratting.Arrive(Pilot, Now);
                 }
                 var enemies = ratting.Pirates(Pilot, _target!, Now);
-                if (enemies.Length > 0 && !_background && ratting.Assess(Pilot, enemies, Now, FreshCombat).Capable)
+                if (enemies.Length > 0 && !_background && ratting.Assess(Pilot, enemies, Now).Capable)
                 {
                     _work = Work with { Ratting = activity with { Phase = RattingPhase.Fighting, TargetId = enemies[0].Id } };
                 }

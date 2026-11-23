@@ -32,8 +32,8 @@ GitHub Actions builds all nine .NET projects and exports a complete Windows ZIP 
 
 The first command copies and verifies the client. Catalog setup builds the server and downloads the matching game data on
 its first run. For staging, offline setup, and troubleshooting, see the [Windows client guide](docs/development-client.md).
-On a new save, follow the server console to [World setup](docs/world-configuration.md#first-start). Choose **Established Universe**
-or **Fresh Universe** in administration. Account creation and sign-in open once the world is ready.
+For a new save, [import the Standard market snapshot](docs/world-configuration.md#market-presets) and follow the server console to
+[World setup](docs/world-configuration.md#first-start). Account creation and sign-in open once the world is ready.
 
 ### Connect and play
 

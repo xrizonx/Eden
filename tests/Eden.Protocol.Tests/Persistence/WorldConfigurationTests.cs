@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Eden.Data.World.Configuration;
 using Eden.Data.World.Economy;
 using Eden.Data.World.Market;
@@ -22,6 +23,69 @@ namespace Eden.Protocol.Tests.Persistence;
 
 public sealed class WorldConfigurationTests
 {
+    [Fact]
+    public void OlderSavedSettingsLoadWhileImportsStillRejectUnknownSettings()
+    {
+        using TestWorld fixture = new();
+        WorldDatabase database = new(fixture.Path);
+        var configuration = new WorldConfigurationStore(database, TimeProvider.System);
+        var active = configuration.Read();
+        var draft = active.Active.Draft;
+        configuration.Save(
+            active.Generation,
+            draft with
+            {
+                Settings = draft.Settings with { Capsuleers = draft.Settings.Capsuleers with { ActivePilotCap = 12 } },
+            },
+            "admin"
+        );
+
+        using (WorldDbContext checkpoint = new(database.Path))
+        {
+            var revisions = checkpoint.Set<SavedConfigurationRevision>();
+            var original = revisions.OrderBy(revision => revision.Id).ToArray();
+            long activeId = original[^1].Id + 1;
+            long pendingId = activeId + 1;
+            foreach (
+                var (revision, id, parent) in new[] { (original[0], activeId, (long?)null), (original[1], pendingId, (long?)activeId) }
+            )
+            {
+                var document = JsonNode.Parse(revision.Document)!;
+                document["settings"]!["retiredSetting"] = true;
+                document["settings"]!["capsuleers"]!["retiredPopulationSetting"] = 5;
+                revisions.Add(
+                    new()
+                    {
+                        Id = id,
+                        ParentId = parent,
+                        Author = revision.Author,
+                        CreatedAt = revision.CreatedAt,
+                        Document = document.ToJsonString(),
+                    }
+                );
+            }
+            var saved = checkpoint.Set<SavedConfigurationState>().Single();
+            saved.ActiveRevisionId = activeId;
+            saved.PendingRevisionId = pendingId;
+            checkpoint.SaveChanges();
+        }
+
+        var state = configuration.Read();
+        Assert.Equal(draft.Settings.Capsuleers.ActivePilotCap, state.Active.Draft.Settings.Capsuleers.ActivePilotCap);
+        Assert.Equal(12, state.Pending!.Draft.Settings.Capsuleers.ActivePilotCap);
+        Assert.DoesNotContain("retiredSetting", configuration.Export(state.Active.Id));
+        using (WorldDbContext checkpoint = new(database.Path))
+        {
+            string original = checkpoint.Set<SavedConfigurationRevision>().Find(state.Active.Id)!.Document;
+            Assert.Throws<JsonException>(() => configuration.Import(state.Generation, original, "admin"));
+        }
+
+        WorldInitialization.Initialize(database);
+        Assert.Equal(12, database.Settings.Capsuleers.ActivePilotCap);
+        Assert.Equal(state.Pending.Id, configuration.Read().Active.Id);
+        Assert.NotEmpty(WorldInitialization.Open(database).ListPilots(1000001));
+    }
+
     [Theory]
     [InlineData(true, 14, 2, 3, 30002547, 60015162, 588)]
     [InlineData(true, 11, 4, 5, 30003489, 60015154, 596)]
@@ -119,6 +183,9 @@ public sealed class WorldConfigurationTests
         settings["progression"]!.AsObject().Remove("grantStartingEquipment");
         settings["capsuleers"]!.AsObject().Remove("exploration");
         settings["capsuleers"]!.AsObject().Remove("wreckSalvage");
+        settings["capsuleers"]!.AsObject().Remove("runWithoutPlayers");
+        settings["capsuleers"]!["roamPercent"] = 30;
+        settings["capsuleers"]!["generatedCombatPercent"] = 35;
         var imported = store.Import(state.Generation, document.ToJsonString(), "legacy");
         var legacy = imported.Pending!.Draft.Settings;
         Assert.True(legacy.Economy.EmpireLpDatacores);
@@ -128,6 +195,9 @@ public sealed class WorldConfigurationTests
         Assert.True(legacy.Progression.GrantStartingEquipment);
         Assert.True(legacy.Capsuleers.Exploration);
         Assert.True(legacy.Capsuleers.WreckSalvage);
+        Assert.True(legacy.Capsuleers.RunWithoutPlayers);
+        Assert.Equal(30, legacy.Capsuleers.RoamPercent);
+        Assert.Equal(35, legacy.Capsuleers.GeneratedCombatPercent);
         var disabled = legacy with
         {
             Economy = legacy.Economy with
@@ -138,7 +208,7 @@ public sealed class WorldConfigurationTests
                 BeginnerMarketSupply = false,
             },
             Progression = legacy.Progression with { GrantStartingEquipment = false },
-            Capsuleers = legacy.Capsuleers with { Enabled = false, Exploration = false, WreckSalvage = false },
+            Capsuleers = legacy.Capsuleers with { Enabled = false, Exploration = false, WreckSalvage = false, RunWithoutPlayers = false },
         };
         var saved = store.Save(imported.Generation, imported.Pending.Draft with { Settings = disabled }, "admin");
         Assert.True(database.Settings.Economy.EmpireLpDatacores);

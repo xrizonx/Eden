@@ -7,6 +7,7 @@ using Eden.Data.World.Drones;
 using Eden.Data.World.Inventory;
 using Eden.Data.World.Loot;
 using Eden.Data.World.Propulsion;
+using Eden.Gameplay.Agents;
 using Eden.Gameplay.Combat;
 using Eden.Gameplay.Dogma;
 using Eden.Gameplay.Drones;
@@ -20,6 +21,7 @@ using Eden.World.Catalog;
 using Eden.World.Combat;
 using Eden.World.Combat.Npcs;
 using Eden.World.Fittings;
+using Eden.World.Flight;
 using Eden.World.Information;
 using Eden.World.Inventory;
 using Eden.World.Mining;
@@ -253,6 +255,7 @@ internal sealed partial class PilotDroneStore
                 wreck is null
                 || wreck.SystemId != system
                 || wreck.ExpiresAt <= now
+                || MissionSalvageRules.IsWreck(id)
                 || wreck.SalvagedAt is not null
                 || wreck.SalvageJson is null
                 ? null
@@ -272,7 +275,11 @@ internal sealed partial class PilotDroneStore
         var attributes = PilotFittingStore.ShipAttributes(world, catalog, pilot!);
         if (
             PilotHealthStore.Read(world, id, ShipHealth.DefenseFrom(attributes), now).Remaining.Destroyed
-            || profile.Repair && attributes.GetValueOrDefault(DogmaAttributeId.DisallowAssistance) != 0
+            || profile.Repair
+                && (
+                    attributes.GetValueOrDefault(DogmaAttributeId.DisallowAssistance) != 0
+                    || PilotCapitalTravelStore.ActiveMode(world, id, now)?.Effect == DogmaEffect.Bastion
+                )
         )
         {
             return null;
@@ -325,7 +332,7 @@ internal sealed partial class PilotDroneStore
                     )
                     .ToArray();
                 endpoint = candidates
-                    .Where(w => CanAutoSalvage(world, pilot, w))
+                    .Where(w => !MissionSalvageRules.IsWreck(w.Id) && CanAutoSalvage(world, pilot, w))
                     .Where(w => source.DistanceTo(new(w.X, w.Y, w.Z)) <= controlRange)
                     .OrderBy(w => new SpacePosition(w.X, w.Y, w.Z).DistanceTo(contact.Position))
                     .ThenBy(w => w.Id)

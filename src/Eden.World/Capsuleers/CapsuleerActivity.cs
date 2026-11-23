@@ -66,6 +66,13 @@ internal sealed class CapsuleerActivity(WorldDatabase database, TimeProvider clo
         _ = Read();
     }
 
+    internal void StartUnattended()
+    {
+        Activity.StartUnattended(clock.GetTimestamp(), clock.TimestampFrequency);
+        _ = Read();
+        Wake();
+    }
+
     internal HumanActivitySnapshot Read()
     {
         var activity = Activity;
@@ -97,6 +104,17 @@ internal sealed class CapsuleerActivitySource(WorldDatabase database, TimeProvid
 
     internal void Wake() => (LiveWorld.Find(database.Path)?.CapsuleerActivity ?? _standalone).Wake();
 
+    internal void StartUnattended()
+    {
+        var policy = database.Settings.Capsuleers;
+        if (policy is { Enabled: true, RunWithoutPlayers: true } && LiveWorld.Find(database.Path) is { } live)
+        {
+            using var owner = synchronization.Enter("start background capsuleer simulation");
+            live.CapsuleerActivity.StartUnattended();
+            RequestPreparation();
+        }
+    }
+
     public HumanActivitySnapshot Read()
     {
         var live = LiveWorld.Find(database.Path);
@@ -105,6 +123,17 @@ internal sealed class CapsuleerActivitySource(WorldDatabase database, TimeProvid
         {
             var activity = live?.CapsuleerActivity ?? _standalone;
             return activity.Read();
+        }
+    }
+
+    internal void RecordSystemArrival(long pilot, int system)
+    {
+        if (
+            LiveWorld.Find(database.Path) is { } live
+            && live.MapStatistics.RecordVisit(pilot, system, clock.GetUtcNow().UtcDateTime.ToFileTimeUtc())
+        )
+        {
+            live.EconomicObjectsChanged();
         }
     }
 
@@ -161,16 +190,11 @@ internal sealed class HumanPresence(CapsuleerActivitySource activity, ICapsuleer
         long pilotId = 0
     )
     {
-        int target;
-        int? original;
-        using (synchronization.Enter("CapsuleerActivity"))
-        {
-            original = _sessions.TryGetValue(session, out int saved) ? saved : null;
-            target = systemId ?? previousSystem ?? _sessions.GetValueOrDefault(session);
-        }
+        using var ownership = synchronization.Enter("human membership");
+        int? original = _sessions.TryGetValue(session, out int saved) ? saved : null;
+        int target = systemId ?? previousSystem ?? original ?? 0;
         void Apply()
         {
-            using var ownership = synchronization.Enter("human membership");
             if (validate())
             {
                 activity.Update(session, systemId, pilotId);
@@ -187,10 +211,7 @@ internal sealed class HumanPresence(CapsuleerActivitySource activity, ICapsuleer
         }
         if (target == 0)
         {
-            using (synchronization.Enter("CapsuleerActivity"))
-            {
-                Apply();
-            }
+            Apply();
         }
         else
         {
@@ -200,20 +221,21 @@ internal sealed class HumanPresence(CapsuleerActivitySource activity, ICapsuleer
             }
             catch
             {
-                using (synchronization.Enter("CapsuleerActivity"))
+                activity.Update(session, original, pilotId);
+                if (original is { } previous)
                 {
-                    activity.Update(session, original, pilotId);
-                    if (original is { } previous)
-                    {
-                        _sessions[session] = previous;
-                    }
-                    else
-                    {
-                        _sessions.Remove(session);
-                    }
+                    _sessions[session] = previous;
+                }
+                else
+                {
+                    _sessions.Remove(session);
                 }
                 throw;
             }
+        }
+        if (systemId is int arrival && pilotId > 0)
+        {
+            activity.RecordSystemArrival(pilotId, arrival);
         }
     }
 
@@ -260,8 +282,7 @@ internal sealed class HumanPresence(CapsuleerActivitySource activity, ICapsuleer
             }
             catch
             {
-                // A failed due action must not retain a disconnected human and
-                // leave the economic clock running without a selected session.
+                // Release a disconnected observer even when a due action fails during the handoff.
                 presence.Forget(session, () => _disposed = true);
                 throw;
             }

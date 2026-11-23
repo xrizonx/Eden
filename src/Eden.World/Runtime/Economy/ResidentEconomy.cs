@@ -237,7 +237,11 @@ internal sealed partial class ResidentEconomy
         return result;
     }
 
-    private ResidentEconomy() => RegisterTables();
+    private ResidentEconomy()
+    {
+        _combatReports = new(KillboardPilotKind);
+        RegisterTables();
+    }
 
     internal ResidentEconomy(LiveWorld owner, WorldDatabase database)
         : this()
@@ -327,6 +331,7 @@ internal sealed partial class ResidentEconomy
         _prepared.Clear();
         _openOrders.Clear();
         _openSellOrders.Clear();
+        _activityRewardDeadlines.Clear();
         FullyReservedTrafficPools.Clear();
         ClearTimedModules();
         ClearCommandBursts();
@@ -351,6 +356,7 @@ internal sealed partial class ResidentEconomy
             _sequences[reader.GetString(0)] = reader.GetInt64(1);
         }
         ReindexLoadedTimedModules();
+        LoadTetherAvailability();
         _loaded = true;
     }
 
@@ -408,6 +414,7 @@ internal sealed partial class ResidentEconomy
     )
     {
         InvalidateFits(changes);
+        ObserveTetherAvailability(changes, resident: true);
         ReindexTimedModules(changes);
         foreach (var sequence in sequences)
         {
@@ -540,6 +547,7 @@ internal sealed partial class ResidentEconomy
                 table.Observe(world, affected[table.Name]);
             }
         }
+        ObserveTetherAvailability(changes, resident: false);
         ReindexTimedModules(changes);
         // External insertions share the same high-water domain, including deletions
         // of the last row and item-to-ship/implant conversions.

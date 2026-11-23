@@ -7,6 +7,69 @@ Asteroids, mining, reprocessing, manufacturing, markets, loyalty balances and LP
 [Planetary industry](planetary.md) now covers surface colonies, extraction, all 68 processing schematics,
 command launches and NPC customs import/export. Earlier milestone scope statements below remain historical.
 
+## Browsing industry facilities from any station
+
+`facilityManager.GetFacilities` now resolves the browsing region from the pilot's in-space system or dock location.
+Pilots docked at an NPC station without a factory or laboratory can browse available facilities in their region.
+The inventory-location and job installation calls still enforce their own facility, access and docking rules.
+
+Inert inspection of build **3662168** `code.ccp` (SHA-256 `849e408861af5d85bd09d69e440d97fe06d021f306530b4abbe328180df57e31`)
+showed that `facilitySvc.pyj` calls `GetFacilities()` without a station argument and keys the list by session region.
+Local EVE.js 261108.1 `industryStaticData.js` (SHA-256 `19d0d5692f68d6e19570174f79ac2b81feec24b2305d93dab19f7a90d0f1b567`)
+also lists facilities from the session region without requiring the current station to provide industry.
+See [CCP's Industry UI notes](https://www.eveonline.com/news/view/industry-ui), the
+[YC119.1 fix for current-location limits](https://www.eveonline.com/news/view/patch-notes-for-yc119.1-release), and
+[EVE University's Industry guide](https://wiki.eveuniversity.org/Industry#Industry_window).
+
+### Automated validation
+
+`IndustryFacilityLookupTests.RegionalFacilityBrowserWorksFromAnNpcStationWithoutIndustry` reproduced the native call
+failure and passed after the fix in 17.27 seconds of test command time. It checks the facility row and product list,
+local and remote inventory-location rejections, and zero world SQL during browsing. The combined facility lookup,
+manufacturing, production catalog facility list and reactor family filters passed 34 cases in 46.03 seconds.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+Open the Industry window from the Neocom while docked at an NPC station without a factory or lab and inspect the
+Facilities tab for other stations in the region.
+
+## Regional market location while docked at Upwell structures
+
+Resident order books, system and region best asks, and regional price history now use the docked structure's actual
+system and region. Immediate purchase validation uses the same location. Station best asks return an empty summary
+when the pilot is docked at an Upwell structure because Eden currently stores orders at NPC stations. This prevents
+old NPC station asks from resurfacing through the summary cache even for a structure in the same system.
+
+Inert inspection of build 3662168 `code.ccp` (SHA-256 `849e408861af5d85bd09d69e440d97fe06d021f306530b4abbe328180df57e31`)
+confirmed the related market calls and location fields in `eve/client/script/ui/services/marketsvc.pyj`.
+Local EVE.js 261108.1 `marketProxyService.js` (SHA-256 `f457cb1b181ceb570a5fa346c718d71a7ce7b84b8734c88cee7f2546a8ce175b`)
+uses the session region for type books and region bests, the current system for system asks, and the station or structure
+for location-scoped asks. The native regional context and activity are also described by
+[CCP's Trading for Profit guide](https://www.eveonline.com/news/view/eve-academy-trading-for-profit) and
+[EVE University’s Upwell structure guide](https://wiki.eveuniversity.org/Upwell_structure).
+
+### Automated validation
+
+The exact `StandardMarketTests.StructureDockingUsesCurrentMarketRegionSystemAndHistory` filter reproduced the wrong
+book in both market paths before the fix. The final two cases passed in 16.95 seconds of test command time. The
+`StandardMarketTests`, `RemoteMarketTests`, `ResidentMarketHistoryTests` and `MarketSummaryPerformanceTests` filters
+passed 59 cases in 26.30 seconds, including warmed cache behavior. A broader run passed 83 of 84 cases. The
+`RegionalMarketTests.FailedPaymentRollsBackStockGoodsAndHistoryAndRetrySettlesOnce` fixture failed while removing its
+locked `world.sqlite.owner` file on both this change and the unchanged `89065bd6` baseline.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+Open the market after docking at an Upwell structure in another region and compare regional orders and price history
+with the NPC station market in that region.
+
 ## Star map Industry filters, November 20, 2026
 
 The native Industry menu shows starts over the last 24 hours for all jobs and for manufacturing,
@@ -82,6 +145,46 @@ Not performed. Agent client testing is disabled.
 
 Start a job on the updated host and check its system in the all-jobs and matching activity overlays.
 Open a cost overlay and compare the tooltip with that system's configured index.
+
+## Standard market preparation during bot jobs
+
+On build 3662168 at revision `2628decf`, a mining `Prepare` job in The Forge held the world owner for 23.87 seconds
+and allocated 32.49 GiB. The next measured player tick spent 23.72 seconds waiting for that owner. A private replay
+used the incident checkpoint and the same market snapshot, with The Forge's Standard orders and station markers reset.
+A single skillbook quote returned six offers after attempting to seed all 374,083 regional orders. Allocation samples
+attributed virtually all managed allocation to `SeedStandardRegion`. Its per-station LINQ queries repeatedly enumerated
+the growing set of private market rows and allocated expression interpreter frames, boxed keys and temporary arrays.
+
+Standard quotes and matching now load only the requested types across the region. Region coverage keeps ranged bids
+eligible. Docked bot preparation validates and indexes the immutable snapshot before entering the world owner. A bot
+trade commits its type markers with the stock and uses world schema 218 to checkpoint them. Full regional summaries
+use one indexed pass over saved stock and skip types already imported for the snapshot. They also honor complete
+station markers written by earlier builds. Failed orders leave the stock and type marker private to the attempted
+transaction. Checkpoint reopen and a later full summary preserve local depletion.
+
+The market behavior reference was EVE.js `doc/MARKET_SETUP.md` and UniWiki's station sale flow. Eden uses its own
+captured regional orders and pinned catalog. [UniWiki mining and ore sales](https://wiki.eveuniversity.org/Mining)
+
+### Automated validation
+
+The matched Forge quote returned the same six offers. Quote and commit under the owner fell from 82.44 seconds
+and 32.89 GiB allocated to 111 ms and 193 KiB allocated with the snapshot prepared outside the owner. A separate
+75-second scheduler replay used the incident save with a cold Standard market. It reached 797 scheduled bots,
+completed 14,675 actions with zero failures and ended with zero jobs due. Peak sampled queue age was 2.36 seconds
+during cold startup. The save had 6,000 enabled bots, with admission still underway at the end of this short run.
+Replay evidence is under `artifacts/bot-prepare-20261122/`.
+
+The focused filter for `StandardMarketTests`, `TrafficPreparationTests`, `CapsuleerAmmunitionSupplyTests` and
+`WorldMigrationTests` passed all 91 tests in 145.05 seconds. The solution built with zero warnings or errors
+in 32.42 seconds. Catalog setup and formatting policy tests passed 17 cases.
+
+### Live acceptance
+
+Not performed. Agent client testing is disabled.
+
+### Optional maintainer checks
+
+None.
 
 ## Standard live order market and unified economy settings (November 16, 2026)
 
@@ -1355,6 +1458,41 @@ This run covered the integration on `563f0766`, before the incoming skill-bonus 
 
 **Optional maintainer checks:** Inspect research, copying and invention in the native Industry window after upgrading a copied save.
 
+## Personal LP balances across system jumps
+
+The reported Wallet Overview showed 160,000 Caldari Navy LP in Jita. A resident regression warmed Jita's wallet view, doubled
+the balance in Perimeter, and reproduced the 160,000 LP reply on returning to Jita. Wallet commits invalidated the current system's
+cache, leaving older balances in systems the pilot had visited.
+
+Eden now caches personal LP by pilot across all systems. The resident world invalidates that pilot's view on a committed balance change,
+and the Wallet read and notification poll use the same snapshot. Travel preserves the issuer balances and emits no LP change by itself.
+
+In pinned client build **3662168** (archive SHA-256 **37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368**),
+`LoyaltyPointsWalletSvc._LoadCharacterLPData` reads the per-issuer tuples from `LPSvc.GetAllMyCharacterWalletLPBalances`.
+`LPBalancePanel.GetScrollEntries` uses those amounts and resolves the nearest store independently. The local EVE.js **261108.1**
+reference's `GetAllMyCharacterWalletLPBalances` also reads character-owned issuer balances without using system membership.
+[EVE University Wallet and LP behavior](https://wiki.eveuniversity.org/Loyalty_Points)
+
+### Automated validation
+
+The exact `PersonalLpCreditStaysVisibleWhenReturningToJita` test reproduced the stale balance before the fix and passed
+afterward in 18.77 seconds. It verifies both sides of the Jita–Perimeter gate, an LP credit notification, a second issuer's
+unchanged points, and no travel-induced notification. The solution built in 10.59 seconds with zero warnings or errors.
+The focused filter below passed 61 cases in 33.65 seconds. The catalog and formatting policy suites passed 8 and 9 cases,
+respectively. Formatting verification and the line-width check also passed.
+
+```text
+FullyQualifiedName~LoyaltyWalletServiceTests|FullyQualifiedName~LoyaltyStoreTests|FullyQualifiedName~CorporationLoyaltyTests|FullyQualifiedName~StationDirectoryTests|FullyQualifiedName~GateActivityProtocolTests|FullyQualifiedName~PilotBindingsTests
+```
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+Keep Wallet Overview open and compare the same issuer's LP before and after a gate jump into Jita.
+
 ## LP-wallet nearest-station lookup (November 9, 2026)
 
 The maintainer supplied an LP-wallet screenshot showing `Unsupported local call stationSvc.GetStationsForOwner`. Inert inspection of the pinned build-3662168 archive (SHA-256 **37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368**) confirmed that `LPStoreSvc.GetNearestDockableWithLPStoreForCorp(corpID)` calls this method with one corporation ID, iterates attribute-bearing rows, groups `stationID` values by `solarSystemID`, and chooses a destination through the client's existing jump-count logic. The [EVE University LP guide](https://wiki.eveuniversity.org/Loyalty_Points) also describes the wallet's nearest-station display. Consulted [Carbon Blue Marshal.cpp at af0d65b29f951260ea09140ca11adf5d40566997](https://github.com/carbonengine/blue/blob/af0d65b29f951260ea09140ca11adf5d40566997/src/Marshal.cpp) for native value preservation; no codec changed.
@@ -1919,18 +2057,11 @@ No full .NET regression suite was requested or run.
 **Optional maintainer checks:** After updating/restarting the host with Regional hub supply enabled, inspect native
 market categories and buy an NPC trade good at a regional hub. Native rendering and input remain unverified.
 
-## Market presets on fresh worlds and demand batching
+## Market preset changes and demand batching
 
-Fresh-universe worlds can stage market presets in **Economy & market** and activate them at restart. Standard
-still requires a compatible live order snapshot. NPC only uses the station corporation assortment. The default
-fresh market remains progressive with both supply supplements disabled. It supplies starter ore buyers,
-blueprints and skillbooks. The fresh profile requires starting skills and equipment and disables testing grants.
-Starter miners use the selected market's bids when an administrator switches away from the bootstrap market.
-[Market settings](../world-configuration.md#market-presets)
-
-The local EVE.js build 3396210 market-seeder guide describes how its Tranquility snapshot keeps station prices
-and volumes in `doc/MARKET_SEEDER.md` (SHA-256 prefix `7B354E099F4287301`). Fresh-world preset
-compatibility is Eden policy. [EVE University on regional markets](https://wiki.eveuniversity.org/Trading)
+Administrators stage market presets in **Economy & market** and activate them at restart. Standard requires a
+compatible live order snapshot. NPC only uses the station corporation’s catalog assortment.
+[Market settings](../world-configuration.md#market-presets) · [Earlier validation](https://github.com/CJ-SPT/Eden/blob/c31ac05af42c133567e203bb6859799c19af3852/docs/protocol/industry.md)
 
 A follow-up server capture showed recurring market-demand owner holds of roughly 400–550 ms. The previous
 change indexed recovery-deadline lookups. The maintenance turn could still prepare and settle a full page of
@@ -1942,7 +2073,7 @@ unfinished listing or pair after commit. Existing price priority and recovery de
 ### Automated validation
 
 The solution built in 4.73 s with zero warnings or errors. The four exact cases passed in 9.29 s.
-They staged NPC only, Standard and Testing from fresh settings, restarted with an existing player bid
+They staged NPC only, Standard and Testing in a test save, restarted with an existing player bid
 and balance, and bought stock from the selected market. Standard rejected a missing snapshot before
 the test installed its compatible fixture. The demand test resumed past 24 unfillable listings and
 settled the later sale once. Revision `9ad486ef` rejected the preset changes and processed all 25
@@ -1956,7 +2087,7 @@ The market, configuration and administration filter passed 59 cases in 20.92 s. 
 passed all 17 checks. Formatting and the two new local documentation links passed verification.
 
 ```text
-(FullyQualifiedName~StandardMarketTests|FullyQualifiedName~NpcRestingOrderTests|FullyQualifiedName~WorldConfigurationTests|FullyQualifiedName~AdministrationComponentTests|FullyQualifiedName~FreshProfileStartsEmptyAndPersistsAcrossRestart)&FullyQualifiedName!~MaintenanceUsesPricePriorityAndRejectsDuplicateConsumptionAfterRollback
+(FullyQualifiedName~StandardMarketTests|FullyQualifiedName~NpcRestingOrderTests|FullyQualifiedName~WorldConfigurationTests|FullyQualifiedName~AdministrationComponentTests)&FullyQualifiedName!~MaintenanceUsesPricePriorityAndRejectsDuplicateConsumptionAfterRollback
 ```
 
 ### Live acceptance
@@ -1965,7 +2096,7 @@ Not performed; agent client testing is disabled.
 
 ### Optional maintainer checks
 
-- Select **NPC only** on an existing fresh world, save, and restart.
+- Select **NPC only** on an existing save, save, and restart.
 - Compare the server's market-demand owner holds during population growth.
 
 ## Progressive regional markets — November 8, 2026
@@ -2119,7 +2250,7 @@ cold station profiles used 8 SQL commands / 3.26 seconds, cold demand used 5 / 2
 zero SQL commands, connections or fitting calculations / 1.18 ms. This measures catalog preparation, not a live
 GetRegionBest frame or native acceptance. The focused best-ask test separately bounds SQL/connections and proves
 that sell-price reads do not load or create demand. Full .NET regression was not requested or run. Exact initial filter:
-`FullyQualifiedName=Eden.Protocol.Tests.Market.IndustrialDemandTests.FreshWorldHasMaterialAndProductBuyersWithoutUnlockingSupply`.
+`FullyQualifiedName=Eden.Protocol.Tests.Market.IndustrialDemandTests.ProgressiveMarketHasMaterialAndProductBuyersAndOnlyBootstrapProductSupply`.
 It passed one case. The initial 65-case dependency run passed 62 and failed three new fixture cases because they
 attempted cached reads through a writable catalog context. Those cases now close the editor before opening a reader.
 A later broad dependency run was interrupted after the

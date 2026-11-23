@@ -1,10 +1,13 @@
 using Eden.Data.World.Agents;
 using Eden.Data.World.Combat.Npcs;
+using Eden.Data.World.Exploration;
 using Eden.Gameplay.Agents;
 using Eden.Gameplay.Combat;
 using Eden.Gameplay.Flight;
+using Eden.Gameplay.Information;
 using Eden.Gameplay.Inventory;
 using Eden.World.Catalog;
+using Eden.World.Fittings;
 using Eden.World.Inventory;
 using Eden.World.Runtime;
 using Eden.World.Runtime.Economy;
@@ -82,14 +85,45 @@ internal sealed partial class PilotMissionStore
         {
             throw new InvalidDataException("This acceleration gate is no longer available.");
         }
+        if (CareerMissionCatalog.Find(mission.MissionId) is { } career)
+        {
+            if (mission.PilotId != pilot.Id)
+            {
+                throw new InvalidDataException("Only the assigned pilot can use this career mission gate.");
+            }
+            if (
+                career.Scan is MissionScanKind.Data or MissionScanKind.Relic or MissionScanKind.Gas
+                && world.Set<SavedResolvedSignature>().Find(pilot.Id, MissionRules.FirstSiteId + mission.Id)?.SystemId != system
+            )
+            {
+                throw new InvalidDataException("Resolve this training signature to 100% before activating its gate.");
+            }
+        }
+        if (EpicArcCatalog.Find(mission.MissionId) is { } epic)
+        {
+            if (mission.PilotId != pilot.Id)
+            {
+                throw new InvalidDataException("Only the assigned pilot can activate this epic arc gate.");
+            }
+            var definition = epic.Gates.Single(g => g.FromObjectId == gate.DungeonObjectId);
+            if (
+                definition.RequiresDeliveryObjectId is long delivery
+                && !MissionDeliveryComplete(world, MissionCatalog.Find(catalog, mission.MissionId), mission, delivery)
+            )
+            {
+                throw new InvalidDataException("Deliver the mission cargo before using this acceleration gate.");
+            }
+            if (definition.RequiresMiningSurvey)
+            {
+                InformationRules.RequireMiningSurvey(PilotFittingStore.ShipAttributes(world, catalog, pilot));
+            }
+        }
         var type = catalog.RequireItem(pilot.ActiveShip.TypeId);
         bool cleared = true;
         if (gate.RequiresClear)
         {
             var profile = MissionCatalog.Find(catalog, mission.MissionId);
             var waves = Enumerable.Range(0, profile.Definition.Waves.Length).Where(w => profile.WaveRoom(w) == gate.SourceRoomId).ToArray();
-            int last =
-                world.Set<SavedMissionRoom>().Find(mission.Id, gate.SourceRoomId)?.Wave ?? (profile.Rooms.Length == 1 ? mission.Wave : -1);
             var required = world
                 .Filter<SavedMissionMember>(m => m.MissionId == mission.Id && m.Required)
                 .ToArray()
@@ -97,8 +131,10 @@ internal sealed partial class PilotMissionStore
                 .Select(m => m.NpcId)
                 .ToArray();
             cleared =
-                waves.All(w => w <= last)
-                && !required.Select(id => world.Set<WorldNpc>().Find(id)).Any(n => n is { DestroyedAt: null, RetiredAt: null });
+                waves.All(w =>
+                    IsIndependentWave(profile.Definition.Waves[w]) && !profile.Definition.Waves[w].Groups.Any(g => g.Required)
+                    || WaveStarted(world, mission, profile, w)
+                ) && !required.Select(id => world.Set<WorldNpc>().Find(id)).Any(n => n is { DestroyedAt: null, RetiredAt: null });
         }
         MissionGateRules.Validate(new(position.X, position.Y, position.Z), type.Radius ?? 0, type.GroupId, gate, cleared);
         var ship = new InventoryItem(

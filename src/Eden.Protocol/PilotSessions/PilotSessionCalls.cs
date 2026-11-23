@@ -22,7 +22,8 @@ internal sealed class PilotSessionCalls(
     IPilotOperationScope? operations = null,
     SessionDiagnostics? diagnostics = null,
     ICapsuleerHandoff? handoff = null,
-    ICapsuleerPresentation? presentation = null
+    ICapsuleerPresentation? presentation = null,
+    ExpertSystemHandler? expertSystems = null
 )
 {
     private bool _initialStateSent;
@@ -63,9 +64,6 @@ internal sealed class PilotSessionCalls(
         }
         string service = router.ResolveService(context, packet.Destination(), call.ObjectId);
         string method = call.Method;
-        // Trusted plugin code runs outside the world owner. Its typed services acquire their own operation scopes.
-        PilotCallResult? modResult =
-            service == "edenMods" ? router.Call(context, service, method, call.Arguments, report, call.Keywords) : null;
         using var operation = operations?.Begin();
         using var systemContext = context.Selected ? context.Flight.UseSystem() : null;
         string description = DescribeCall(service, method, call.Arguments);
@@ -77,6 +75,9 @@ internal sealed class PilotSessionCalls(
             diagnostics?.Trace ?? report,
             received
         );
+        // Trusted plugin code runs outside the world owner but inside the call's accounting.
+        PilotCallResult? modResult =
+            service == "edenMods" ? router.Call(context, service, method, call.Arguments, report, call.Keywords) : null;
         bool selected = context.Selected;
         DockedPilot? previous = context.ActiveFlight?.Pilot;
         long? previousControl = context.ControlledStructureId;
@@ -84,6 +85,7 @@ internal sealed class PilotSessionCalls(
         void Dispatch()
         {
             using var arrivalContext = updates.AdoptConduit(context) ? context.Flight.UseSystem() : null;
+            expertSystems?.Advance(context);
             using (SessionLatency.Measure(SessionLatencyPhase.TrafficRefresh))
             {
                 presentation?.Refresh();
@@ -105,6 +107,7 @@ internal sealed class PilotSessionCalls(
             {
                 using var entryLatency = SessionLatency.Measure(SessionLatencyPhase.Entry);
                 using var entering = SessionPerformance.Begin("enter", diagnostics?.Trace ?? report);
+                expertSystems?.Enter(context);
                 updates.Enter(context);
             }
             using var currentLocation = context.Selected ? context.Flight.UseSystem() : null;

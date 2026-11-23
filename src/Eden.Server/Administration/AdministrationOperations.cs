@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using Eden.Data.Catalog;
 using Eden.Gameplay.Capsuleers;
+using Eden.Gameplay.Characters;
 using Eden.Gameplay.Configuration;
 using Eden.Gameplay.Skills;
 using Eden.World.Capsuleers;
@@ -41,12 +42,14 @@ internal sealed partial class AdministrationOperations(
     ServerPerformanceMonitor performance,
     ICapsuleerPopulation population,
     ICapsuleerDiagnostics capsuleers,
+    ICapsuleerInspection inspection,
     ICapsuleerScene scene,
     Eden.World.Modding.ModStore mods,
     Eden.Server.Modding.ModPublisher modPublisher,
     Eden.World.Storage.WorldDatabase database,
     CapsuleerCorporationIdentityStore corporationIdentities,
     OptionalDataImports optionalDataImports,
+    IServerKillboard killboard,
     IRegionalConflictDiagnostics? regionalConflicts = null
 )
 {
@@ -94,6 +97,12 @@ internal sealed partial class AdministrationOperations(
         return performance.Read();
     }
 
+    internal async Task<KillboardPage?> Killboard(ClaimsPrincipal user, KillboardFilter filter)
+    {
+        await Authorize(user);
+        return killboard.Read(filter);
+    }
+
     internal async Task<AdminPopulationSnapshot> Population(ClaimsPrincipal user)
     {
         await Authorize(user);
@@ -113,6 +122,35 @@ internal sealed partial class AdministrationOperations(
     {
         await Authorize(user);
         return corporationIdentities.Preview(id);
+    }
+
+    internal async Task<CapsuleerDirectoryPage> BrowsePopulation(
+        ClaimsPrincipal user,
+        CapsuleerDirectory directory,
+        string? search,
+        int page
+    )
+    {
+        await Authorize(user);
+        return inspection.Browse(directory, search, page);
+    }
+
+    internal async Task<CapsuleerPilotInspection?> InspectBot(ClaimsPrincipal user, long id)
+    {
+        await Authorize(user);
+        return inspection.Pilot(id);
+    }
+
+    internal async Task<CapsuleerCorporationInspection?> InspectBotCorporation(ClaimsPrincipal user, int id)
+    {
+        await Authorize(user);
+        return inspection.Corporation(id);
+    }
+
+    internal async Task<CapsuleerAllianceInspection?> InspectBotAlliance(ClaimsPrincipal user, int id)
+    {
+        await Authorize(user);
+        return inspection.Alliance(id);
     }
 
     internal async Task<bool> ApplyCorporationName(ClaimsPrincipal user, CapsuleerCorporationNamePreview preview)

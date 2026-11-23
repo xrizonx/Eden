@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Text.Json;
 using Eden.Data.Catalog.Exploration;
@@ -16,18 +17,23 @@ internal static class HackingCatalog
     internal const int DatacoreGroup = 333;
     internal const int DecryptorGroup = 1304;
     internal const int SalvageGroup = 754;
+
+    // Build 3662168 career-supplied analyzers are unpublished and have no required skill.
+    private const int CivilianDataAnalyzer = 27014;
+    private const int CivilianRelicAnalyzer = 27019;
     internal static readonly IReadOnlyList<ExplorationDefinition> Sites = Load();
-    private static readonly CatalogDefinition<ImmutableArray<int>> s_loot = new("exploration-rewards", LoadLoot);
+    private static readonly CatalogDefinition<FrozenDictionary<long, ImmutableArray<int>>> s_loot = new("exploration-rewards", LoadLoot);
 
-    internal static ImmutableArray<int> Loot(CatalogDbContext catalog, int group) => catalog.Definition(s_loot, group);
+    internal static FrozenDictionary<long, ImmutableArray<int>> LootGroups(CatalogDbContext catalog) => catalog.GlobalDefinition(s_loot);
 
-    private static ImmutableArray<int> LoadLoot(CatalogDbContext catalog, int group) =>
+    internal static ImmutableArray<int> Loot(CatalogDbContext catalog, int group) => LootGroups(catalog).GetValueOrDefault(group, []);
+
+    private static FrozenDictionary<long, ImmutableArray<int>> LoadLoot(CatalogDbContext catalog, int unused) =>
         catalog
             .Records(CatalogData.Client.Types)
-            .Where(t => t.Value.GroupID == group && t.Value.Published == 1)
-            .Select(t => checked((int)t.Key))
-            .Order()
-            .ToImmutableArray();
+            .Where(t => t.Value is { GroupID: not null, Published: 1 })
+            .GroupBy(t => t.Value.GroupID!.Value)
+            .ToFrozenDictionary(g => g.Key, g => g.Select(t => checked((int)t.Key)).Order().ToImmutableArray());
 
     private static readonly CatalogTypeRule s_support = new(typeof(HackingCatalog).FullName!, Validate);
 
@@ -47,6 +53,16 @@ internal static class HackingCatalog
 
     internal static bool Supported(CatalogDbContext catalog, int type, int group) => s_support.Supports(catalog, type, group);
 
+    internal static bool IsCivilian(int type) => type is CivilianDataAnalyzer or CivilianRelicAnalyzer;
+
+    internal static bool MatchesAnalyzer(CatalogDbContext catalog, int type, int skill) =>
+        type switch
+        {
+            CivilianDataAnalyzer => skill == HackingRules.HackingSkill,
+            CivilianRelicAnalyzer => skill == HackingRules.ArchaeologySkill,
+            _ => InventoryDefinitions.RequiredSkills.Any(p => catalog.FittingAttributes(type).GetValueOrDefault(p.Skill) == skill),
+        };
+
     private static bool Validate(CatalogDbContext catalog, int typeId, int group)
     {
         if (group != HackingRules.AnalyzerGroup)
@@ -56,7 +72,8 @@ internal static class HackingCatalog
         var type = catalog.Read(CatalogData.Client.Types, (long)typeId);
         var a = catalog.FittingAttributes(typeId);
         var effects = PassiveCatalog.Effects(catalog, typeId);
-        return type?.Published == 1
+        return type is not null
+            && (type.Published == 1 || IsCivilian(typeId))
             && type.MetaGroupID != AbyssalMetaGroup
             && FittingCatalog.DefaultEffect(catalog, typeId) == DogmaEffect.Hacking
             && a.GetValueOrDefault(DogmaAttributeId.VirusCoherence) > 0

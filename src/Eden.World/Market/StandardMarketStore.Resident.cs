@@ -1,7 +1,12 @@
+using System.Buffers;
+using Eden.Data.Catalog.Market;
 using Eden.Data.World.Market;
 using Eden.Gameplay.Market;
+using Eden.Infrastructure.Diagnostics;
 using Eden.World.Catalog;
+using Eden.World.Runtime;
 using Eden.World.Runtime.Economy;
+using Eden.World.Storage;
 
 namespace Eden.World.Market;
 
@@ -15,26 +20,60 @@ internal sealed partial class PilotMarketStore
         }
     }
 
-    private static readonly CatalogDefinition<IReadOnlyDictionary<int, int>> StandardMarketDistances = new(
+    private sealed record StandardGateGraph(IReadOnlyDictionary<int, int> Systems, int[][] Edges);
+
+    private static readonly CatalogDefinition<StandardGateGraph> StandardMarketGraph = new(
+        "standard-market.gate-graph",
+        (catalog, _) =>
+        {
+            var definitions = catalog.Definitions;
+            int[] systems = definitions
+                .Gates.Values.SelectMany(gate => new[] { gate.SolarSystemId, gate.DestinationSystemId })
+                .Distinct()
+                .ToArray();
+            var index = systems.Select((system, position) => (system, position)).ToDictionary(pair => pair.system, pair => pair.position);
+            int[][] edges = systems
+                .Select(system => definitions.GatesInSystem(system).Select(gate => index[gate.DestinationSystemId]).ToArray())
+                .ToArray();
+            return new(index, edges);
+        },
+        Estimate: graph => graph.Systems.Count * 64L + graph.Edges.Sum(edges => edges.Length * sizeof(int))
+    );
+
+    private static readonly CatalogDefinition<int[]> StandardMarketDistances = new(
         "standard-market.distances",
         (catalog, source) =>
         {
-            Dictionary<int, int> distances = new() { [source] = 0 };
-            Queue<int> pending = new();
-            pending.Enqueue(source);
-            while (pending.TryDequeue(out int system))
+            var graph = catalog.Definitions.GlobalDefinition(StandardMarketGraph);
+            int[] distances = new int[graph.Edges.Length];
+            Array.Fill(distances, -1);
+            int[] pending = ArrayPool<int>.Shared.Rent(graph.Edges.Length);
+            try
             {
-                foreach (var gate in catalog.Definitions.GatesInSystem(system))
+                int origin = graph.Systems[source];
+                distances[origin] = 0;
+                pending[0] = origin;
+                int tail = 1;
+                for (int head = 0; head < tail; head++)
                 {
-                    if (distances.TryAdd(gate.DestinationSystemId, distances[system] + 1))
+                    int system = pending[head];
+                    foreach (int destination in graph.Edges[system])
                     {
-                        pending.Enqueue(gate.DestinationSystemId);
+                        if (distances[destination] == -1)
+                        {
+                            distances[destination] = distances[system] + 1;
+                            pending[tail++] = destination;
+                        }
                     }
                 }
+                return distances;
             }
-            return distances;
+            finally
+            {
+                ArrayPool<int>.Shared.Return(pending);
+            }
         },
-        Estimate: distances => distances.Count * 32L
+        Estimate: distances => distances.Length * sizeof(int)
     );
 
     private static bool StandardBidReaches(CatalogDbContext catalog, NpcMarketOrder order, SavedPersonalOrder incoming)
@@ -47,11 +86,145 @@ internal sealed partial class PilotMarketStore
         {
             return false;
         }
-        var distances = catalog.Definitions.Definition(StandardMarketDistances, incoming.SystemId);
-        return StandardMarketRules.Reaches(order.Range, false, distances.TryGetValue(order.SystemId, out int jumps) ? jumps : null);
+        if (order.SystemId == incoming.SystemId)
+        {
+            return StandardMarketRules.Reaches(order.Range, false, 0);
+        }
+        var definitions = catalog.Definitions;
+        var graph = definitions.GlobalDefinition(StandardMarketGraph);
+        if (!graph.Systems.ContainsKey(incoming.SystemId) || !graph.Systems.TryGetValue(order.SystemId, out int destination))
+        {
+            return false;
+        }
+        int distance = definitions.Definition(StandardMarketDistances, incoming.SystemId)[destination];
+        return distance >= 0 && StandardMarketRules.Reaches(order.Range, false, distance);
     }
 
-    private void SeedStandardRegion(WorldAction world, CatalogDbContext catalog, int regionId)
+    private static EconomyTransaction ResidentStandardMarket(WorldAction world) =>
+        world as EconomyTransaction ?? throw new InvalidOperationException("Standard market operations require the resident world owner.");
+
+    private void WarmStandardMarket()
+    {
+        var live =
+            LiveWorld.Find(database.Path) ?? throw new InvalidOperationException("Standard market readiness requires the resident world.");
+        var snapshot = database.MarketSnapshot;
+        long generation = snapshot.Manifest.CapturedAt.UtcTicks;
+        var pending = live.Economy.Inspect(world =>
+            snapshot
+                .Manifest.Regions.Where(region => !IsStandardRegionSeeded(world, region.RegionId, generation))
+                .Select(region => region.RegionId)
+                .ToArray()
+        );
+        foreach (int region in pending)
+        {
+            _ = snapshot.RegionOrdersByType(region);
+        }
+        snapshot.CompleteReadiness();
+    }
+
+    // Negative region keys keep a complete region distinct from every real (region, type) marker.
+    private static bool IsStandardRegionSeeded(WorldAction world, int regionId, long generation) =>
+        world.Set<SavedStandardMarketType>().Find(-regionId, 0)?.SnapshotTicks == generation;
+
+    private static void CompleteStandardRegion(EconomyTransaction world, int regionId, long generation)
+    {
+        var regionalMarker =
+            world.Set<SavedStandardMarketType>().Find(-regionId, 0)
+            ?? world.Add(new SavedStandardMarketType { RegionId = -regionId, TypeId = 0 }).Entity;
+        regionalMarker.SnapshotTicks = generation;
+    }
+
+    private void PrepareStandardRegion(LiveWorld live, int regionId)
+    {
+        const int ordersPerBatch = 1_024;
+        var snapshot = database.MarketSnapshot;
+        long generation = snapshot.Manifest.CapturedAt.UtcTicks;
+        // Concurrent reads of the same region share preparation without holding any world owner between batches.
+        lock (snapshot.RegionPreparation(regionId))
+        {
+            var existing = live.Economy.Inspect(world =>
+                IsStandardRegionSeeded(world, regionId, generation)
+                    ? null
+                    : ResidentStandardMarket(world).RegionalOrders(regionId).ToArray()
+            );
+            if (existing is null)
+            {
+                return;
+            }
+            using var phase = SessionPerformance.Phase("market.prepareStandardRegion");
+            using CatalogDbContext catalog = new(database.CatalogPath);
+            var sources = snapshot.RegionOrdersByType(regionId);
+            var oldOrders = existing.Where(order => order.Kind == NpcMarketKind.Standard).ToArray();
+            var stationIds = oldOrders.Select(order => order.StationId).ToHashSet();
+            stationIds.UnionWith(sources.Values.SelectMany(orders => orders.Select(order => order.StationId)));
+            using (var markers = live.Economy.Begin(TransactionParticipants.None))
+            {
+                var stationMarkers = markers.Set<MarketStation>();
+                // Older saves kept the full generation on stations, including stations with retired orders.
+                if (stationIds.All(station => stationMarkers.Find(station)?.StandardSnapshotTicks == generation))
+                {
+                    CompleteStandardRegion(markers, regionId, generation);
+                    markers.Commit();
+                    return;
+                }
+            }
+            var oldCounts = oldOrders.GroupBy(order => order.TypeId).ToDictionary(group => group.Key, group => group.Count());
+            var oldKeys = oldOrders.ToDictionary(order => (order.StationId, order.SourceOrderId));
+            foreach (var source in sources.Values.SelectMany(orders => orders))
+            {
+                if (
+                    oldKeys.TryGetValue((source.StationId, source.SourceOrderId), out var old)
+                    && (old.TypeId != source.TypeId || old.Bid != source.Bid)
+                )
+                {
+                    throw new InvalidDataException("A live market source identity changed its item or side.");
+                }
+            }
+            List<int> batch = [];
+            int rows = 0;
+            foreach (int type in sources.Keys.Concat(oldCounts.Keys).Distinct())
+            {
+                int typeRows = Math.Max(sources.GetValueOrDefault(type)?.Length ?? 0, oldCounts.GetValueOrDefault(type)) + 1;
+                if (batch.Count > 0 && rows + typeRows > ordersPerBatch)
+                {
+                    CommitBatch();
+                    rows = 0;
+                }
+                batch.Add(type);
+                rows += typeRows;
+            }
+            if (batch.Count > 0)
+            {
+                CommitBatch();
+            }
+            using var final = live.Economy.Begin(TransactionParticipants.None);
+            var stations = final.Set<MarketStation>();
+            long now = Now;
+            foreach (int stationId in stationIds)
+            {
+                var station = stations.Find(stationId) ?? final.Add(new MarketStation { StationId = stationId, CreatedAt = now }).Entity;
+                station.StandardSnapshotTicks = generation;
+            }
+            CompleteStandardRegion(final, regionId, generation);
+            final.Commit();
+
+            void CommitBatch()
+            {
+                using var world = live.Economy.Begin(TransactionParticipants.None);
+                SeedStandardOrders(world, catalog, regionId, batch, sources);
+                world.Commit();
+                batch.Clear();
+            }
+        }
+    }
+
+    private void SeedStandardOrders(
+        EconomyTransaction world,
+        CatalogDbContext catalog,
+        int regionId,
+        IReadOnlyList<int>? types,
+        IReadOnlyDictionary<int, LiveMarketOrder[]>? sourceOrders = null
+    )
     {
         var snapshot = database.MarketSnapshot;
         long generation = snapshot.Manifest.CapturedAt.UtcTicks;
@@ -61,29 +234,65 @@ internal sealed partial class PilotMarketStore
         {
             return;
         }
-        var region = snapshot.Region(regionId);
-        var stations = world.Set<MarketStation>();
-        var previouslySeeded = world
-            .Set<NpcMarketOrder>()
-            .Where(order => order.RegionId == regionId && order.Kind == NpcMarketKind.Standard)
-            .Select(order => order.StationId)
-            .Distinct()
-            .ToArray();
-        foreach (int stationId in region.Keys.Concat(previouslySeeded).Distinct())
+        if (IsStandardRegionSeeded(world, regionId, generation))
         {
+            world.Remember(preparation);
+            return;
+        }
+        var typeMarkers = world.Set<SavedStandardMarketType>();
+        bool TypeSeeded(int type) => typeMarkers.Find(regionId, type)?.SnapshotTicks == generation;
+
+        // Quotes and trades need the requested types across the region, including ranged bids.
+        // Keep their progress distinct from the station markers for a complete import.
+        var pending = types?.Where(type => !TypeSeeded(type)).ToHashSet();
+        if (pending is { Count: 0 })
+        {
+            return;
+        }
+        using var phase = SessionPerformance.Phase("market.seedStandardOrders");
+        var region = sourceOrders ?? snapshot.RegionOrdersByType(regionId);
+        var stations = world.Set<MarketStation>();
+        Dictionary<int, MarketStation?> updatingStations = [];
+        bool UpdateStation(int stationId)
+        {
+            if (updatingStations.ContainsKey(stationId))
+            {
+                return true;
+            }
             var marker = stations.Find(stationId);
             if (marker?.StandardSnapshotTicks == generation)
             {
-                continue;
+                return false;
             }
-            var station = catalog.RequireStation(stationId);
-            var existing = world
-                .Set<NpcMarketOrder>()
-                .Where(order => order.StationId == stationId && order.Kind == NpcMarketKind.Standard)
-                .ToDictionary(order => order.SourceOrderId);
-            foreach (var source in region.GetValueOrDefault(stationId) ?? [])
+            updatingStations.Add(stationId, marker);
+            return true;
+        }
+
+        var candidates = pending is null ? world.RegionalOrders(regionId) : world.RegionalOrdersForTypes(regionId, pending);
+        var existing = candidates
+            .Where(order => order.Kind == NpcMarketKind.Standard && (pending is not null || !TypeSeeded(order.TypeId)))
+            .Where(order => UpdateStation(order.StationId))
+            .ToDictionary(order => (order.StationId, order.SourceOrderId));
+        IEnumerable<int> sources = pending is null ? region.Keys.Where(type => !TypeSeeded(type)) : pending;
+        var orders = world.Set<NpcMarketOrder>();
+        foreach (int type in sources)
+        {
+            foreach (var source in region.GetValueOrDefault(type) ?? [])
             {
-                if (!existing.Remove(source.SourceOrderId, out var order))
+                if (!UpdateStation(source.StationId))
+                {
+                    continue;
+                }
+                NpcMarketOrder order;
+                if (existing.Remove((source.StationId, source.SourceOrderId), out var saved))
+                {
+                    if (saved.TypeId != source.TypeId || saved.Bid != source.Bid)
+                    {
+                        throw new InvalidDataException("A live market source identity changed its item or side.");
+                    }
+                    order = orders.Find(saved.Id)!;
+                }
+                else
                 {
                     order = world
                         .Add(
@@ -91,19 +300,15 @@ internal sealed partial class PilotMarketStore
                             {
                                 Kind = NpcMarketKind.Standard,
                                 SourceOrderId = source.SourceOrderId,
-                                StationId = stationId,
-                                SystemId = station.SolarSystemId,
+                                StationId = source.StationId,
+                                SystemId = source.SystemId,
                                 RegionId = regionId,
-                                OwnerId = station.OwnerId,
+                                OwnerId = catalog.RequireStation(source.StationId).OwnerId,
                                 TypeId = source.TypeId,
                                 Bid = source.Bid,
                             }
                         )
                         .Entity;
-                }
-                else if (order.TypeId != source.TypeId || order.Bid != source.Bid)
-                {
-                    throw new InvalidDataException("A live market source identity changed its item or side.");
                 }
                 order.PriceCents = source.PriceCents;
                 order.Remaining = source.Remaining;
@@ -113,15 +318,32 @@ internal sealed partial class PilotMarketStore
                 order.Range = source.Range;
                 order.MinimumVolume = source.MinimumVolume;
             }
-            foreach (var retired in existing.Values)
+        }
+        foreach (var retired in existing.Values.Where(order => order.Remaining > 0))
+        {
+            orders.Find(retired.Id)!.Remaining = 0;
+        }
+        if (pending is null)
+        {
+            foreach (var (station, saved) in updatingStations)
             {
-                retired.Remaining = 0;
+                var marker = saved ?? world.Add(new MarketStation { StationId = station, CreatedAt = Now }).Entity;
+                marker.StandardSnapshotTicks = generation;
             }
-            marker ??= world.Add(new MarketStation { StationId = stationId, CreatedAt = Now }).Entity;
-            marker.StandardSnapshotTicks = generation;
+            CompleteStandardRegion(world, regionId, generation);
+            world.Remember(preparation);
+        }
+        else
+        {
+            foreach (int type in pending)
+            {
+                var marker =
+                    typeMarkers.Find(regionId, type)
+                    ?? world.Add(new SavedStandardMarketType { RegionId = regionId, TypeId = type }).Entity;
+                marker.SnapshotTicks = generation;
+            }
         }
         world.SaveChanges();
-        world.Remember(preparation);
     }
 
     private static NpcMarketKind MarketKind(WorldAction world) =>

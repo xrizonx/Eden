@@ -1,44 +1,31 @@
 # Sovereignty
 
-## Fresh-world alliance and first-claim progression
+[Earlier sovereignty implementation record](https://github.com/CJ-SPT/Eden/blob/c31ac05af42c133567e203bb6859799c19af3852/docs/protocol/sovereignty.md)
 
-Fresh bot-led corporations build initial working capital through an ordinary founder donation. The founder
-keeps personal cash equal to the charter fee and contributes surplus until the corporation holds that amount.
-Existing market sales and taxes then fund operations. The alliance review keeps the normal registration fee
-and member dues reserve. A funded founder with a willing partner must train Empire Control V through its own
-skillbooks, earned skill points, and passive queue before the corporation pays the registration shortfall.
+## Alliance Systems window
 
-A fresh courier in a paid ship can take a first-claim assignment at headquarters. A Squall outfitter must
-qualify for the hull, the Entosis Link and the expedition's hauling skill level through ordinary training.
-The corporation can purchase locally available parts or place funded buy orders for missing stock while
-preserving dues. The first-claim search in a fresh world reaches up to six reciprocal jumps. The existing
-flight, neutral hub deployment, paid cycles, home defense and billing handle the expedition and the claim.
+Build **3662168** `FormAlliancesSystems.Load` calls `stationSvc.GetSystemsForAlliance(session.allianceid)` before building
+the Systems dashboard. The original archive has SHA-256 prefix `37fb2af4fa0e`. EVE.js **261108.1**, build **3396210**,
+answers with a list of `utillib.KeyVal` records containing `solarSystemID` and `allianceID`. The reference is in
+`stationService.js` (`34c675bfafdf`), `sovPayloads.js` (`998c373de30e`), and `sovState.js` (`674bf18c6288`).
+[Sovereignty](https://wiki.eveuniversity.org/Sovereignty)
 
-Empire Control (3732) uses rank 5 and Memory/Charisma in the pinned build 3662168 catalog. The local
-EVE.js `server/src/space/modules/entosisLinkRuntime.js` snapshot SHA-256 is
-`AFE03A1E9E0FA1525AA56A4D3782EF4E91BA06E509A49CE15803E3D1732E1D1D`.
-[CCP Entosis Link](https://support.eveonline.com/hc/en-us/articles/203729281-Entosis-Link) ·
-[CCP Sovereignty Hub](https://support.eveonline.com/hc/en-us/articles/14339751569436-Sovereignty-Hub)
+Eden reads the committed sovereignty claims through the resident alliance index and returns matching systems ordered by
+system ID. An alliance without claims returns an empty list. A call without arguments uses the selected pilot's alliance.
 
-### Automated validation
+**Automated validation.** `ClaimedHubRepliesMapRowsSlimScoreAndNotificationsUseNativeShapes` passed through `Test-Feature.ps1`
+in 20.86 seconds after a 10.77-second build. It covers selection gating, native row fields, the session-alliance fallback,
+empty and malformed inputs, separation between alliances, and zero SQL commands and connections on the warm read.
+The solution build finished in 1.12 seconds with zero warnings or errors. The following filter passed 19 tests in 9.94
+seconds. The catalog setup and formatting policy suites passed 8 and 9 tests. `Format.ps1 -Check` and the whitespace check passed.
 
-The exact funded-neighbors, first-claim and fresh corporate-production filters passed eight cases in
-27.39 seconds. After adding the expedition bid, the first-claim filter passed four cases in 18.58 seconds.
-The fresh formation replay queued the last Empire Control level before paying registration. The fresh
-claim replay verified a funded Squall bid, fitting and fuel purchases, cargo and target across restart,
-capture outside the observer's system, and the first paid bill. The fixtures stage working capital,
-corporations, a qualified expedition pilot, and a seller's stock.
+```text
+FullyQualifiedName~Eden.Protocol.Tests.Sovereignty.SovereigntyProtocolTests|FullyQualifiedName~Eden.Protocol.Tests.Maps.MapStartupTests|FullyQualifiedName~Eden.Protocol.Tests.Maps.SovereigntyTests|FullyQualifiedName~Eden.Protocol.Tests.Docking.StationDirectoryTests
+```
 
-The final alliance, sovereignty, corporation, training, fresh career and production filter passed 220
-cases in 131.69 seconds. The solution build, both Python policy suites and formatting checks passed.
+**Live acceptance.** Not performed; agent client testing is disabled.
 
-### Live acceptance
-
-Not performed; agent client testing is disabled.
-
-### Optional maintainer checks
-
-None.
+**Optional maintainer checks.** Open the corporation window's **Alliances → Systems** tab for an alliance that holds systems.
 
 ## Autonomous first claims
 

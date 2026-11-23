@@ -1,13 +1,16 @@
 using Eden.Data.World.Characters;
 using Eden.Data.World.Combat;
 using Eden.Data.World.Drones;
+using Eden.Data.World.FactionWarfare;
 using Eden.Data.World.Insurance;
 using Eden.Data.World.Inventory;
 using Eden.Data.World.Loot;
+using Eden.Data.World.Market;
 using Eden.Gameplay.Combat;
 using Eden.Gameplay.Docking;
 using Eden.Gameplay.Dogma;
 using Eden.Gameplay.Drones;
+using Eden.Gameplay.FactionWarfare;
 using Eden.Gameplay.Flight;
 using Eden.Gameplay.Maps;
 using Eden.Infrastructure.Diagnostics;
@@ -489,6 +492,28 @@ public sealed class PilotDroneTests
         Assert.DoesNotContain(f.Drones.List(SystemId, f.Now), d => d.Activity == DroneActivity.Fighting);
     }
 
+    [Fact]
+    public void ResidentDroneCyclesHonorRetirementFromHostileMilitia()
+    {
+        using var f = Prepare(.2);
+        using LiveWorld live = new(new(f.Base.Db.Path), f.Base.Clock, _ => { });
+        var ids = f.Launch(quantity: 1);
+        Space(f);
+        using (var world = live.Economy.Begin())
+        {
+            world.Add(new SavedMilitiaEnlistment { PilotId = f.Pilot, DirectFaction = MilitiaFaction.Caldari });
+            world.Add(new SavedMilitiaEnlistment { PilotId = Victim, DirectFaction = MilitiaFaction.Gallente });
+            world.Commit();
+        }
+        Engage(f, ids);
+        Assert.Single(f.Tick().Hits);
+
+        var militia = f.Base.Db.Services.GetRequiredService<IMilitiaEnlistment>();
+        militia.RetireDirectly(Victim);
+        Assert.Empty(f.Tick(5).Hits);
+        Assert.DoesNotContain(f.Drones.List(SystemId, f.Now), d => d.Activity == DroneActivity.Fighting);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -625,7 +650,14 @@ public sealed class PilotDroneTests
         using var f = Prepare();
         using (WorldDbContext world = new(f.Base.Db.Path))
         {
-            world.Database.ExecuteSqlRaw("ALTER TABLE WorldPilotHostility DROP COLUMN LastAttackAt; PRAGMA user_version=99");
+            world.Database.ExecuteSqlRaw(
+                """
+                ALTER TABLE WorldPilotHostility DROP COLUMN LastAttackAt;
+                ALTER TABLE WorldPilotHostility DROP COLUMN SecurityPenaltyRecorded;
+                ALTER TABLE WorldPilotHostility DROP COLUMN MilitiaPenaltyRecorded;
+                PRAGMA user_version=99;
+                """
+            );
             world.Database.ExecuteSql(
                 $"INSERT INTO WorldPilotHostility(SourceShipId,TargetShipId,ExpiresAt) VALUES ({VictimShip},{f.Ship},{f.Now})"
             );
@@ -636,9 +668,56 @@ public sealed class PilotDroneTests
         var hostility = Assert.Single(saved.Set<SavedPilotHostility>());
         Assert.Equal(f.Now, hostility.ExpiresAt);
         Assert.Equal(0, hostility.LastAttackAt);
+        Assert.False(hostility.SecurityPenaltyRecorded);
+        Assert.False(hostility.MilitiaPenaltyRecorded);
         Assert.Equal(WorldMigration.CurrentVersion, saved.Database.SqlQueryRaw<int>("PRAGMA user_version").AsEnumerable().Single());
         Assert.Empty(saved.Set<SavedCrimewatch>());
         Assert.Empty(saved.Set<ShipLoss>());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BothVersion218LayoutsUpgradeWithExistingHostility(bool hasSecurityPenaltyColumns)
+    {
+        using var f = Prepare();
+        using (WorldDbContext world = new(f.Base.Db.Path))
+        {
+            world.Database.ExecuteSqlRaw("ALTER TABLE WorldPilotHostility DROP COLUMN MilitiaPenaltyRecorded; PRAGMA user_version=218");
+            if (hasSecurityPenaltyColumns)
+            {
+                world.Database.ExecuteSqlRaw("DROP TABLE WorldStandardMarketType");
+                world.Database.ExecuteSql(
+                    $"""
+                    INSERT INTO WorldPilotHostility(SourceShipId,TargetShipId,ExpiresAt,LastAttackAt,SecurityPenaltyRecorded)
+                    VALUES ({VictimShip},{f.Ship},{f.Now},{f.Now},1)
+                    """
+                );
+            }
+            else
+            {
+                world.Database.ExecuteSqlRaw(
+                    """
+                    ALTER TABLE WorldPilotHostility DROP COLUMN SecurityPenaltyRecorded;
+                    ALTER TABLE WorldSecurityTransaction DROP COLUMN AggressedPilotId;
+                    """
+                );
+                world.Database.ExecuteSql(
+                    $"""
+                    INSERT INTO WorldPilotHostility(SourceShipId,TargetShipId,ExpiresAt,LastAttackAt)
+                    VALUES ({VictimShip},{f.Ship},{f.Now},{f.Now})
+                    """
+                );
+            }
+        }
+        WorldInitialization.Initialize(new(f.Base.Db.Path), f.Base.Clock);
+        using LiveWorld live = new(new(f.Base.Db.Path), f.Base.Clock, _ => { });
+        var hostility = live.Economy.Inspect(world => world.Set<SavedPilotHostility>().Single());
+        Assert.Equal(f.Now, hostility.LastAttackAt);
+        Assert.Equal(hasSecurityPenaltyColumns, hostility.SecurityPenaltyRecorded);
+        Assert.False(hostility.MilitiaPenaltyRecorded);
+        Assert.Empty(live.Economy.Inspect(world => world.Set<SavedSecurityTransaction>().ToArray()));
+        Assert.Empty(live.Economy.Inspect(world => world.Set<SavedStandardMarketType>().ToArray()));
     }
 
     [Theory]

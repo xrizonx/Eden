@@ -7,9 +7,9 @@ using Eden.Protocol.Serialization;
 namespace Eden.Protocol.Agents;
 
 [Injectable]
-internal sealed class AgentDirectoryHandler(INpcDirectory directory) : ISelectedPilotCallHandler
+internal sealed class AgentDirectoryHandler(INpcDirectory directory, IPilotMissions missions) : ISelectedPilotCallHandler
 {
-    private const int MaximumCareerAgentIds = 1000;
+    private const int MaximumAgentIds = 1000;
 
     public PilotCallResult Call(
         PilotCallContext context,
@@ -29,6 +29,7 @@ internal sealed class AgentDirectoryHandler(INpcDirectory directory) : ISelected
                     or "GetAgentByID"
                     or "GetSolarSystemOfAgent"
                     or "GetCompletedCareerAgentIDs"
+                    or "GetAvailableEventAgents"
                     or "GetMyEpicArcStatus"
                     or "GetMessagesForEpicArcMissions"
             ) => true,
@@ -44,20 +45,19 @@ internal sealed class AgentDirectoryHandler(INpcDirectory directory) : ISelected
         }
         if (service == "epicArcStatus")
         {
-            // The Agent Finder checks this even though Eden has no authored epic arcs.
-            // False keeps these catalog agents browsable without advertising playable missions.
             return args is [long epicAgent] && directory.Agent(epicAgent) is not null
-                ? false
+                ? missions.EpicArcAgentAvailable(context.Pilot.PilotId, epicAgent)
                 : new PilotCallResult.Failure("Choose an active NPC agent.");
         }
         switch (method, args)
         {
             case ("GetAgents", []):
                 return new AgentDirectoryReply(directory.Agents());
-            case ("GetMyEpicArcStatus" or "GetMessagesForEpicArcMissions", []):
-                // Eden has no authored epic arcs or saved epic-arc progression.
-                // Both native consumers use dictionary lookups, not list iteration.
-                return BlueEmpty.IndexedDictionary;
+            case ("GetMyEpicArcStatus", []):
+                return new EpicArcStatusReply(missions.ArcStatus(context.Pilot.PilotId));
+            case ("GetMessagesForEpicArcMissions", []):
+                var messages = missions.EpicArcMessages();
+                return messages.Count == 0 ? BlueEmpty.IndexedDictionary : new CachedEpicArcMessages(messages);
             case ("GetAgentStaticInfo" or "GetAgentByID" or "GetSolarSystemOfAgent", [long id]) when id > 0:
                 if (directory.Agent(id) is not { } agent)
                 {
@@ -68,19 +68,24 @@ internal sealed class AgentDirectoryHandler(INpcDirectory directory) : ISelected
                     return agent.SystemId is int system ? system : PilotCallResult.None;
                 }
                 return new AgentStaticInfoReply(agent);
-            case ("GetCompletedCareerAgentIDs", [List<object?> ids]) when ids.Count <= MaximumCareerAgentIds:
+            case ("GetAvailableEventAgents", [List<object?> eventIds]) when eventIds.Count <= MaximumAgentIds:
+                if (eventIds.Any(value => value is not long id || !NpcCharacterIds.Contains(id)))
+                {
+                    return new PilotCallResult.Failure("Choose valid NPC agent IDs.");
+                }
+                return new BlueList<long>(missions.AvailableEventAgents(context.Pilot.PilotId, eventIds.Cast<long>().ToHashSet()));
+            case ("GetCompletedCareerAgentIDs", [List<object?> ids]) when ids.Count <= MaximumAgentIds:
                 if (ids.Any(value => value is not long id || !NpcCharacterIds.Contains(id)))
                 {
                     return new PilotCallResult.Failure("Choose valid NPC agent IDs.");
                 }
-                var agents = ids.Cast<long>().Distinct().ToArray();
+                var agents = ids.Cast<long>().ToHashSet();
                 if (agents.Any(id => directory.Agent(id) is null))
                 {
                     return new PilotCallResult.Failure("Choose active NPC agents.");
                 }
-                // Career mission chains are not implemented; every requested
-                // agent must still be present so the native cache can prime once.
-                return new BlueMap<long, bool>(agents.ToDictionary(id => id, _ => false));
+                var completed = missions.CompletedCareerAgents(context.Pilot.PilotId, agents);
+                return new BlueMap<long, bool>(agents.ToDictionary(id => id, completed.Contains));
             default:
                 return new PilotCallResult.Failure("Invalid agent directory request.");
         }

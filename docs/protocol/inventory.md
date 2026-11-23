@@ -8,6 +8,7 @@ These records preserve milestone evidence and historical observations. Dates, sc
 
 ## Contents
 
+- [Crystal damage in inventory](#crystal-damage-in-inventory)
 - [Inactive ship transfers and move-rule audit, November 15, 2026](#inactive-ship-transfers-and-move-rule-audit-november-15-2026)
 
 - [Container stacking and fitting, November 15, 2026](#container-stacking-and-fitting-november-15-2026)
@@ -16,6 +17,7 @@ These records preserve milestone evidence and historical observations. Dates, sc
 - [Resident cargo container access, November 15, 2026](#resident-cargo-container-access-november-15-2026)
 - [Cargo container assembly and personal asset worth](#cargo-container-assembly-and-personal-asset-worth)
 - [Criminal loot and lawful recovery, November 14, 2026](#criminal-loot-and-lawful-recovery-november-14-2026)
+- [NPC wreck ownership from damage](#npc-wreck-ownership-from-damage)
 
 - [Loot abandonment and theft, November 14, 2026](#loot-abandonment-and-theft-november-14-2026)
 
@@ -30,11 +32,41 @@ These records preserve milestone evidence and historical observations. Dates, sc
 - [Personal ship insurance](#personal-ship-insurance)
 - [Native inventory stack division](#native-inventory-stack-division)
 - [Persistent ship dirt and native cleaning](#persistent-ship-dirt-and-native-cleaning)
+- [First-party ship SKIN licenses](#first-party-ship-skin-licenses)
+- [First-party ship SKIN application](#first-party-ship-skin-application)
 - [Persistent cargo and hangar items, November 2, 2026](#persistent-cargo-and-hangar-items-november-2-2026)
 - [Partial-stack capacity recovery, November 2, 2026](#partial-stack-capacity-recovery-november-2-2026)
 - [Venture ownership, boarding and mining holds](#venture-ownership-boarding-and-mining-holds)
 - [Native recovery corvettes, November 2, 2026](#native-recovery-corvettes-november-2-2026)
 - [Inventory refresh during capsule adoption, November 2, 2026](#inventory-refresh-during-capsule-adoption-november-2-2026)
+
+## Crystal damage in inventory
+
+Build **3662168** `CrystalDamageTracker.PrimeCrystals` in `eve/client/script/ui/services/inventorysvc.pyj` passes a Python
+set of unprimed item IDs to the bound inventory manager's `GetDamageForCrystals` and merges the returned dictionary.
+The original client archive has SHA-256 prefix `37fb2af4fa0e`. EVE.js **261108.1**, build **3396210**, uses `invBrokerService.js`
+(`8cec4112de1b`) and `crystalDurability.js` (`f6e598591778`) to return damage divided by catalog hit points.
+[Crystal damage](https://wiki.eveuniversity.org/Crystal_damage)
+
+Eden answers the bound call from the selected pilot's resident inventory. The reply contains an item ID and a damage ratio
+from zero to one for each personally owned wear-enabled crystal. Unused crystals return zero. The read preserves item state
+and uses the same committed damage that survives unloading, transfers and checkpoints.
+
+**Automated validation.** `NativeCrystalDamageBatchReadsOnlyOwnedWearEnabledCrystalsFromTheResidentWorld` passed in
+31.64 seconds through `Test-Feature.ps1` after a 44.95-second build. The test marshals the native Python set, calls
+through the inventory manager binding, changes resident wear, rejects malformed arguments, and observes zero SQL commands,
+connections or fitting calculations on the warm read. The solution built in 9.74 seconds with zero warnings or errors.
+The following filter passed 20 tests in 42.08 seconds. The catalog setup and formatting policy suites passed 8 and 9 cases.
+`Format.ps1 -Check` and the whitespace check passed. The exact test passed again on `95ebcb42` in 12.51 seconds after a
+40.26-second build.
+
+```text
+FullyQualifiedName~EnergyTierTests.NativeCrystalDamageBatchReadsOnlyOwnedWearEnabledCrystalsFromTheResidentWorld|FullyQualifiedName~EnergyTierTests.NativeItemInfoReadsOwnedLooseCrystalConditionWithoutPrimingAnActiveModule|FullyQualifiedName~EnergyTierTests.NativePrimeIncludesSkilledLaserAttributesAndSavedCrystalDamage|FullyQualifiedName~EnergyTierTests.CrystalWearUsesTheCatalogFlagProbabilityAndIncrement|FullyQualifiedName~AmmunitionLookupTests|FullyQualifiedName~TypedInventoryTests|FullyQualifiedName~InventoryOwnershipTests
+```
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Unload a partly worn crystal and inspect its damage in the Item Hangar alongside a fresh crystal.
 
 ## Inactive ship transfers and move-rule audit, November 15, 2026
 
@@ -300,6 +332,34 @@ FullyQualifiedName~CargoContainerAssemblyTests|FullyQualifiedName~PersonalAssetS
 
 **Optional maintainer checks.** On the updated server, assemble a packaged station container and reopen the personal
 inventory to check estimated worth.
+
+## NPC wreck ownership from damage
+
+Ordinary NPC wrecks and their dropped items now belong to the capsuleer with the highest total applied damage. Damage
+from different hulls or drones is summed by character. Eden breaks exact ties by character ID, as in the reference
+engine. A wreck in a mission with a saved owner still belongs to that mission owner. The final blow stays credited to
+the pilot who fired it in Eden's combat history.
+
+The resident kill settlement picks the wreck owner from the target's indexed damage contributions after the lethal hit
+and before the report clears the contributions. Wreck ownership, contents and loot rights commit with the kill. The pinned
+build **3662168** uses `HaveLootRight(itemID)` in `bracketVarious.IsForbiddenContainer` and
+`celestialCheckers.OfferAbandonWreck`. Both use the existing wreck metadata and loot-rights path.
+
+Sources include [CCP's container and wreck rules](https://support.eveonline.com/hc/en-us/articles/115000597345-Container-and-Wreck-Ownership),
+[EVE University on salvaging and theft](https://wiki.eveuniversity.org/Ninja_Salvaging_and_Stealing), and the local EVE.js
+`261108.1` snapshot's `combatDestruction.js` and `killmailTracker.js`. The pinned archive was inspected as inert code
+objects and matched SHA-256 `37FB2AF4FA0EC5C8FA320F34CD28C8B7DBF4917418336B38CBA20A7860DB0368`.
+
+**Automated validation.** `NpcWreckBelongsToTheHighestDamagePilotAcrossShipsAndKeepsTheFinalBlow` failed on the original
+ownership assertion and passed after the fix in **7.24 seconds**. It checks resident damage aggregation, wreck and item
+ownership, the separate final-blow record, and checkpointed loot after the target's damage rows are cleared. The
+`NpcCombatTests|WreckTests|MissionGateAccessTests|LiveCombatObjectTests` filter passed **82 tests** in **45.60 seconds**.
+The solution build had zero warnings and errors, and the catalog and formatting policy suites passed.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Have two pilots damage the same NPC, with the lower-damage pilot landing the final shot.
+Check the wreck's ownership and the combat report.
 
 ## Criminal loot and lawful recovery, November 14, 2026
 
@@ -603,6 +663,75 @@ References: inert inspection of build **3662168** `code.ccp`, with the same SHA-
 **Live acceptance.** Not performed; agent client testing is disabled.
 
 **Optional maintainer checks.** Revisit a hull after aging and reconnecting, then use native Clean Ship and inspect the hangar model. Clean a visible hull in space and compare owner/observer models. Native rendering and the perceived aging/cleaning effect remain unverified.
+
+## First-party ship SKIN licenses
+
+In build **3662168**, `cosmetics/client/cosmeticsSvc.pyj` sends `shipCosmeticsMgr.ActivateSkinLicense(itemIDs)` and reads
+`GetLicencedSkins`, `GetLicencedSkinsForShipType`, and `GetFirstPartySkinData`. License rows contain `skinID`, `expires`,
+and `isSingleUse`. A permanent license uses Python `None` for expiration. Timed licenses use an absolute FILETIME.
+`OnSkinLicenseActivated(skinID, licenseeID)` refreshes the character's native license views. The original client archive
+has SHA-256 prefix `37fb2af4fa0e`. EVE.js **261108.1**, build **3396210**, implements activation in
+`shipCosmeticsMgrService.js` (`9a76cdd2114f`) and saved grants in `shipCosmeticsState.js` (`4fb9ae689234`).
+[CCP ship SKINs](https://support.eveonline.com/hc/en-us/articles/203280701-Ship-SKINs) ·
+[EVE University New Eden Store](https://wiki.eveuniversity.org/New_Eden_Store)
+
+Activation consumes one unit of each selected license stack and saves the character's entitlements in the same
+resident transaction. Pilots can use licenses from their accessible personal hangar or ship holds. An invalid item or
+a duplicate active SKIN rejects the batch. Timed licenses expire at their saved deadline and can be activated again with
+a fresh item. The fitting window uses the [ship SKIN application](#first-party-ship-skin-application) routes.
+
+**Automated validation.** The exact filter
+`Eden.Protocol.Tests.PilotSessions.ShipSkinLicenseTests.NativeActivationCommitsInventoryAndLicensesTogetherAndRenewsAtExpiryAfterRestart`
+passed in 9.84 s after a 6.90 s build. It verifies permanent, timed, and single-use license fields, native character
+notification routing, mixed-batch rollback, isolated inventory custody, and renewal at the exact deadline after restart.
+The same case passed in 9.71 s after wrapping a long test fixture line.
+
+The solution built in 13.87 s with no warnings or errors. The following filter passed all 56 tests in 31.78 s. The
+catalog and formatting policy suites passed all 17 Python tests.
+
+```text
+FullyQualifiedName~Eden.Protocol.Tests.PilotSessions.ShipSkinLicenseTests|FullyQualifiedName~Eden.Protocol.Tests.PilotSessions.ShipCosmeticsServiceTests|FullyQualifiedName~Eden.Protocol.Tests.PilotSessions.ShipAppearanceServiceTests|FullyQualifiedName~Eden.Protocol.Tests.Persistence.ShipAppearanceTests|FullyQualifiedName~Eden.Protocol.Tests.Persistence.InventoryOwnershipTests|FullyQualifiedName~Eden.Protocol.Tests.Persistence.InventoryStackSplitTests|FullyQualifiedName~Eden.Protocol.Tests.Persistence.WorldInitializationTests|FullyQualifiedName~Eden.Protocol.Tests.Persistence.WorldMigrationTests|FullyQualifiedName~BiomassPreparationCancellationAndFinalDeletionUseNativeRepliesAcrossSessions
+```
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Activate a first-party license from inventory, then open the character's SKIN collection
+and reconnect to verify the unlocked entry.
+
+## First-party ship SKIN application
+
+Build **3662168** `cosmeticsSvc.pyj` sends `shipCosmeticsMgr.ApplySkinToShip(shipID, skinID)` and sends `None` to clear.
+`shipSkinStateRequestMessenger.pyj` reads `eve_public.cosmetic.ship.api.Get` and `GetAllInBubble`. The state holds
+the physical ship identifier, the character identifier, and either a first-party SKIN identifier or `no_skin`.
+`shipSkinStateNoticeMessenger.pyj` listens for `SetNotice`. The pinned client resolves the material from its own SKIN
+catalog. EVE.js **261108.1**, build **3396210**, writes the ship state in `shipCosmeticsState.js` (`4fb9ae689234`)
+and publishes it through `publicGatewayLocal.js` (`2af418ccfcdf`).
+[CCP ship SKINs](https://support.eveonline.com/hc/en-us/articles/203280701-Ship-SKINs)
+
+Pilots can apply a matching active license to an owned, accessible assembled ship. The selected SKIN is saved on the
+physical hull for that owner. Its appearance clears on repackaging or on expiry of the license used to apply it.
+Repeating an application returns `SkinAlreadyApplied`, which the pinned fitting client uses to refresh its selection.
+
+The gateway authorizes the current pilot through the authenticated account. In space, the initial bubble response and
+subsequent character-targeted notices follow the same ship visibility as Destiny. A hull's new owner sees its default
+appearance. Custom SKINR and structure SKINs remain open.
+
+**Automated validation.** The exact filter
+`Eden.Protocol.Tests.PilotSessions.ShipSkinLicenseTests.NativeApplicationAndGatewayReflectOwnershipVisibilityAndExpiryAcrossCheckpoint`
+passed in 20.90 s after a 20.48 s build. It covers apply, clear, replay, authenticated read and notice shapes, off-grid
+isolation, ownership transfer, restart, exact expiry, and renewal without reinstating the expired appearance.
+
+The solution built in 1.05 s with no warnings or errors. The following filter passed all 100 tests in 111.70 s. The
+catalog and formatting policy suites passed all 17 Python tests.
+
+```text
+FullyQualifiedName~Eden.Protocol.Tests.PilotSessions.ShipSkinLicenseTests|FullyQualifiedName~Eden.Protocol.Tests.PilotSessions.ShipCosmeticsServiceTests|FullyQualifiedName~Eden.Protocol.Tests.PilotSessions.ShipAppearanceServiceTests|FullyQualifiedName~Eden.Protocol.Tests.Persistence.ShipAppearanceTests|FullyQualifiedName~Eden.Protocol.Tests.Persistence.ShipStorageTests|FullyQualifiedName~Eden.Protocol.Tests.Gateway|FullyQualifiedName~Eden.Protocol.Tests.Persistence.WorldMigrationTests|FullyQualifiedName~BiomassPreparationCancellationAndFinalDeletionUseNativeRepliesAcrossSessions
+```
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** In fitting, apply a compatible first-party SKIN. Undock with a nearby observer, then
+clear the SKIN and verify both views return to the default appearance.
 
 ## Persistent cargo and hangar items, November 2, 2026
 

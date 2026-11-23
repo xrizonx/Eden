@@ -2,11 +2,56 @@
 
 [Documentation index](README.md) / [Implementation and validation record](protocol/agents.md#supported-mission-content-expansion--november-9-2026)
 
-The build-3662168 pool contains **437 definitions: 74 combat encounters, 194 ordinary deliveries, 92 delivery storylines, four trade storylines, 50 one-time Data Center missions and 23 mining missions**. The [complete catalog audit](data/mission-support-3662168.csv) lists all **2,892** source records, including the **2,455** that remain unavailable. A blocked encounter may need verified content rather than a new engine capability.
+The build-3662168 audit admits **945 definitions**. That includes **113 combat encounters, 194 ordinary deliveries, 92 delivery
+storylines, four trade storylines, 50 Data Center missions, 23 mining missions, 41 Paragon hull exchanges, five R&D bonus
+missions, 16 militia encounters, 180 career stages, and 227 epic arc stages**.
+The [complete catalog audit](data/mission-support-3662168.csv) lists all **2,892** records and explains why the other
+**1,947** are blocked. Militia missions use their own [enlistment and offer rules](protocol/faction-warfare.md).
 
-New offers include a timed ISK bonus: an additional **50% of the quoted base reward** for turn-in within **six hours of acceptance**.
+Ordinary offers with a base ISK reward include a timed bonus of **50% of the quoted base reward** for turn-in within **six hours of acceptance**.
 The base reward remains available after that window. Existing saved offers keep their original rewards.
 See [timed bonus rules and validation](protocol/agents.md#timed-mission-bonuses--november-14-2026).
+
+## Career agents
+
+All **100** career agents in the pinned catalog offer their faction's chain. Each of the five divisions has one version per
+empire. Find an agent through the Agency and return to that agent's station to turn in each completed stage.
+
+| Division | Stages per empire | Objectives |
+| --- | ---: | --- |
+| Enforcer | 10 | Clear sequential waves, recover cargo, approach landmarks and destroy a designated installation |
+| Soldier of Fortune | 10 | Combat waves, frigate losses, tackle and remote repair, a damaging approach, and a hostage rescue |
+| Explorer | 5 | Find an anomaly, tour training rooms, resolve private data, relic and gas signatures, and return their proofs |
+| Industrialist (Entrepreneur) | 10 | Mine, salvage, recover mission cargo, hack containers, make deliveries, and acquire or produce requested goods |
+| Industrialist (Producer) | 10 | Mine and refine ore, manufacture from finite-run copies, deliver goods, and recover supplies |
+
+Each chain is once per pilot per agent. Offers and accepted career missions have no expiry. Declining or quitting ends that
+agent's chain. Failing a required training objective permits a retry after the next 11:00 UTC downtime. Career bonuses still
+have deadlines. The chain supplies catalog gifts such as ships, training equipment and blueprint copies, and the final
+turn-in grants direct empire standing. Bring the required hull or module where the briefing calls for it.
+[Career agent implementation record](protocol/agents.md#career-agent-chains--november-22-2026)
+
+## Epic arcs
+
+Find the starting agent in the Agency, then follow the agent conversations and Epic Journal. Accepted missions and
+unaccepted offers have no expiry. Each branch choice is final for the current run. Return to the starting agent
+90 days after completion to begin a new run.
+
+| Arc | Level | Starting contact | Stages across all branches |
+| --- | ---: | --- | ---: |
+| The Blood-Stained Stars | 1 | Sister Alitura in Arnon | 64 |
+| Fractured Legacy | 1 | Elias Peltonnen in Kisogo | 3 |
+| Visions of Greatness | 1 | Cassandra Ahfrim in Manifest | 8 |
+| Angel Sound | 3 | Angel, Amarr or Minmatar contacts | 22 |
+| Smash and Grab | 3 | Guristas, Caldari or Gallente contacts | 20 |
+| Penumbra | 4 | Aursa Kunivuri in Josameto | 40 |
+| Right to Rule | 4 | Karde Romu in Kor-Azor Prime | 24 |
+| Syndication | 4 | Roineron Aviviere in Dodixie | 27 |
+| Wildfire | 4 | Arsten Takalo in Frarn | 19 |
+
+The higher-level entry contacts use effective standings. Later contacts unlock through the chain. Epic arc payouts
+use the catalog's ISK, item and timed rewards. Faction rewards apply directly to the faction designated by the branch.
+[Epic arc implementation record](protocol/agents.md#epic-arc-chains--november-22-2026)
 
 ## Mining content
 
@@ -31,18 +76,29 @@ mission chains are outside the admitted mining pool. See the [implementation rec
 | Avenge a Fallen Comrade | Angel level 1 (two templates), Guristas level 2, Serpentis level 2 (two templates), DED levels 1–2 (two templates each) | 9 |
 | Retribution | Angel, Guristas, Sansha (two templates) and Serpentis (two templates); level 3 | 6 |
 | Angel Cartel Spies | Levels 1–4 | 4 |
-| Guristas Spies | Levels 1–2 | 2 |
-| Serpentis Spies | Levels 2–3 | 2 |
+| Guristas Spies | Levels 1–3 | 3 |
+| Serpentis Spies | Levels 2–4 | 3 |
 | Sansha Spies | Levels 2–4 | 3 |
+| Blood Raider Spies | Level 4 | 1 |
+| Attack the Angel Hideout | Level 2 | 1 |
+| The Seven's Brothel and The Seven's Prison Facility | Levels 2 and 3, respectively | 2 |
 | Eliminate a Pirate Nuisance | Angel, Blood, Guristas, Sansha, Serpentis; level 1 | 5 |
-| The Blockade | Guristas, level 1 | 1 |
+| The Blockade | Guristas levels 1–3, Sansha levels 1 and 3, Angel and Blood Raiders level 3, and the original level-one reconstruction | 8 |
 | The Assault | Guristas, level 4 | 1 |
+| The Mordus Headhunters | Level 4, three templates sharing the reviewed dungeon | 3 |
 | Dread Pirate Scarlet | Both catalog templates, level 4, same reviewed dungeon | 2 |
 | The Spy Stash | Guristas, level 3 | 1 |
 | The Hidden Stash | Angel, Blood, Guristas, Sansha, Serpentis; levels 1 and 2 | 10 |
 | Duo of Death | Angel, Blood, Guristas, Sansha, Serpentis; levels 3 and 4 | 10 |
 | Eliminate the Pirate Campers | Sansha and Serpentis level 1; Thukker level 2; Angel level 3 | 4 |
+| Eliminate the Stargate Campers | DED levels 2–3 (two templates each) | 4 |
+| The Small Armory | Angel Cartel, level 3 | 1 |
+| Ritualist Raids | Blood Raiders, level 4 | 1 |
 | Seek and Destroy | Angel and Guristas levels 1–3; Sansha levels 1–2; Blood levels 1 and 3; Serpentis levels 2–3; two Thukker-supplier templates using the same Sansha dungeons | 14 |
+| The Score | Angel and Guristas level 1, Blood and Serpentis level 2, Guristas level 3 | 5 |
+| The Roving Rogue Drones and The Drone Infestation | Level 1 | 2 |
+| Rogue Drone Harassment | Levels 2 and 3, four templates per level | 8 |
+| Smuggler Interception | Angel and Sansha level 2 | 2 |
 
 Avenge a Fallen Comrade requires destruction of the **Habitat** in the Angel, Guristas, Serpentis and level-two DED pockets; guards are optional and no cargo is required. Level-one DED instead requires all six DED soldiers. Each variant retains its empty entrance room and acceleration gate. The remaining variants with unverified reinforcement triggers stay blocked. See the [evejs comparison and validation](protocol/agents.md#avenge-a-fallen-comrade--november-14-2026).
 
@@ -51,6 +107,9 @@ The [spy-content milestone](protocol/agents.md#verified-spy-objectives--november
 Sansha levels two and three require the spy hulls; level four requires the entire third group, including its battleship.
 Other guards and sentries are optional. Sansha spies display their pinned hull names: Centior Cannibal, Centatis Specter,
 and Centatis Devil/Wraith, respectively. Report-specific group aggro and custom spy labels are not reconstructed.
+Level-three Guristas Spies requires the three spies in its first group. Level-four Serpentis Spies requires all eight
+ships in its combat pocket and permits all seven sentries to survive. Both retain the catalog's empty entrance gate.
+[Higher-level spy reports and bindings](protocol/agents.md#higher-level-guristas-and-serpentis-spies--november-23-2026)
 
 Retribution completes when the **outpost** is destroyed; clearing its guards alone does not complete the mission.
 The empty entrance and acceleration gate remain present. Optional armory loot and report-specific group aggro are
@@ -67,6 +126,58 @@ The Hidden Stash permits the warehouse blitz: guards remain optional, the wareho
 Duo of Death requires both named combatants, with optional sentries/spider drones. Only the last objective carrier releases **one Special Delivery**, type **11068**, through ordinary personally owned wreck inventory. The Guristas level-three report's nonexistent `Pithatis Usurper` alternative is excluded; the catalog resolves its reported Death Dealer and Revolter alternatives. The required Seek and Destroy groups follow the reports' blitz descriptions; unspecified reinforcement scripts are not fabricated.
 
 Each encounter selects one deterministic alternative from each reported group. Variable counts use the report's upper bound. Reported distances guide selection among the pinned room's native NPC anchors; missing distances retain explicit Eden hints (typically 20–25 km). Fixed batteries use their own catalog positions, and ship groups use deterministic spacing around the selected anchors. See [mission layout corrections](protocol/agents.md#mission-layout-corrections--november-9-2026) for placement policy and save compatibility. Catalog twins are admitted only when their full `killMission` payload matches a reviewed encounter and they do not declare chains or extra scripts. This is a content reconstruction, not recovery of CCP's hidden mission selection or NPC-group tables.
+
+The Blockade uses four kill-triggered reinforcements. The final wave's leader completes the objective in the
+level-one and level-two variants and the level-three Angel and Sansha variants. The level-three Guristas and Blood Raider
+variants require all five final battlecruisers. Earlier defenders can survive in each case.
+[Level-three evidence](protocol/agents.md#level-three-blockade-variants--november-23-2026) ·
+[Other Blockade variants](protocol/agents.md#the-blockade-variants--november-23-2026)
+
+The level-three Guristas Score locks the second gate behind the first combat pocket's guards. The four ships
+at the radio telescope complete the final objective. The Drone Infestation requires destroying its Drone Silo.
+In both Smuggler Interception variants the last of two destroyed transports drops ten Militants for turn-in.
+[Encounter evidence and validation](protocol/agents.md#mission-gap-expansion--november-22-2026)
+
+The level-four Mordus Headhunters requires clearing the first combat pocket to open the second gate. The final objective
+requires the full Mammoth group in pocket two. The three other groups are optional. [Encounter evidence](protocol/agents.md#level-four-mordus-headhunters--november-23-2026)
+
+The Blood Raider Spies requires the six ships in the third group. Attack the Angel Hideout requires the Angel cruiser
+and its five escorts. The Seven's Brothel and Prison Facility each require a named leader and one bodyguard.
+[Encounter evidence](protocol/agents.md#reported-security-mission-targets--november-23-2026)
+
+Rogue Drone Harassment locks the second gate until the initial combat pocket is clear. Level two requires the Wrecker Alvum
+in the final pocket. Level three uses the reported variant that requires the first two final groups, with the separate Bomber
+Alvum optional. [Encounter evidence](protocol/agents.md#rogue-drone-harassment--november-23-2026)
+
+Eliminate the Stargate Campers requires defeating the DED patrol in a single normal-space pocket.
+The Small Armory and Ritualist Raids require clearing the ships guarding the second gate. Destroy the
+Small Armory to finish its mission. Ritualist Raids also requires the six destroyers and two battleships
+in the cathedral pocket. Sentries are optional in both complexes.
+[Encounter evidence](protocol/agents.md#stargate-campers-and-guarded-structures--november-23-2026)
+
+## Paragon hull exchanges
+
+Visit IRIS at a Paragon station and bring the requested packaged hull. The issuing station's personal hangar and
+the active ship's Cargo Hold are eligible. Acceptance issues no hull. The pinned catalog sets each hull's Alpha and
+Omega payouts. Completion credits the pilot's EverMarks wallet and matches the amount for their player corporation.
+
+Offers and accepted missions each have a 24-hour window. The character can decline and request another hull without
+a penalty. A completed turn-in closes the character's other Paragon offers and starts the same 23-hour cooldown at
+every IRIS location. Eden rotates through the verified hulls by mission ID for each agent. The 32 ammunition, four
+standing-reward, and one singleton Heraldry records remain blocked pending gameplay evidence.
+[CCP's Paragon mission rules](https://support.eveonline.com/hc/en-us/articles/6807979979036-Heraldry-and-Emblems)
+
+## R&D bonus assignments
+
+With a research project running, request a bonus assignment from the R&D agent. Mineral Acquisition consumes
+300, 900, 2,700, or 8,100 Tritanium for levels one through four. The Special Delivery issues one singleton package
+for delivery to the marked station. Eden alternates between the two and starts the next assignment's deterministic
+12–23-hour cooldown when the current one ends. An assignment is available immediately when starting eligible research
+without prior assignment history.
+
+Turn-in grants one day's research points at the current project rate, direct agent and corporation standing,
+and one completion toward the ordinary storyline tally. Passive research and datacore purchases use the same
+project as before. Cancelling research closes its current mission. [Research assignment reports](https://wiki.eveuniversity.org/index.php?title=Research_missions&oldid=216855)
 
 ## Trade missions and item rewards
 
@@ -92,8 +203,8 @@ The implant is a normal reward and remains payable after the six-hour ISK bonus 
 Decline, quit and expiry grant nothing. Native objectives use fetch, with no acceptance gift or dungeon bookmark.
 
 The report supplies the ore and implant grades; existing Eden ISK, direct standing and bonus policy also applies,
-with no storyline LP. Item rewards are not split with fleet members. Derived standings remain outside current
-mission support. Level-five storylines, other special-agent trade lifecycles, blueprint-copy rewards and timed item rewards
+with no storyline LP. Item rewards are personal. Standard storyline faction gains also apply capped, single-hop derived
+standing changes for known faction relationships. Level-five storylines, other special-agent trade lifecycles, blueprint-copy rewards and timed item rewards
 remain unavailable. See the [trade engine and reward checkpoint record](protocol/agents.md#resident-trade-objectives-and-item-rewards--november-15-2026).
 
 Trade templates account for 460 catalog definitions. This milestone supplies shared player-sourced fetch objectives
@@ -120,8 +231,8 @@ do not qualify. Acceptance issues no free tags. Only the required quantity is co
 Completion, decline, quitting and offer/accepted expiry permanently end that pilot's assignment with that agent.
 Reopening the conversation or restarting the server cannot reset it. Agents sharing a Copper mission definition
 still have separate one-time assignments. Existing Eden base ISK, six-hour bonus and direct corporation/faction
-standing gains apply, with zero LP and personal rewards. Derived standing changes and failure-standing penalties
-remain unimplemented; reward amounts are Eden policy rather than recovered CCP payout tables.
+standing gains apply, with zero LP and personal rewards. Accepted quits and expirations apply the Eden direct
+agent and corporation loss baseline. Data Center assignments apply direct standing changes only.
 
 Ordinary pirates now supply all 50 required tag types through lootable wrecks. Eden uses a stable **25%** chance of
 one matching-faction tag: frigates supply Copper/Bronze, destroyers Silver/Brass, cruisers Palladium/Gold,
@@ -158,7 +269,7 @@ See the [engine, evidence and validation record](protocol/agents.md#resident-mis
 
 The previous blanket chain-progression exclusion covered 278 ordinary definitions. The engine now handles complete
 linear sequences, while the remaining **266** require complete verified bindings or additional mechanics for their
-parts. Their unsupported encounters are not bypassed. Special-agent and epic-arc lifecycles remain separate blockers.
+parts. Special agents and epic arcs use their own progression rules and eligibility.
 
 ## Singleton courier cargo
 
@@ -211,7 +322,7 @@ The client catalog omits courier agent-level assignments. Existing eight level a
 
 These bands are not CCP level assignments. Rewards use Eden's existing level/difficulty/social-skill rules. Pickup is the issuing agent's station; the existing route policy selects a neighboring station, preferring the corporation, then a local fallback. Missing catalog deadlines retain seven days. Authored positive deadlines apply to both the offer and the completion window; acceptance starts a fresh window. The existing twenty definitions stay first in their eligible offer pools, followed by the expansion in stable order. Supplier restrictions mean an individual agent offers only a subset of the total pool. Generic delivery storylines still require sixteen completed missions for the same faction and level.
 
-Chain parts outside the complete reviewed sequences above, scripted objectives/node graphs, initial gifts, other singleton forms, non-expiring or longer-than-seven-day lifecycles and fixed item rewards are excluded. Non-generic storyline, career, epic-arc, COSMOS, research, mining and other specialized agent lifecycles are outside the courier pool. Many excluded combat records reference hidden `npcGroupingID` values without publishing roster contents or objective triggers; those require verified reports and explicit bindings. Level-five combat remains outside the admitted encounter policy.
+Chain parts outside the complete reviewed sequences above, scripted objectives/node graphs, initial gifts, other singleton forms, non-expiring or longer-than-seven-day lifecycles and fixed item rewards are excluded from the ordinary courier pool. Specialized lifecycles use their own agents and eligibility. Non-Data-Center COSMOS and level-five combat remain unavailable. Many excluded combat records reference hidden `npcGroupingID` values without publishing roster contents or objective triggers. Those need verified reports and explicit bindings.
 
 Gameplay references: [University distribution reports](https://wiki.eveuniversity.org/Distribution_mission_reports), [agent types and divisions](https://wiki.eveuniversity.org/Agent), and the revision-specific encounter links recorded per definition. The source reports describe gameplay; pinned catalog records determine build-specific identities. Source inspection and automated checks do not establish native client acceptance.
 
@@ -225,4 +336,4 @@ python tools/Export-MissionFixture.py --catalog src/Eden.Server/data/catalog.sql
 python tests/Eden.Protocol.Tests/Persistence/mission_content_test.py
 ```
 
-The first command emits the runtime manifest and exhaustive CSV audit. The second captures **945 types and 5,619 source records**, plus Data Center system geography, for automated tests, including all authored NPC alternatives, objective cargo, reward alternatives, geometry, faction/corporation references and ordinary/commander loot dependencies. SDE mission records retain only the English name fallback; native English messages are captured separately. No game launch or runtime network access is involved. Chain, trade and Data Center execution tests use the resident world.
+The first command emits the runtime manifest and exhaustive CSV audit. The second captures **1,025 types and 6,209 source records**, plus Data Center system geography, for automated tests. These include authored NPC alternatives, objective cargo, reward alternatives, geometry, faction and corporation references, Paragon and R&D missions, and loot dependencies. SDE mission records retain the English name fallback. The fixture captures native English messages separately. Chain, trade, Data Center, Paragon, and R&D execution tests use the resident world.

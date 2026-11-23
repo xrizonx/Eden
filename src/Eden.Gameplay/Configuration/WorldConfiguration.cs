@@ -48,7 +48,8 @@ public sealed record RewardPolicy(
     decimal BountyMultiplier = 1,
     decimal MissionIskMultiplier = 1,
     decimal MissionLpMultiplier = 1,
-    decimal MissionStandingMultiplier = 1
+    decimal MissionStandingMultiplier = 1,
+    int BountyTickSeconds = ActivityRewardTickRules.DefaultIntervalSeconds
 );
 
 public sealed record IndustryPolicy(
@@ -110,22 +111,24 @@ public sealed record CapsuleerPopulationPolicy(
     public int CampPercent { get; init; } = 20;
     public int CampSeconds { get; init; } = 240;
     public bool RoamingPvp { get; init; } = true;
+    public bool NullsecExpeditions { get; init; } = true;
+    public bool MilitiaPatrols { get; init; }
+    public bool EarnedPvpShips { get; init; }
     public bool RoamingGangs { get; init; } = true;
     public int RoamingGangSize { get; init; } = 4;
     public bool RegionalConflicts { get; init; } = true;
     public int RegionalOperationsPerGroup { get; init; } = 1;
-    public int RoamPercent { get; init; } = 30;
-    public int GeneratedCombatPercent { get; init; } = 35;
+    public int RoamPercent { get; init; } = 75;
+    public int GeneratedCombatPercent { get; init; } = 80;
     public bool SituationalAwareness { get; init; } = true;
     public bool BeltRatting { get; init; } = true;
+    public int RatDamageReductionPercent { get; init; } = 25;
     public bool AnomalyRatting { get; init; } = true;
     public bool Exploration { get; init; } = true;
     public bool WreckSalvage { get; init; } = true;
     public int ActivePilotCap { get; init; }
+    public bool RunWithoutPlayers { get; init; } = true;
     public bool PrepareUnvisitedSystems { get; init; } = true;
-    public int FreshFounderCohortsPerSystem { get; init; } = FreshCareerRules.DefaultFounderCohorts;
-    public bool FreshCourierPilots { get; init; } = true;
-    public bool FreshBountyPilots { get; init; } = true;
     public bool TradeGoodsFreight { get; init; } = true;
     public CapsuleerRegionAccess DefaultRegionAccess { get; init; }
     public ImmutableSortedDictionary<int, CapsuleerRegionAccess> RegionAccess { get; init; } =
@@ -150,7 +153,6 @@ public sealed record ExplorationPolicy(bool AlwaysResolvedSignatures = false);
 
 public sealed record WorldSettings
 {
-    public bool FreshUniverse { get; init; }
     public EconomicPolicy Economy { get; init; } = new();
     public DevelopmentSupplyPolicy DevelopmentSupply { get; init; } = new();
     public ResourcePolicy Resources { get; init; } = new();
@@ -166,11 +168,6 @@ public sealed record WorldSettings
     public SimulationPolicy Simulation { get; init; } = new();
     public NavigationPolicy Navigation { get; init; } = new();
     public ExplorationPolicy Exploration { get; init; } = new();
-
-    public bool UsesFreshUniverseMarket() =>
-        FreshUniverse
-        && Economy is { StandardMarket: false, RegionalHubSupply: false, BeginnerMarketSupply: false }
-        && (Economy.ProgressiveMarkets ?? !DevelopmentSupply.TestingMarket);
 }
 
 // Read-only access to the active in-memory policy, never a pending administrator draft.

@@ -1,4 +1,5 @@
 using Eden.Data.Catalog.FactionWarfare;
+using Eden.Data.World.Capsuleers;
 using Eden.Data.World.Characters;
 using Eden.Data.World.Combat;
 using Eden.Data.World.Combat.Npcs;
@@ -27,17 +28,16 @@ namespace Eden.World.FactionWarfare;
 internal sealed partial class MilitiaComplexStore(
     WorldDatabase database,
     NpcProfileCatalog profiles,
+    MilitiaFlightPresence presence,
     IMilitiaHubs? hubs = null,
     MilitiaObjectiveStore? objectives = null,
     ICooperativeFleets? fleets = null
-) : IMilitiaComplexes
+) : IMilitiaComplexes, IMilitiaComplexSimulation
 {
     private static readonly IGrouping<MilitiaComplexFamily, MilitiaComplexVariant>[] Variants = MilitiaComplexVariants
         .All.Where(variant => !variant.Retired)
         .GroupBy(variant => variant.Family)
         .ToArray();
-
-    private readonly MilitiaComplexCatalog _catalog = new(database.CatalogPath);
 
     // Guarded by the resident owner. Continuity is deliberately absent from a saved world.
     private readonly Dictionary<long, Sample> _samples = new();
@@ -61,6 +61,19 @@ internal sealed partial class MilitiaComplexStore(
         internal SpacePosition Beacon => Room + Profile.Beacon.Position;
         internal SpacePosition Gate => Entry + Profile.Gate!.Position;
         internal bool Replaced => Saved is not null && (Saved.Generation != Generation || Saved.Occupier != System.Occupier);
+
+        internal SpacePosition GateDestination(MilitiaFaction? faction)
+        {
+            if (Profile.Battlefield is not { } battlefield)
+            {
+                return Beacon;
+            }
+            var rally =
+                faction == System.Occupier ? battlefield.DefenderRally
+                : MilitiaRules.AreEnemies(faction, System.Occupier) ? battlefield.AttackerRally
+                : battlefield.NeutralRally;
+            return Room + rally;
+        }
     }
 
     private sealed record Participant(Pilot Pilot, Presence Presence, int Side, bool CanCapture)
@@ -126,12 +139,21 @@ internal sealed partial class MilitiaComplexStore(
         }
         hubs?.Sweep(now);
         using var owner = live.EnterPersistence("militia complex", TransactionParticipants.None);
+        AdvanceOwned(live, systemId, pilots, now);
+    }
+
+    private void AdvanceOwned(LiveWorld live, int systemId, IReadOnlyList<MilitiaComplexPilot> pilots, long now)
+    {
         pilots = pilots.Where(pilot => !live.Economy.Cloaked(pilot.ShipId)).ToArray();
         objectives?.Advance(systemId, pilots, now);
         var nearby = live.Economy.Inspect(world =>
             Read(world, systemId, now)
                 .Where(site =>
                     _samples.ContainsKey(site.Slot)
+                    || site.Profile.Battlefield is { } layout
+                        && Enumerable
+                            .Range(0, layout.Points.Count)
+                            .Any(index => _samples.ContainsKey(MilitiaComplexRules.PointId(site.Id, index)))
                     || site.Saved is { DefenderId: not null }
                     || pilots.Any(pilot =>
                         site.Profile.Battlefield is null
@@ -325,11 +347,13 @@ internal sealed partial class MilitiaComplexStore(
                 MilitiaHubStore.Recover(world, catalog, system.SystemId, system.Occupier, now);
             }
         }
-        long points =
-            site.Profile.Battlefield is null ? MilitiaComplexRules.PointsPerPilot(system, offense, policy, winners.Length)
-            : winners.Length == 0 ? 0
-            : (long)policy.BasePoints * Math.Min(policy.Capacity, winners.Length) / winners.Length;
         var ordered = winners.OrderBy(winner => winner.Pilot.Id).ToArray();
+        var agents = world.Set<SavedCapsuleerAgent>();
+        var recipients = ordered.Where(winner => agents.Find(winner.Pilot.Id) is null).ToArray();
+        long points =
+            site.Profile.Battlefield is null ? MilitiaComplexRules.PointsPerPilot(system, offense, policy, recipients.Length)
+            : recipients.Length == 0 ? 0
+            : (long)policy.BasePoints * Math.Min(policy.Capacity, recipients.Length) / recipients.Length;
         int gained = Math.Abs(score - system.VictoryPoints);
         for (int i = 0; i < ordered.Length; i++)
         {
@@ -351,10 +375,13 @@ internal sealed partial class MilitiaComplexStore(
             {
                 world.AfterCommit(() => fleets?.NotifyStandingChanged(pilot.Id, standing.SourceId, standing.After));
             }
+        }
+        foreach (var recipient in recipients)
+        {
             MilitiaLoyalty.Credit(
                 world,
                 faction,
-                pilot,
+                recipient.Pilot,
                 points,
                 site.Profile.Battlefield is null ? MilitiaLoyaltySource.Complex : MilitiaLoyaltySource.Battlefield,
                 site.Id,
@@ -488,7 +515,10 @@ internal sealed partial class MilitiaComplexStore(
         }
     }
 
-    private IEnumerable<Site> Read(WorldAction world, int systemId, long now)
+    private IEnumerable<Site> Read(WorldAction world, int systemId, long now) =>
+        Read(world, CatalogProvider.Open(database.CatalogPath), systemId, now);
+
+    private static IEnumerable<Site> Read(WorldAction world, CatalogProvider catalog, int systemId, long now)
     {
         if (FactionWarzoneStore.System(world, systemId) is not { PendingTransferAt: null } system)
         {
@@ -510,7 +540,7 @@ internal sealed partial class MilitiaComplexStore(
                 : (state.ReplaceAt.HasValue || !sameOccupation) ? checked(state.Generation + 1)
                 : state.Generation;
             int variant = (int)((systemId + (long)generation) % family.Count());
-            var profile = _catalog.Read(family.ElementAt(variant), system.Occupier);
+            var profile = MilitiaComplexCatalog.Read(catalog, family.ElementAt(variant), system.Occupier);
             if (profile is null)
             {
                 continue;
@@ -615,11 +645,11 @@ internal sealed partial class MilitiaComplexStore(
         using CatalogDbContext catalog = new(database.CatalogPath);
         if (activate is null)
         {
-            return live.Economy.Inspect(world => ValidateGate(world, catalog, pilotId, gateId, now).Site.Beacon);
+            return live.Economy.Inspect(world => ValidateGate(world, catalog, pilotId, gateId, now).Destination);
         }
         using var action = live.Economy.Begin(new(pilots: [pilotId]));
         var gate = ValidateGate(action, catalog, pilotId, gateId, now);
-        if (gate.Site.Beacon != activate)
+        if (gate.Destination != activate)
         {
             throw new InvalidDataException("This acceleration gate destination changed.");
         }
@@ -632,10 +662,16 @@ internal sealed partial class MilitiaComplexStore(
         }
         action.SaveChanges();
         action.Commit();
-        return gate.Site.Beacon;
+        return gate.Destination;
     }
 
-    private (Site Site, bool Neutral) ValidateGate(WorldAction world, CatalogDbContext catalog, long pilotId, long gateId, long now)
+    private (Site Site, bool Neutral, SpacePosition Destination) ValidateGate(
+        WorldAction world,
+        CatalogDbContext catalog,
+        long pilotId,
+        long gateId,
+        long now
+    )
     {
         var pilot = world.Set<Pilot>().Find(pilotId) ?? throw new InvalidDataException("Unknown acceleration gate pilot.");
         var ship = world.Set<Ship>().Find(pilot.ActiveShipId);
@@ -668,8 +704,7 @@ internal sealed partial class MilitiaComplexStore(
             .AsEnumerable()
             .Any(item =>
             {
-                var fitted = catalog.RequireItem(item.TypeId);
-                return access.ForbiddenEquipment!.Contains(fitted.Id, fitted.GroupId, fitted.CategoryId);
+                return ProhibitsEquipment(catalog, access, item.TypeId);
             });
         if (prohibitedEquipment)
         {
@@ -681,6 +716,6 @@ internal sealed partial class MilitiaComplexStore(
         {
             throw new InvalidDataException("Neutral pilots need Partial or Disabled safety to activate this militia acceleration gate.");
         }
-        return (site, neutral);
+        return (site, neutral, site.GateDestination(faction));
     }
 }

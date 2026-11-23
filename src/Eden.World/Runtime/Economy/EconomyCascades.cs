@@ -63,6 +63,9 @@ internal sealed partial class EconomyTransaction
                 RemoveRange(Set<Eden.Data.World.Characters.SavedPilotImplant>().Where(child => child.CloneId == removed.Id));
                 break;
             case Eden.Data.World.Characters.Pilot removed:
+                Eden.World.Skills.PersonalSkillPlanStore.RemoveForPilot(this, removed.Id);
+                RemoveRange(Filter<Eden.Data.World.Skills.SavedExpertSystem>(system => system.PilotId == removed.Id));
+                RemoveRange(Filter<Eden.Data.World.Docking.SavedShipSkinLicense>(license => license.PilotId == removed.Id));
                 RemoveRange(Filter<Eden.Data.World.Combat.SavedKillRight>(row => row.OwnerId == removed.Id));
                 RemoveRange(Filter<Eden.Data.World.Combat.SavedKillRight>(row => row.TargetId == removed.Id));
                 RemoveRange(Filter<Eden.Data.World.Flight.SavedJumpTimers>(row => row.PilotId == removed.Id));
@@ -242,9 +245,13 @@ internal sealed partial class EconomyTransaction
                 RemoveRange(Filter<Eden.Data.World.Inventory.OwnedItem>(i => i.LocationId == removed.Id));
                 break;
             case Eden.Data.World.Agents.SavedMission removed:
+                long site = Eden.Gameplay.Agents.MissionRules.FirstSiteId + removed.Id;
+                Eden.World.Agents.PilotMissionStore.CloseCareerSalvage(this, removed);
+                RemoveRange(Filter<Eden.Data.World.Exploration.SavedHackingContainer>(container => container.SiteId == site));
                 RemoveRange(Filter<Eden.Data.World.Agents.SavedMissionGateUnlock>(child => child.MissionId == removed.Id));
                 RemoveRange(Set<Eden.Data.World.Agents.SavedMissionMember>().Where(child => child.MissionId == removed.Id));
                 RemoveRange(Set<Eden.Data.World.Agents.SavedMissionRoom>().Where(child => child.MissionId == removed.Id));
+                RemoveRange(Filter<Eden.Data.World.Agents.SavedMissionReinforcement>(child => child.MissionId == removed.Id));
                 RemoveRange(Set<Eden.Data.World.Agents.SavedMissionStructure>().Where(child => child.MissionId == removed.Id));
                 break;
             case Eden.Data.World.Structures.SavedStructure removed:
@@ -260,6 +267,10 @@ internal sealed partial class EconomyTransaction
                 Eden.World.Repair.PilotRemoteAssistanceStore.ClearForTravel(this, removed.ShipId);
                 break;
             case Eden.Data.World.Inventory.Ship removed:
+                if (Set<Eden.Data.World.Docking.SavedAppliedShipSkin>().Find(removed.Id) is { } skin)
+                {
+                    Remove(skin);
+                }
                 RemoveRange(Filter<Eden.Data.World.Characters.SavedJumpClone>(clone => clone.InShip && clone.LocationId == removed.Id));
                 RemoveRange(Set<Eden.Data.World.Combat.SavedLanceDisruption>().Where(row => row.ShipId == removed.Id));
                 RemoveRange(Filter<Eden.Data.World.Flight.SavedJumpPortal>(row => row.ShipId == removed.Id));

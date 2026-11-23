@@ -20,6 +20,7 @@ using Eden.World.Ammunition;
 using Eden.World.Catalog;
 using Eden.World.Characters;
 using Eden.World.Combat;
+using Eden.World.Combat.Npcs;
 using Eden.World.Corporations;
 using Eden.World.Fittings;
 using Eden.World.Inventory;
@@ -44,7 +45,10 @@ internal sealed partial class PilotMiningStore
     )
     {
         var pilot = world.Pilots.Find(pilotId) ?? throw new InvalidDataException("Unknown pilot.");
-        var levels = s_miningSkills.ToDictionary(skill => skill, skill => PilotSkillReader.Level(world, catalog, pilotId, (int)skill));
+        var levels = s_miningSkills.ToDictionary(
+            skill => skill,
+            skill => PilotSkillReader.OperationalLevel(world, catalog, pilotId, (int)skill)
+        );
         return MiningRules.ModuleAttributes(
             new(
                 module.GroupId,
@@ -255,7 +259,7 @@ internal sealed partial class PilotMiningStore
         }
         if (laser.Family == MiningFamily.Gas)
         {
-            int limit = PilotSkillReader.Level(world, catalog, pilotId, (int)MiningSkill.GasHarvesting);
+            int limit = PilotSkillReader.OperationalLevel(world, catalog, pilotId, (int)MiningSkill.GasHarvesting);
             var active = world
                 .Set<ModuleCooldown>()
                 .Where(c => c.Kind == ModuleCooldownKind.Cycle && c.ReadyAt > now)
@@ -379,10 +383,7 @@ internal sealed partial class PilotMiningStore
                 world.Settings.Progression.MiningSkillPointMultiplier,
                 world.Settings.Progression.MiningIskPerSkillPoint
             );
-            if (points > 0)
-            {
-                PilotTrainingStore.CreditSilentFreePoints(world, pilotId, points);
-            }
+            ActivityRewardTickStore.RecordMining(world, pilotId, points, now);
             PilotTaskTrackingStore.RecordMining(world, catalog, pilotId, now, extracted + bonus);
         }
         if (laser.Family != MiningFamily.Gas && !MissionMiningRules.IsDeposit(asteroid.Id))
@@ -402,16 +403,17 @@ internal sealed partial class PilotMiningStore
         }
         world.SaveChanges();
         bool depleted = asteroid.Quantity == 0;
-        if (depleted)
+        if (MissionMiningRules.IsDeposit(asteroid.Id))
         {
-            if (MissionMiningRules.IsDeposit(asteroid.Id))
+            if (extracted > 0)
             {
-                PilotMissionStore.MiningDepleted(world, asteroid.Id);
+                PilotMissionStore.MiningProgress(world, catalog, asteroid.Id, depleted, now);
+                world.SaveChanges();
             }
-            else
-            {
-                MiningSiteStore.Collected(world, asteroid.Id, now);
-            }
+        }
+        else if (depleted)
+        {
+            MiningSiteStore.Collected(world, asteroid.Id, now);
             world.SaveChanges();
         }
         return new(

@@ -1,7 +1,9 @@
+using Eden.Data.Catalog.Agents;
 using Eden.Data.World.Agents;
 using Eden.Data.World.Mining;
 using Eden.Gameplay.Agents;
 using Eden.Gameplay.Flight;
+using Eden.World.Catalog;
 using Eden.World.Runtime.Economy;
 using Eden.World.Storage;
 
@@ -31,14 +33,16 @@ internal sealed partial class PilotMissionStore
         }
     }
 
-    private static IEnumerable<StaticSpaceObject> MiningContacts(WorldAction world, SavedMission mission, MissionProfile profile)
+    private static IEnumerable<StaticSpaceObject> MiningContacts(WorldAction world, SavedMission mission, MissionProfile profile, int room)
     {
         long first = MissionMiningRules.DepositId(mission.Id, 0);
         return MissionDeposits(world.Set<WorldAsteroid>(), mission.Id)
             .Where(a => a.Quantity > 0)
             .OrderBy(a => a.Id)
             .AsEnumerable()
-            .Select(rock => profile.Deposits[(int)(rock.Id - first)].Contact with { Id = rock.Id, Position = new(rock.X, rock.Y, rock.Z) });
+            .Select(rock => (Rock: rock, Deposit: profile.Deposits[(int)(rock.Id - first)]))
+            .Where(pair => pair.Deposit.RoomId == 0 || pair.Deposit.RoomId == room)
+            .Select(pair => pair.Deposit.Contact with { Id = pair.Rock.Id, Position = new(pair.Rock.X, pair.Rock.Y, pair.Rock.Z) });
     }
 
     private static IQueryable<WorldAsteroid> MissionDeposits(IQueryable<WorldAsteroid> deposits, long mission)
@@ -68,9 +72,25 @@ internal sealed partial class PilotMissionStore
         mission.ObjectiveComplete = !MissionDeposits(world.Set<WorldAsteroid>(), mission.Id).Any(a => a.Quantity > 0);
     }
 
-    internal static void MiningDepleted(WorldAction world, long deposit)
+    internal static void MiningProgress(WorldAction world, CatalogDbContext catalog, long deposit, bool depleted, long now)
     {
         var mission = world.Set<SavedMission>().Find(MissionMiningRules.MissionId(deposit))!;
-        mission.ObjectiveComplete = !MissionDeposits(world.Set<WorldAsteroid>(), mission.Id).Any(a => a.Quantity > 0);
+        if (!MissionCatalog.IsScriptedMining(mission.MissionId))
+        {
+            if (depleted)
+            {
+                mission.ObjectiveComplete = !MissionDeposits(world.Set<WorldAsteroid>(), mission.Id).Any(a => a.Quantity > 0);
+            }
+            return;
+        }
+        var profile = MissionCatalog.Find(catalog, mission.MissionId);
+        if (profile.Definition.Mining)
+        {
+            mission.ObjectiveComplete =
+                !profile.Definition.EpicArcId.HasValue
+                || depleted && !MissionDeposits(world.Set<WorldAsteroid>(), mission.Id).Any(a => a.Quantity > 0);
+            return;
+        }
+        SpawnTriggeredWaves(world, catalog, mission, profile, MissionWaveTrigger.Mining, 0, now);
     }
 }

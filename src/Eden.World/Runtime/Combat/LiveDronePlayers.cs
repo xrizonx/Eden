@@ -3,6 +3,7 @@ using Eden.Data.World.Combat;
 using Eden.Gameplay.Combat;
 using Eden.Gameplay.Docking;
 using Eden.Gameplay.Drones;
+using Eden.Gameplay.FactionWarfare;
 using Eden.Gameplay.Flight;
 using Eden.World.Catalog;
 using Eden.World.Combat;
@@ -59,7 +60,7 @@ internal sealed partial class LiveCombatRuntime
 
     private AggressionDecision? DroneLegality(DronePlayer source, DronePlayer victim, int system, long now)
     {
-        if (owner.Economy.Inspect(world => world.TetherProtected(victim.ShipId, now)))
+        if (owner.Economy.TetherProtected(victim.ShipId, now))
         {
             return null;
         }
@@ -83,8 +84,19 @@ internal sealed partial class LiveCombatRuntime
             ?? 0;
         try
         {
+            var affiliations = owner.OwnerDirectory.Snapshot;
             return CrimewatchRules.Decide(
-                new(security, source.Safety, source.Alpha, victim.Capsule, DroneTimers(victim).Flag(now), victim.Outlaw, engagement > now)
+                new(
+                    security,
+                    source.Safety,
+                    source.Alpha,
+                    victim.Capsule,
+                    DroneTimers(victim).Flag(now),
+                    victim.Outlaw,
+                    engagement > now,
+                    security > 0
+                        && MilitiaRules.AreEnemies(affiliations.PilotMilitia(source.PilotId), affiliations.PilotMilitia(victim.PilotId))
+                )
             );
         }
         catch (InvalidDataException)

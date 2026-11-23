@@ -25,8 +25,7 @@
             <option value="configure">Configure new settings</option>
         </select>
     </label>
-    <p>Reusing settings applies revision @next.Id (@(next.Draft.Settings.FreshUniverse ? "Fresh Universe" : "Established Universe")@(
-        state.Pending is null ? "" : ", pending restart")).</p>
+    <p>Reusing settings applies revision @next.Id@(state.Pending is null ? "" : " (pending restart)").</p>
     <label>Type WIPE WORLD to confirm <input name="confirmation" autocomplete="off" required pattern="WIPE WORLD" /></label>
     <button type="submit">Back up, wipe world and stop server</button>
 </form>

@@ -55,7 +55,11 @@ internal sealed record SpaceAgentLocation(CatalogAgent Agent) : BlueModel
 
 internal sealed record MissionConversation(MissionOffer? Offer, string Event, string Greeting) : BlueModel
 {
-    private static object?[] Action(MissionOffer offer, MissionAction action) =>
+    internal long? ReplayDelay { get; init; }
+    internal bool SuppressRequest { get; init; }
+    internal IReadOnlyList<EpicArcChoice> EpicChoices { get; init; } = [];
+
+    internal static object?[] Action(MissionOffer offer, MissionAction action) =>
         [checked(offer.Id * MissionRules.ActionStride + (int)action), (int)action];
 
     public override object ToBlue()
@@ -69,11 +73,18 @@ internal sealed record MissionConversation(MissionOffer? Offer, string Event, st
         }
         else if (Offer?.State == MissionState.Accepted)
         {
-            actions.Add(Action(Offer, MissionAction.Complete));
+            if (Offer.Kind == MissionKind.Choice)
+            {
+                actions.AddRange(EpicChoices.Select(choice => new EpicArcChoiceLink(Offer, choice)));
+            }
+            else if (Offer.Kind != MissionKind.AgentHandoff || Offer.EpicArcTargetAgentId == Offer.Agent.Id)
+            {
+                actions.Add(Action(Offer, MissionAction.Complete));
+            }
             actions.Add(Action(Offer, MissionAction.Defer));
             actions.Add(Action(Offer, MissionAction.Quit));
         }
-        else
+        else if (ReplayDelay is null && !SuppressRequest)
         {
             actions.Add(new object?[] { (int)MissionAction.Request, (int)MissionAction.Request });
         }
@@ -83,7 +94,7 @@ internal sealed record MissionConversation(MissionOffer? Offer, string Event, st
             ["missionCompleted"] = false,
             ["missionDeclined"] = false,
             ["missionQuit"] = false,
-            ["missionCantReplay"] = false,
+            ["missionCantReplay"] = (object?)ReplayDelay ?? false,
         };
         if (Event.Length != 0)
         {
@@ -104,41 +115,52 @@ internal sealed record MissionConversation(MissionOffer? Offer, string Event, st
         }
         // Pinned OldMissionController.update_mission unpacks ((message, actions), lastActionInfo).
         // A message is (localization ID or literal text, catalog mission ID).
-        object?[] message = Offer is null ? [Greeting, null] : [Offer.BriefingId == 0 ? Offer.Briefing : Offer.BriefingId, Offer.MissionId];
+        object?[] message =
+            Offer is null || SuppressRequest && Event.Length == 0
+                ? [Greeting, null]
+                : [Offer.BriefingId == 0 ? Offer.Briefing : Offer.BriefingId, Offer.MissionId];
         return new object?[] { new object?[] { message, actions }, last };
     }
 }
 
 internal sealed record MissionKeywords(MissionOffer Offer) : BlueModel
 {
-    public override object ToBlue() =>
-        new Dictionary<string, object?>
+    public override object ToBlue()
+    {
+        long? handoff = Offer.EpicArcTargetStation is int station ? station : Offer.EpicArcTargetAgentId;
+        return new Dictionary<string, object?>
         {
             ["dungeonLocationID"] = Offer.SystemId,
             ["dungeonSolarSystemID"] = Offer.SystemId,
-            ["objectiveDestinationSystemID"] = Offer.SystemId,
+            ["objectiveDestinationSystemID"] = Offer.EpicArcTargetSystem ?? Offer.SystemId,
             ["rewardQuantity"] = Offer.Rewards.IskCents / (double)MarketDefinitions.CentsPerIsk,
             ["player"] = Offer.PilotId,
             ["objectiveLocationID"] =
-                Offer.Kind == MissionKind.Trade ? Offer.Agent.MissionLocationId : Offer.Cargo?.DestinationStation ?? Offer.SystemId,
+                handoff
+                ?? (Offer.Kind == MissionKind.Trade ? Offer.Agent.MissionLocationId : Offer.Cargo?.DestinationStation ?? Offer.SystemId),
             ["objectiveDestinationID"] =
-                Offer.Cargo?.DestinationStation ?? (Offer.Retrieval is null ? Offer.SystemId : Offer.Agent.MissionLocationId),
+                handoff ?? Offer.Cargo?.DestinationStation ?? (Offer.Retrieval is null ? Offer.SystemId : Offer.Agent.MissionLocationId),
             ["objectivePickupLocationID"] = Offer.Cargo?.PickupStation ?? Offer.Agent.MissionLocationId,
             ["objectiveTypeID"] = Offer.Cargo?.TypeId ?? Offer.Retrieval?.TypeId,
             ["objectiveQuantity"] = Offer.Cargo?.Quantity ?? Offer.Retrieval?.Quantity ?? 0,
             ["agentID"] = Offer.Agent.Id,
             ["agentLocationID"] = Offer.Agent.MissionLocationId,
         };
+    }
 }
 
-internal sealed record MissionBriefing(MissionOffer Offer) : BlueModel
+internal sealed record MissionBriefing(MissionOffer Offer, long Now) : BlueModel
 {
     public override object ToBlue() =>
         new Dictionary<string, object?>
         {
             ["ContentID"] = Offer.MissionId,
-            ["Decline Time"] = null,
-            ["Expiration Time"] = Offer.ExpiresAt,
+            ["Decline Time"] = Offer.DeclineCooldownEndsAt is long end
+                ? end > Now
+                    ? end - Now
+                    : -1L
+                : null,
+            ["Expiration Time"] = Offer.NonExpiring ? null : Offer.ExpiresAt,
             ["Mission Title ID"] = Offer.NameId == 0 ? Offer.Name : Offer.NameId,
             ["Mission Briefing ID"] = Offer.BriefingId == 0 ? Offer.Briefing : Offer.BriefingId,
             ["Mission Keywords"] = new MissionKeywords(Offer),
@@ -200,13 +222,53 @@ internal sealed record MissionObjectives(MissionOffer Offer, long Now) : BlueMod
     {
         List<object?> objectives = [];
         List<object?> dungeons = [];
-        List<object?> rewards = [new object?[] { CreditsType, Offer.Rewards.IskCents / (double)MarketDefinitions.CentsPerIsk, null }];
+        List<object?> rewards = [];
+        if (Offer.Agent.Type is not (AgentType.Heraldry or AgentType.Research) && Offer.Rewards.IskCents > 0)
+        {
+            rewards.Add(new object?[] { CreditsType, Offer.Rewards.IskCents / (double)MarketDefinitions.CentsPerIsk, null });
+        }
         if (Offer.ItemReward is { } itemReward)
         {
             rewards.Add(new object?[] { itemReward.TypeId, itemReward.Quantity, null });
         }
+        List<object?> gifts = [];
+        if (Offer.Cargo is { } courierGift)
+        {
+            gifts.Add(new object?[] { courierGift.TypeId, courierGift.Quantity, null });
+        }
+        if (Offer.CareerGift is { } careerGift)
+        {
+            gifts.Add(new object?[] { careerGift.TypeId, careerGift.Quantity, null });
+        }
+        gifts.AddRange(Offer.AdditionalGifts.Select(gift => new object?[] { gift.TypeId, gift.Quantity, null }));
+        List<object?> bonuses = [];
+        if (Offer.Bonus is { } duration)
+        {
+            long time = duration.Remaining(Now);
+            long minutes = duration.WindowTicks / TimeSpan.TicksPerMinute;
+            if (duration.IskCents > 0)
+            {
+                bonuses.Add(new object?[] { time, CreditsType, duration.IskCents / (double)MarketDefinitions.CentsPerIsk, null, minutes });
+            }
+            if (Offer.CareerBonusItem is { } careerBonus)
+            {
+                bonuses.Add(new object?[] { time, careerBonus.TypeId, careerBonus.Quantity, null, minutes });
+            }
+        }
         bool combatComplete = Offer.Retrieval is null ? Offer.ObjectiveComplete : Offer.CombatComplete;
-        if (Offer.Cargo is { } cargo)
+        if (
+            Offer.Kind == MissionKind.AgentHandoff
+            && Offer.EpicArcTargetAgentId is long agent
+            && Offer.EpicArcTargetTypeId is int type
+            && Offer.EpicArcTargetSystem is int system
+        )
+        {
+            var location = Offer.EpicArcTargetStation is int station
+                ? new EpicArcAgentLocation(agent, station, type, system)
+                : new EpicArcAgentLocation(agent, system, MissionLocation.SolarSystemType, system);
+            objectives.Add(new object?[] { "agent", new object?[] { agent, location } });
+        }
+        else if (Offer.Cargo is { } cargo)
         {
             objectives.Add(
                 new object?[]
@@ -229,7 +291,7 @@ internal sealed record MissionObjectives(MissionOffer Offer, long Now) : BlueMod
                 }
             );
         }
-        else if (Offer.DungeonId.HasValue)
+        else if (Offer.DungeonId.HasValue && !Offer.RequiresScanner)
         {
             var dungeon = new Dictionary<string, object?>
             {
@@ -292,31 +354,17 @@ internal sealed record MissionObjectives(MissionOffer Offer, long Now) : BlueMod
             ["missionState"] = (int)Offer.State,
             ["missionTitleID"] = Offer.NameId == 0 ? Offer.Name : Offer.NameId,
             ["completionStatus"] = Offer.ObjectiveComplete ? 1 : 0,
-            ["importantStandings"] = Offer.Storyline,
+            ["importantStandings"] = Offer.Storyline || Offer.EpicArcId is not null && Offer.Rewards.FactionFraction > 0,
             ["objectives"] = objectives,
             ["dungeons"] = dungeons,
-            ["locations"] = new List<object?> { Offer.SystemId },
-            ["agentGift"] = Offer.Cargo is { } gift
-                ? new List<object?> { new object?[] { gift.TypeId, gift.Quantity, null } }
-                : new List<object?>(),
+            ["locations"] = new List<object?> { Offer.EpicArcTargetSystem ?? Offer.SystemId },
+            ["agentGift"] = gifts,
             ["normalRewards"] = rewards,
             ["loyaltyPoints"] = Offer.Rewards.LoyaltyPoints,
             // Build 3662168 agentDialogueUtil consumes ticks, type, quantity, extra, and original minutes.
-            ["bonusRewards"] = Offer.Bonus is { } bonus
-                ? new List<object?>
-                {
-                    new object?[]
-                    {
-                        bonus.Remaining(Now),
-                        CreditsType,
-                        bonus.IskCents / (double)MarketDefinitions.CentsPerIsk,
-                        null,
-                        bonus.WindowTicks / TimeSpan.TicksPerMinute,
-                    },
-                }
-                : new List<object?>(),
+            ["bonusRewards"] = bonuses,
             ["collateral"] = new List<object?>(),
-            ["researchPoints"] = 0,
+            ["researchPoints"] = Offer.ResearchPoints is double researchPoints ? researchPoints : (object)0,
         };
     }
 }
@@ -330,7 +378,7 @@ internal sealed record MissionJournalInfo(MissionOffer Offer, long Now) : BlueMo
             ["briefingTextID"] = Offer.BriefingId == 0 ? Offer.Briefing : Offer.BriefingId,
             ["contentID"] = Offer.MissionId,
             ["iconID"] = null,
-            ["expirationTime"] = Offer.ExpiresAt,
+            ["expirationTime"] = Offer.NonExpiring ? null : Offer.ExpiresAt,
             ["missionState"] = (int)Offer.State,
             ["objectives"] = new MissionObjectives(Offer, Now),
         };
@@ -373,7 +421,15 @@ internal sealed record MissionJournal(IReadOnlyList<MissionOffer> Offers, IReadO
                         {
                             (int)o.State,
                             o.Storyline,
-                            o.Kind == MissionKind.Trade
+                            o.EpicArcId.HasValue ? EpicMissionType(o.Kind)
+                            : o.Agent.Type == AgentType.Heraldry ? "UI/Agents/MissionTypes/Heraldry"
+                            : o.Agent.Type == AgentType.Research
+                                ? (
+                                    o.Kind == MissionKind.Trade
+                                        ? "UI/Agents/MissionTypes/ResearchTrade"
+                                        : "UI/Agents/MissionTypes/ResearchCourier"
+                                )
+                            : o.Kind == MissionKind.Trade
                                 ? (o.Storyline ? "UI/Agents/MissionTypes/StorylineTrade" : "UI/Agents/MissionTypes/Trade")
                             : o.Storyline ? "UI/Agents/MissionTypes/StorylineCourier"
                             : o.Kind == MissionKind.Combat ? "UI/Agents/MissionTypes/Encounter"
@@ -381,10 +437,8 @@ internal sealed record MissionJournal(IReadOnlyList<MissionOffer> Offers, IReadO
                             : "UI/Agents/MissionTypes/Courier",
                             o.NameId,
                             o.Agent.Id,
-                            o.ExpiresAt,
-                            o.DungeonId.HasValue
-                                ? new List<object?> { new MissionBookmark(o) }
-                                : new List<object?>(),
+                            o.NonExpiring ? 0L : o.ExpiresAt,
+                            Bookmarks(o),
                             false,
                             o.Kind == MissionKind.Courier,
                             o.MissionId,
@@ -392,5 +446,27 @@ internal sealed record MissionJournal(IReadOnlyList<MissionOffer> Offers, IReadO
                 )
                 .ToList(),
             (Research ?? []).Select(p => (object?)new ResearchJournalRow(p)).ToList(),
+        };
+
+    private static List<object?> Bookmarks(MissionOffer offer)
+    {
+        if (offer.EpicArcTargetAgentId.HasValue && offer.Kind == MissionKind.AgentHandoff)
+        {
+            // The legacy objective uses "objective"; the Opportunities card uses "objective.destination".
+            return [new EpicArcHandoffBookmark(offer, "objective"), new EpicArcHandoffBookmark(offer, "objective.destination")];
+        }
+        return offer.DungeonId.HasValue && !offer.RequiresScanner ? [new MissionBookmark(offer)] : [];
+    }
+
+    private static string EpicMissionType(MissionKind kind) =>
+        kind switch
+        {
+            MissionKind.AgentHandoff => "UI/Agents/MissionTypes/EpicArcTalkToAgent",
+            MissionKind.Choice => "UI/Agents/MissionTypes/EpicArcAgentInteraction",
+            MissionKind.Combat => "UI/Agents/MissionTypes/EpicArcEncounter",
+            MissionKind.Mining => "UI/Agents/MissionTypes/EpicArcMining",
+            MissionKind.Courier => "UI/Agents/MissionTypes/EpicArcCourier",
+            MissionKind.Trade => "UI/Agents/MissionTypes/EpicArcTrade",
+            _ => "UI/Agents/MissionTypes/EpicArc",
         };
 }

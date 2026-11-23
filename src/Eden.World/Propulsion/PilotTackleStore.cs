@@ -216,6 +216,7 @@ internal sealed partial class PilotTackleStore(WorldDatabase database, TimeProvi
             if (npc is not null)
             {
                 NpcHostility.Record(world, catalog, npc, pilot.ActiveShipId, now);
+                Eden.World.Agents.PilotMissionStore.CompleteCareerEffect(world, pilot, npc, module.Effect, now);
             }
         }
         cooldown ??= world.Set<ModuleCooldown>().Add(new() { ModuleId = moduleId }).Entity;
@@ -248,25 +249,7 @@ internal sealed partial class PilotTackleStore(WorldDatabase database, TimeProvi
             return;
         }
         using CatalogDbContext catalog = new(database.CatalogPath);
-        foreach (var active in world.Set<ActiveFittedModule>().ToArray())
-        {
-            var item = world.Set<OwnedItem>().Find(active.ModuleId)!;
-            if (catalog.FittingType(item.TypeId)!.GroupId != TackleDefinitions.WarpCoreStabilizerGroup)
-            {
-                continue;
-            }
-            var cooldown = world.Set<ModuleCooldown>().Find(item.Id);
-            double delay = PilotFittingStore
-                .ReadAttributes(catalog, item.TypeId)
-                .GetValueOrDefault(DogmaAttributeId.ModuleReactivationDelay);
-            // Core strength ends with its paid cycle, independently of when the
-            // owning connection next advances. Its reactivation deadline remains.
-            long delayTicks = (long)Math.Ceiling(delay * TimeSpan.TicksPerMillisecond);
-            if (cooldown is null || checked(cooldown.ReadyAt - delayTicks) <= now)
-            {
-                world.Remove(active);
-            }
-        }
+        ExpireWarpCoreStabilizers(world, catalog, world.Set<ActiveFittedModule>(), now);
         foreach (var row in world.Set<WorldTackle>().ToArray())
         {
             var source = world.Pilots.Single(p => p.Id == row.PilotId);
@@ -331,6 +314,36 @@ internal sealed partial class PilotTackleStore(WorldDatabase database, TimeProvi
         }
         world.SaveChanges();
         transaction.Commit();
+    }
+
+    private static void ExpireWarpCoreStabilizers(
+        WorldAction world,
+        CatalogDbContext catalog,
+        IEnumerable<ActiveFittedModule> modules,
+        long now
+    )
+    {
+        foreach (var active in modules.ToArray())
+        {
+            if (
+                world.Set<OwnedItem>().Find(active.ModuleId) is not { } item
+                || catalog.FittingType(item.TypeId)?.GroupId != TackleDefinitions.WarpCoreStabilizerGroup
+            )
+            {
+                continue;
+            }
+            var cooldown = world.Set<ModuleCooldown>().Find(item.Id);
+            double delay = PilotFittingStore
+                .ReadAttributes(catalog, item.TypeId)
+                .GetValueOrDefault(DogmaAttributeId.ModuleReactivationDelay);
+            // Core strength ends with its paid cycle, independently of when the
+            // owning connection next advances. Its reactivation deadline remains.
+            long delayTicks = (long)Math.Ceiling(delay * TimeSpan.TicksPerMillisecond);
+            if (cooldown is null || checked(cooldown.ReadyAt - delayTicks) <= now)
+            {
+                world.Remove(active);
+            }
+        }
     }
 
     public IReadOnlyList<TackleEffect> Incoming(long shipId)

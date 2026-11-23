@@ -4,6 +4,108 @@
 
 Targeting, health, weapons, NPC populations and behavior, losses, wrecks and repairs.
 
+## NPC identities for encounter waves
+
+On `9776f92e`, a timed reinforcement after checkpoint reopen reproduced the reported session rejection
+`Duplicate resident WorldNpc identity`. Ordinary NPC spawns use the same sequence that advances when an
+encounter assigns an NPC ID from its site and wave. An ordinary spawn can therefore claim an ID before a later
+wave needs it.
+
+Anomalies, DED rooms, mission waves, and career salvage wrecks now use the authored NPC ID when it is free and
+allocate through the existing sequence when it is occupied. Encounter membership and wreck references use the
+selected ID. Career salvage cleanup follows its wreck's source reference, keeping the NPC that held the preferred
+ID. This lets saved encounters advance with existing NPC identities intact. EVE.js
+`server/src/space/npc/nativeNpcStore.js` also uses a persistent counter to allocate NPC entities.
+
+**Automated validation**
+
+`TimedWaveSpawnsWhenAnotherNpcAlreadyOwnsItsFirstIdentity` reproduced the disconnect exception before the fix
+and verified that a saved wave advances once while the original NPC survives. The occupied-source case of
+`CivilianSalvagerRecoversOneBlackBoxFromTheGuardedCareerWreck` reproduced the same exception on the career
+mission path added in `3cdda38f` and verified that completion and checkpoint reopen preserve the unrelated NPC.
+
+The solution built without warnings or errors. The combined class filter for `CombatAnomalyWorldTests`,
+`CombatAnomalyFrameTests`, `DedAndGhostSiteTests`, `SleeperGuardedSiteTests`, `MissionEncounterTests`,
+`CareerIndustryTests`, `EnforcerCareerTests`, and `NpcEncounterTests` passed 97 cases in 53.51 seconds.
+All 17 Python policy cases and the repository formatting check passed.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+## Lowsec unlawful aggression penalties
+
+A paid unlawful offensive action against a ship or capsule applies a security-status loss in the resident Crimewatch
+action. Repeating attacks from the same ship against the same target within the active hostility window continue the
+engagement with one security loss. A different target ship or a new engagement can incur another loss. The saved
+hostility marker and security history survive checkpoints. The history exposes pinned build 3662168
+`appLogConst.eventSecStatusIllegalAggression` (379) and identifies the victim, solar system, and signed modification.
+The pinned archive SHA-256 is `37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`.
+
+Eden applies 2.5% for ships and 25% for pods, scaled by system security and the difference in pilot security status,
+with security status clamped to the character range. CCP documents the first-action settlement and scaling. The
+coefficients follow EVE University. The older EVE.js `crimewatchState.js` also settles at aggression, with a different
+formula for computing the resulting security value. [CCP Crimewatch](https://www.eveonline.com/news/view/introducing-the-new-and-improved-crimewatch)
+· [EVE University security status](https://wiki.eveuniversity.org/Security_status#Losing_security_status)
+
+Lowsec NPC gates and stations with empire guard perimeters receive two stationary sentries, using build 3662168
+Sentry Gun group 99 types 1194, 3740, 3742 and 3743. Eden uses its local NPC grid range and places the guns clear
+of the anchor and exit lanes. A committed illegal attack can draw local guns immediately. War targets and prior
+suspect flags on arriving ships do not trigger them. A sentry relinquishes the attack when the ship warps away or
+leaves range. CONCORD remains a high-security response. [CCP sentry rules](https://www.eveonline.com/news/view/patch-notes-for-retribution-1)
+
+**Automated validation.** The focused faction warfare, Crimewatch, CONCORD, turret, drone, security status, tether,
+guard and NPC motion filter passed 228 of 229 cases in 2 minutes 52 seconds. The legacy hostility fixture needed to
+remove the new column to represent schema 99 accurately. After correction, the exact legacy migration, security
+penalty checkpoint and lowsec sentry regressions passed 3 of 3 in 16.09 seconds. The integrated solution built
+without warnings in 17.96 seconds. Both Python policy suites and formatting and line-width checks passed.
+
+## Bounty and activity SP ticks
+
+The first bounty share or whole activity SP award opens a pilot's payout window. The default is
+20 minutes. Later awards before the deadline join that window. The first award at or after
+that deadline opens a new window even if the previous payout is still due. Mining can open
+and settle a window by itself. Ore, ice and gas collection still deliver cargo as the cycle settles.
+The existing per-kill and per-harvest SP calculations determine how many whole points enter the window.
+
+Fleet bounty shares are fixed at kill time. Settlement combines ISK by pilot and solar system, then
+applies the recipient's current corporation tax rules to each system's total. The wallet journal
+uses CONCORD as payer and the solar system as the reference for entry type 85. The pinned 3662168
+accounting catalog confirms entry types 85 (Bounty Prizes) and 92 (Bounty Prize Corporation Tax),
+and the native wallet formatter resolves the system reference. The existing wallet monitor publishes
+changes after settlement, and activity SP remains a silent credit to the unallocated pool.
+[Wallet formatter evidence](#civilian-weapon-firing-npc-destruction-and-bounties-november-2-2026)
+
+EVE University describes the 20-minute bounty window and on-grid fleet sharing. The local EVE.js 261108.1 reference
+in `server/src/services/bounty/bountyRuntime.js` groups per-system awards on a shared character deadline
+and starts a new deadline when the character has no open window. Eden extends this window to activity SP.
+[Ratting guide, revision 230418](https://wiki.eveuniversity.org/index.php?title=Ratting&oldid=230418#Bounties)
+
+The resident economy records the pending tick atomically with the kill or harvest. Server maintenance
+checks for due ticks on startup and once per second, including for offline pilots. Wallet balances,
+journal records, taxes, SP and removal of the pending tick commit together and are saved by normal
+world checkpoints. A restored outstanding tick keeps its saved deadline and amounts. The administration
+page configures the interval under **Rewards**. Changes take effect after restart, and 0 pays new
+awards immediately. See [world settings](../world-configuration.md#world-tuning).
+
+### Automated validation
+
+The affected filter passed 174 cases in 75.22 seconds. It covered `NpcSkillPointRewardTests`,
+`MiningSkillPointRewardTests`, `WorldTuningTests`, `WorldMigrationTests`, and the focused wallet,
+weapons, mining and administration cases listed in the TRX report. A second filter ran
+`FreshCouriersAndRatsEarnTheirShipsAndPayToReplaceBothAfterLoss` and
+`FreshPaidMinerRunsCorporateProduction` against the installed build 3662168 catalog.
+Both passed in 45.73 seconds. The solution build, catalog and formatting policy tests and
+`Format.ps1 -Check` passed. The full .NET suite was outside the requested scope.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+None.
+
 ## Aggression box indicators — November 15, 2026
 
 The maintainer reported intermittent aggression boxes while mission NPCs were firing. Two outbound paths omitted the offensive
@@ -563,7 +665,7 @@ Two reported failures exposed incomplete startup/save compatibility. The login/f
 
 The second failure was `SQLite Error 1: no such table: WorldDrone` before the host could run its migrations. `ServerServices.Build(liveWorld: true)` constructs the resident owner before `WorldInitialization.Initialize`; the new eager drone-cache hydration read the missing table during that constructor. Cache warm-up now checks table availability and defers that read until initialization has migrated and cleared saved control. The idempotent drone schema reconciliation also runs for saves already at the current version. A read-only inspection of the maintainer's default save confirmed version **84**, an existing mining table without `HaulGeneration`, and missing drone tables; the normal save was not modified by the agent.
 
-No save deletion/reset or manual SQL repair is required. Rebuild and restart the server: startup creates the missing drone schema and adds the missing mining column before normal gameplay reads. The upgrade is safe for versions **83**, **84**, current **85**, repeated opens and a fresh world. Already deployed drones retain the existing restart policy of releasing control without replaying combat.
+No save deletion/reset or manual SQL repair is required. Rebuild and restart the server: startup creates the missing drone schema and adds the missing mining column before normal gameplay reads. The upgrade is safe for versions **83**, **84**, current **85**, repeated opens and a new save. Already deployed drones retain the existing restart policy of releasing control without replaying combat.
 
 Automated validation: pinned tool/solution restores and the isolated solution build passed with zero warnings/errors (**1.49 seconds**). The final focused filter `FullyQualifiedName~NpcMiningTests|FullyQualifiedName~WorldMigrationTests|FullyQualifiedName~WorldInitializationTests|FullyQualifiedName~SavedFittingsTests|FullyQualifiedName~CombatDroneTests|FullyQualifiedName~LiveWorldTests|FullyQualifiedName~LiveCombatObjectTests|FullyQualifiedName~LiveSimulationTests|FullyQualifiedName~Eden.Protocol.Tests.Hosting` passed **198/198 tests in 44 seconds** with two workers, against the integrated mining/drone checkout. Both Python policy suites passed (**3 catalog and 9 formatting-policy tests**); formatting and 140-character code-width verification passed across **782 files**. Documentation links/anchors, UTF-8/newline/whitespace and diff checks passed. No full .NET suite was requested or run. The regression tests first reproduced both exact exceptions before the fixes. Coverage includes actual host construction before initialization, fresh/current/older save schemas, repeated reopen, preserved mining operation/member/cargo state and depleted ore, a nonzero counter surviving another reopen, the normal NPC contact path, and drone restart/retaliation behavior. Outputs remain isolated under ignored `artifacts/npc-mining-schema`; the running server and normal world save are untouched.
 
@@ -1836,3 +1938,32 @@ The build, Python policy suites and formatting checks passed.
 **Live acceptance.** Not performed. Agent client testing is disabled.
 
 **Optional maintainer checks.** None.
+
+## Server killboard
+
+The authenticated administration page at `/killboard` shows the system, UTC time, destroyed ship or capsule, and final
+blow for Eden's recorded combat events. Either side can be filtered independently by player, bot or NPC. Non-capsuleer
+sources such as environmental damage are included under NPC when a combat report records them. The board uses the
+victim's report for a capsuleer loss and the original kill report for an NPC loss. Participant copies remain available
+in the native combat log. [Operator guide](../world-configuration.md#local-graphical-editor)
+
+The resident combat report table builds its board index when the world loads and updates it with committed report
+writes and deletes. The cursor uses event time and report ID to preserve ordering when events share a timestamp.
+Existing checkpoints supply the history, including records backfilled from older saves. Encounters without a saved
+report, including Abyssal NPC kills, and the imported zKillboard traffic snapshot are outside this feed.
+
+UniWiki describes final-blow and victim roles. The local EVE.js 261108.1 reference, targeting build 3396210,
+was checked in `server/src/space/combat/killmailTracker.js` (SHA-256 prefix `97CBFC3C26C59EFF`).
+The board reads Eden's existing combat history for build 3662168.
+[UniWiki Killmail](https://wiki.eveuniversity.org/Killmail) ·
+[Character interaction history](characters.md#character-interaction-history-november-5-2026)
+
+**Automated validation.** The two exact killboard and NPC turret methods passed in 17 seconds. The follow-up
+filter covered `AdministrationTests`, `InteractionHistoryPersistenceTests`, `CharacterInteractionHistoryTests`,
+`FatalShotSettlesOneLossCapsuleWreckInsuranceAndBothHistoriesAcrossReopen`, and
+`ResidentLossCheckpointRetriesTheCapsuleWreckReportAndInsuranceTogether`. It passed 51 cases in 49 seconds
+with one live-browser case skipped. The build, Python catalog and formatting policies, and format verification passed.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Open Killboard after updating the server and use the NPC and bot filters against a known encounter.

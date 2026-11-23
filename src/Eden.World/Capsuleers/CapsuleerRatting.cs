@@ -73,6 +73,29 @@ internal sealed class CapsuleerRatting(
             .OrderBy(n => n.Id)
             .ToArray();
 
+    internal CapsuleerAttacker? MilitiaDefender(DockedPilot pilot, long defender, long now)
+    {
+        var target = encounters
+            .ReadScene(pilot.SystemId, pilot.Position!, now)
+            .Visible.FirstOrDefault(npc =>
+                npc.Id == defender && npc.Role == NpcRole.MilitiaComplexDefender && !npc.Health.Remaining.Destroyed && npc.Warp is null
+            );
+        return target is null
+            ? null
+            : new(
+                0,
+                target.Id,
+                target.TypeId,
+                target.Position,
+                target.Navigation?.Velocity ?? SpacePosition.Zero,
+                target.Radius,
+                LiveCombatRuntime.Find(database.Path)?.RattingNpc(target.Id, now)?.SignatureRadius ?? 1,
+                0,
+                false,
+                true
+            );
+    }
+
     internal IReadOnlyList<WreckContact> Wrecks(DockedPilot pilot, StaticSpaceObject site, long now, bool includeEmpty) =>
         wrecks
             .List(pilot.SystemId, now)
@@ -88,17 +111,13 @@ internal sealed class CapsuleerRatting(
     private static bool WithinSite(StaticSpaceObject site, SpacePosition position) =>
         site.Id >= CombatAnomalyRules.FirstSiteId || site.Position.DistanceTo(position) <= NpcEncounterDefinitions.ChaseLeash;
 
-    internal RattingAssessment Assess(DockedPilot pilot, NpcContact[] contacts, long now, bool freshCombat = false)
+    internal RattingAssessment Assess(DockedPilot pilot, NpcContact[] contacts, long now)
     {
         var profile = defense.Profile(pilot.PilotId);
         var runtime = LiveCombatRuntime.Find(database.Path);
         var ship = runtime?.DefenseShip(pilot.PilotId, now);
         var hull = (Eden.Gameplay.Ships.HullClass)pilot.ShipGroupId;
-        if (
-            ship is null
-            || !profile.Combat
-            || TrafficRules.LightHull(hull) && !(freshCombat && hull == Eden.Gameplay.Ships.HullClass.Corvette)
-        )
+        if (ship is null || !profile.Combat || TrafficRules.LightHull(hull))
         {
             return new(false, double.PositiveInfinity, 0, "No supported resident combat fit.");
         }
@@ -158,6 +177,7 @@ internal sealed class CapsuleerRatting(
                 )
                 .ToArray();
         }
+        int damageReduction = database.Settings.Capsuleers.RatDamageReductionPercent;
         List<RattingOpponent> enemies = [];
         foreach (var contact in contacts)
         {
@@ -212,7 +232,7 @@ internal sealed class CapsuleerRatting(
                     npc.SignatureRadius,
                     Math.Max(npc.Velocity.Length, attributes.GetValueOrDefault(DogmaAttributeId.MaxVelocity)),
                     distance,
-                    incoming,
+                    incoming.Scale(RattingRules.IncomingDamageMultiplier(npc.Role, true, damageReduction)),
                     Repair(npc.RepairProfile.Shield),
                     Repair(npc.RepairProfile.Armor)
                 )

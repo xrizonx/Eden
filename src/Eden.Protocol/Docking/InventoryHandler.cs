@@ -38,6 +38,13 @@ internal sealed class InventoryHandler(
 
     private static InventoryRow Item(InventoryItem item) => InventoryRow.From(item);
 
+    internal static bool ListsStructureDeliveries(object?[] args, Dictionary<string, object?>? keywords)
+    {
+        // Build 3662168 invCacheContainer.List forwards its flag as a keyword to the bound inventory.
+        const long flag = (long)InventoryFlag.StructureDeliveries;
+        return args is [flag] || args.Length == 0 && Equals(keywords?.GetValueOrDefault("flag"), flag);
+    }
+
     private BlueList<InventoryRow> List(DockedPilot pilot, string service, long? flag)
     {
         List<InventoryRow> result = [];
@@ -100,9 +107,29 @@ internal sealed class InventoryHandler(
         Dictionary<string, object?>? keywords
     )
     {
+        try
+        {
+            int flag = (int)(service == "@hangar" ? InventoryFlag.Hangar : InventoryFlag.Cargo);
+            return ReadMoveRequest(method, args, keywords, flag) is { } request
+                ? transfers.Move(context, service, request)
+                : PilotCallResult.Unsupported;
+        }
+        catch (InvalidDataException error)
+        {
+            return new PilotCallResult.Failure(error.Message);
+        }
+    }
+
+    internal static InventoryMoveRequest? ReadMoveRequest(
+        string method,
+        object?[] args,
+        Dictionary<string, object?>? keywords,
+        int defaultFlag
+    )
+    {
         if (args.Length != 2 || args[1] is not long source)
         {
-            return PilotCallResult.Unsupported;
+            return null;
         }
         long[] ids;
         if (method == "Add" && args[0] is long id)
@@ -115,7 +142,7 @@ internal sealed class InventoryHandler(
         }
         else
         {
-            return PilotCallResult.Unsupported;
+            return null;
         }
         object? flagValue = keywords?.GetValueOrDefault("flag");
         object? quantityValue = keywords?.GetValueOrDefault("qty");
@@ -126,14 +153,29 @@ internal sealed class InventoryHandler(
             || (quantityValue is long quantityNumber && (quantityNumber <= 0 || quantityNumber > int.MaxValue))
         )
         {
-            return new PilotCallResult.Failure("Invalid cargo flag or quantity.");
+            throw new InvalidDataException("Invalid cargo flag or quantity.");
         }
-        int flag =
-            flagValue is long f ? (int)f
-            : service == "@hangar" ? (int)InventoryFlag.Hangar
-            : (int)InventoryFlag.Cargo;
+        int flag = flagValue is long f ? (int)f : defaultFlag;
         int? quantity = quantityValue is long q ? (int)q : null;
-        return transfers.Move(context, service, new InventoryMoveRequest(ids, source, flag, quantity));
+        return new(ids, source, flag, quantity);
+    }
+
+    private PilotCallResult CrystalDamage(DockedPilot pilot, object?[] args, Dictionary<string, object?>? keywords)
+    {
+        if (keywords is { Count: > 0 })
+        {
+            return new PilotCallResult.Failure("Unexpected crystal damage options.");
+        }
+        // Build 3662168 CrystalDamageTracker.PrimeCrystals sends a Python set through the inventory manager moniker.
+        IReadOnlyCollection<long>? items = args switch
+        {
+            [HashSet<long> ids] => ids,
+            [List<object?> list] when list.All(id => id is long) => list.Cast<long>().ToHashSet(),
+            _ => null,
+        };
+        return items is null || items.Any(id => id <= 0)
+            ? new PilotCallResult.Failure("Choose positive crystal item IDs.")
+            : new BlueMap<long, double>(inventory.CrystalDamage(pilot.PilotId, items));
     }
 
     private PilotCallResult ItemInfo(PilotCallContext context, long id)
@@ -437,6 +479,7 @@ internal sealed class InventoryHandler(
         return (service, method) switch
         {
             ("invbroker", "SplitStack") => SplitFromWire(context, args, keywords),
+            ("invbroker", "GetDamageForCrystals") => CrystalDamage(pilot, args, keywords),
             ("corpStationMgr", "DoStandingCheckForStationService") when pilot.Position is null && args is [(long)StationService.Fitting] =>
                 PilotCallResult.None,
             ("corpFittingMgr", "GetCommunityFittings") => BlueEmpty.IndexedDictionary,
@@ -487,10 +530,16 @@ internal sealed class InventoryHandler(
                 $"{Eden.Protocol.Contracts.CourierPackageHandler.InventoryPrefix}{id}",
                 PilotBindingLifetime.Location
             ),
+            ("@hangar", "List") when ListsStructureDeliveries(args, keywords) => List(
+                pilot,
+                service,
+                (long)InventoryFlag.StructureDeliveries
+            ),
             ("@hangar" or "@ship", "List") => List(pilot, service, args.FirstOrDefault() as long?),
             ("@pilot", "List") => BlueEmpty.List,
             ("@hangar" or "@ship", "Add" or "MultiAdd") => MoveFromWire(context, service, method, args, keywords),
             ("@hangar" or "@ship" or "@pilot", "GetSelfInvItem") => ShipDogmaBuilder.Item(pilot, service[1..]),
+            ("dogmaIM", "GetAllInfo") when DogmaFittingBrain.IsRequested(pilot.PilotId, args, keywords) => dogma.FittingBrain(pilot),
             ("dogmaIM", "GetAllInfo") when context.ControlledStructureId is null && !pilot.InStructure => dogma.AllInfo(pilot),
             ("dogmaIM", "GetLayerDamageValuesByItems") when args is [HashSet<long> ids] => dogma.DroneBayDamage(pilot, ids),
             ("dogmaIM", "ItemGetInfo")

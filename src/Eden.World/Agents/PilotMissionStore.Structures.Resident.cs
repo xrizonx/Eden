@@ -38,6 +38,10 @@ internal sealed partial class PilotMissionStore
         var profile = MissionCatalog.Find(catalog, mission.MissionId);
         int index = Array.FindIndex(profile.Definition.Structures.ToArray(), s => s.ObjectId == saved.ObjectId);
         var definition = profile.Definition.Structures[index];
+        if (!mission.ObjectiveComplete && profile.Definition.Scripted)
+        {
+            SpawnTriggeredWaves(world, catalog, mission, profile, MissionWaveTrigger.StructureDestroyed, saved.ObjectId, now);
+        }
         if (definition.Drop is { } drop)
         {
             // This is a mission-owned recovery container, not a wreck or rerollable NPC drop.
@@ -51,7 +55,7 @@ internal sealed partial class PilotMissionStore
                 drop.Quantity
             );
         }
-        if (!mission.ObjectiveComplete)
+        if (!mission.ObjectiveComplete && EpicCombatObjectivesReady(world, mission, profile))
         {
             mission.ObjectiveComplete = MissionStructureRules.Complete(
                 EnemiesComplete(world, mission, profile),
@@ -60,17 +64,29 @@ internal sealed partial class PilotMissionStore
         }
     }
 
+    internal static void CareerStructureDamaged(WorldAction world, CatalogDbContext catalog, WorldNpc npc, long now)
+    {
+        if (
+            world.Set<SavedMission>().Find(npc.EncounterId - MissionRules.FirstSiteId)
+                is not { State: MissionState.Accepted, ObjectiveComplete: false } mission
+            || mission.ExpiresAt <= now
+            || (CareerMissionCatalog.Find(mission.MissionId) ?? EpicArcCatalog.Find(mission.MissionId)) is not { } definition
+            || world.Set<SavedMissionStructure>().Find(npc.Id) is not { DestroyedAt: null } structure
+            || !definition.Waves.Any(w => w.Trigger == MissionWaveTrigger.StructureDamaged && w.TriggerObjectId == structure.ObjectId)
+        )
+        {
+            return;
+        }
+        var profile = MissionCatalog.Find(catalog, mission.MissionId);
+        SpawnTriggeredWaves(world, catalog, mission, profile, MissionWaveTrigger.StructureDamaged, structure.ObjectId, now);
+    }
+
     private static bool EnemiesComplete(WorldAction world, SavedMission mission, MissionProfile profile)
     {
         bool started = Enumerable
             .Range(0, profile.Definition.Waves.Length)
             .Where(w => profile.Definition.Waves[w].Groups.Any(g => g.Required))
-            .All(w =>
-                (
-                    world.Set<SavedMissionRoom>().Find(mission.Id, profile.WaveRoom(w))?.Wave
-                    ?? (profile.Rooms.Length == 1 ? mission.Wave : -1)
-                ) >= w
-            );
+            .All(w => WaveStarted(world, mission, profile, w));
         if (!started)
         {
             return false;

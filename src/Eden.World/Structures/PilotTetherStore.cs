@@ -14,6 +14,7 @@ using Eden.Gameplay.Structures;
 using Eden.Infrastructure.Registration;
 using Eden.World.Catalog;
 using Eden.World.Combat;
+using Eden.World.FactionWarfare;
 using Eden.World.Fittings;
 using Eden.World.Runtime;
 using Eden.World.Runtime.Economy;
@@ -34,10 +35,14 @@ internal sealed class PilotTetherStore(WorldDatabase database, TimeProvider cloc
 
     public PilotTether? Advance(long pilotId, TetherFlightState flight)
     {
-        RequireResident();
+        var live = LiveWorld.Find(database.Path) ?? throw new InvalidOperationException("Structure tethering requires the resident world.");
+        if (live.Economy.TetherUnavailable(pilotId, flight.InSpace))
+        {
+            return null;
+        }
         using CatalogDbContext catalog = new(database.CatalogPath);
         long now = clock.GetUtcNow().UtcDateTime.ToFileTimeUtc();
-        var preview = LiveWorld.Find(database.Path)!.Economy.Inspect(world => Preview(world, catalog, pilotId, flight, now));
+        var preview = live.Economy.Inspect(world => Preview(world, catalog, pilotId, flight, now));
         if (!preview.Change)
         {
             return preview.Tether;
@@ -144,13 +149,8 @@ internal sealed class PilotTetherStore(WorldDatabase database, TimeProvider cloc
 
     public bool Protected(long shipId)
     {
-        if (LiveWorld.Find(database.Path) is not { } live)
-        {
-            return false;
-        }
-        using CatalogDbContext catalog = new(database.CatalogPath);
         long now = clock.GetUtcNow().UtcDateTime.ToFileTimeUtc();
-        return live.Economy.Inspect(world => Protected(world, catalog, shipId, now));
+        return LiveWorld.Find(database.Path)?.Economy.TetherProtected(shipId, now) == true;
     }
 
     public void Release(long pilotId)
@@ -166,14 +166,6 @@ internal sealed class PilotTetherStore(WorldDatabase database, TimeProvider cloc
         using var scope = new WorldActionScope(database, select: world => new(pilots: [pilotId]));
         scope.World.RemoveRange(scope.World.Filter<SavedPilotTether>(row => row.PilotId == pilotId).ToArray());
         scope.Commit();
-    }
-
-    private void RequireResident()
-    {
-        if (LiveWorld.Find(database.Path) is null)
-        {
-            throw new InvalidOperationException("Structure tethering requires the resident world.");
-        }
     }
 
     internal static bool Protected(WorldAction world, CatalogDbContext catalog, long ship, long now) =>
@@ -199,7 +191,8 @@ internal sealed class PilotTetherStore(WorldDatabase database, TimeProvider cloc
             || flight.Disrupted
             || flight.DisallowedModule
             || !structure.HasCore
-            || world.Pilots.Find(pilot)?.ActiveShipId != shipId
+            || world.Pilots.Find(pilot) is not { } character
+            || character.ActiveShipId != shipId
             || world.Ships.Find(shipId) is not { } ship
             || world.Positions.Find(shipId) is not { } position
             || CrimewatchPersistence.System(catalog, ship) != structure.SystemId
@@ -214,6 +207,7 @@ internal sealed class PilotTetherStore(WorldDatabase database, TimeProvider cloc
         if (
             LanceDisruption.Active(world, shipId, now)
             || !StructureRules.CanDock(profile, structure.State, group)
+            || !MilitiaEnlistmentStore.CanUseDocking(world, character, structure.SystemId, group)
             || group is (int)Eden.Gameplay.Ships.HullClass.Titan or (int)Eden.Gameplay.Ships.HullClass.LancerDreadnought
                 && AreaWeaponStore.DoomsdayLocked(world, shipId, now, movement: false)
         )

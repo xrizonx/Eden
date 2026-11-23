@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Eden.Gameplay.Capsuleers;
+using Eden.Gameplay.Characters;
 using Eden.Gameplay.Configuration;
 using Eden.Infrastructure.Diagnostics;
 using Eden.Server.Administration.Components;
@@ -20,6 +21,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 
@@ -106,15 +108,21 @@ internal static class AdministrationHost
             builder.Services.AddSingleton(worldServices.GetRequiredService<IWorldConfiguration>());
             builder.Services.AddSingleton(worldServices.GetRequiredService<WorldDatabase>());
             builder.Services.AddSingleton<OptionalDataImporter>();
-            builder.Services.AddSingleton<OptionalDataImports>();
+            builder.Services.AddSingleton(provider => new OptionalDataImports(
+                provider.GetRequiredService<OptionalDataImporter>().Import,
+                provider.GetRequiredService<WorldDatabase>().TrafficSnapshotPath,
+                provider.GetRequiredService<IHostApplicationLifetime>()
+            ));
             builder.Services.AddHostedService(provider => provider.GetRequiredService<OptionalDataImports>());
             builder.Services.AddSingleton(worldServices.GetRequiredService<CatalogProvider>());
+            builder.Services.AddSingleton(worldServices.GetRequiredService<IServerKillboard>());
             builder.Services.AddSingleton(provider => new CatalogBrowser(provider.GetRequiredService<CatalogProvider>()));
             builder.Services.AddScoped<AdministrationOperations>();
             builder.Services.AddSingleton(worldServices.GetRequiredService<Eden.World.Modding.ModStore>());
             builder.Services.AddSingleton(worldServices.GetRequiredService<Eden.Server.Modding.ModPublisher>());
             builder.Services.AddSingleton(worldServices.GetRequiredService<ICapsuleerPopulation>());
             builder.Services.AddSingleton(worldServices.GetRequiredService<ICapsuleerDiagnostics>());
+            builder.Services.AddSingleton(worldServices.GetRequiredService<ICapsuleerInspection>());
             builder.Services.AddSingleton(worldServices.GetRequiredService<ICapsuleerScene>());
             builder.Services.AddSingleton(worldServices.GetRequiredService<Eden.World.Capsuleers.CapsuleerCorporationIdentityStore>());
             builder.Services.AddSingleton(
@@ -323,19 +331,19 @@ internal static class AdministrationHost
         {
             api.MapGet(
                 "/world/setup-draft",
-                (string profile) =>
-                    Results.Text(WorldSetupStore.Export(worldSetup.Draft(WorldSetupRequest.ParseProfile(profile))), "application/json")
+                (string? profile) =>
+                {
+                    WorldSetupRequest.RequireEstablished(profile);
+                    return Results.Text(WorldSetupStore.Export(worldSetup.Draft()), "application/json");
+                }
             );
             api.MapPost(
                 "/world/setup",
                 async (HttpContext context) =>
                 {
                     var form = await context.Request.ReadFormAsync();
-                    worldSetup.Prepare(
-                        WorldSetupRequest.ParseProfile(form["profile"].ToString()),
-                        form["document"].ToString(),
-                        context.User.Identity!.Name!
-                    );
+                    WorldSetupRequest.RequireEstablished(form["profile"].ToString());
+                    worldSetup.Prepare(form["document"].ToString(), context.User.Identity!.Name!);
                     context.Response.OnCompleted(worldSetup.BeginStartup);
                     return Results.Content(
                         "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Starting world</title>"
@@ -407,6 +415,28 @@ internal static class AdministrationHost
             }
         );
         api.MapGet("/population", (ClaimsPrincipal user, AdministrationOperations operations) => operations.Population(user));
+        api.MapGet(
+            "/population/directory",
+            async (ClaimsPrincipal user, AdministrationOperations operations, CapsuleerDirectory directory, string? search, int? page) =>
+                Enum.IsDefined(directory)
+                    ? Results.Ok(await operations.BrowsePopulation(user, directory, search, page ?? 0))
+                    : Results.BadRequest()
+        );
+        api.MapGet(
+            "/population/bots/{id:long}",
+            async (ClaimsPrincipal user, AdministrationOperations operations, long id) =>
+                await operations.InspectBot(user, id) is { } bot ? Results.Ok(bot) : Results.NotFound()
+        );
+        api.MapGet(
+            "/population/corporations/{id:int}",
+            async (ClaimsPrincipal user, AdministrationOperations operations, int id) =>
+                await operations.InspectBotCorporation(user, id) is { } corporation ? Results.Ok(corporation) : Results.NotFound()
+        );
+        api.MapGet(
+            "/population/alliances/{id:int}",
+            async (ClaimsPrincipal user, AdministrationOperations operations, int id) =>
+                await operations.InspectBotAlliance(user, id) is { } alliance ? Results.Ok(alliance) : Results.NotFound()
+        );
         api.MapGet(
             "/population/corporations/{id:int}/name",
             (ClaimsPrincipal user, AdministrationOperations operations, int id) => operations.PreviewCorporationName(user, id)
