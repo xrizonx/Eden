@@ -9,6 +9,10 @@ internal sealed record NullsecDestination(int[] Systems, NullsecExpeditionWork W
 
 internal static partial class CapsuleerTrafficRoutes
 {
+    private const ulong QuietRoamingDestinationPenalty = 4;
+    private const ulong LightTrafficPenalty = 2;
+    private const ulong BusyRoamingPopulation = 5;
+
     internal static bool IsNullsec(CatalogProvider catalog, int system) => catalog.SystemContentSecurity(system) is <= 0;
 
     internal static NullsecDestination? NullsecExpedition(
@@ -40,7 +44,16 @@ internal static partial class CapsuleerTrafficRoutes
                 continue;
             }
             ulong destinationDraw = TravelerRoutineRules.Mix(draw ^ (uint)system);
-            ulong rank = destinationDraw / (1UL + (ulong)(population?.Invoke(system) ?? 0));
+            ulong residents = (ulong)(population?.Invoke(system) ?? 0);
+            // Bounded public activity bias keeps a hub from dominating every departure.
+            ulong divisor = roaming
+                ? residents == 0
+                    ? QuietRoamingDestinationPenalty
+                    : residents < BusyRoamingPopulation
+                        ? LightTrafficPenalty
+                        : 1UL
+                : 1UL + residents;
+            ulong rank = destinationDraw / divisor;
             bool multipleJumps = jumps > NullsecExpeditionRules.MinimumJumps;
             // A path can only match the winner's first priority once it crosses multiple nullsec systems.
             if (

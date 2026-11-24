@@ -92,7 +92,7 @@ internal sealed class InterdictionHandler(
                 {
                     try
                     {
-                        StartGenerator(context, module, cycle.Effect.Effect, cycle.Target, cycle.Repeats - 1, cycle);
+                        StartGenerator(context, module, cycle.Activation.Effect, cycle.Target, cycle.Repeats - 1, cycle);
                         continue;
                     }
                     catch (Exception error) when (error is InvalidDataException or OverflowException) { }
@@ -164,11 +164,7 @@ internal sealed class InterdictionHandler(
                 return new PilotCallResult.Failure(error.Message);
             }
         }
-        if (
-            !context.Flight.CanTarget
-            || repeats is < 0 or > int.MaxValue
-            || (InterdictionRules.Focused(effect) ? id is not long : id is not null)
-        )
+        if (!context.Flight.CanTarget || repeats is < 0 or > int.MaxValue || id is not (null or long))
         {
             return new PilotCallResult.Failure("Use an unscripted field without a target or a focused script with a locked target.");
         }
@@ -209,27 +205,37 @@ internal sealed class InterdictionHandler(
             target is not null && targeting.IsLocked(target.Id) ? new HashSet<long> { target.Id } : [],
             Now
         );
-        var active = Effect(context.Pilot, activation) with { Repeats = repeats };
-        string graphic = effect == DogmaEffect.WarpDisruptSphere ? "effects.WarpDisruptFieldGenerating" : TackleWire.Graphic(effect);
-        WeaponContact contact = new(
-            module,
-            activation.TypeId,
-            0,
-            target?.Id,
-            active.StartTime,
-            activation.Duration,
-            graphic,
-            FieldRange: effect == DogmaEffect.WarpDisruptSphere ? activation.Range : null
-        );
-        _cycles[module] = new(active, activation, contact, target, repeats);
-        if (previous?.Contact is { } old)
+        // The module button tracks warpDisruptSphere even when the loaded script supplies the tackle effect.
+        var active = Effect(context.Pilot, activation) with
         {
-            context.Flight.RepeatWeaponEffect(old, contact);
-        }
-        else
+            Effect = DogmaEffect.WarpDisruptSphere,
+            Repeats = repeats,
+        };
+        bool field = activation.Effect == DogmaEffect.WarpDisruptSphere;
+        var old = previous?.Contact;
+        // Keep the same visual in the observer snapshot when a new cycle pays for the same field.
+        WeaponContact contact =
+            field && old is not null && old.FieldRange == activation.Range
+                ? old
+                : new(
+                    module,
+                    activation.TypeId,
+                    0,
+                    target?.Id,
+                    active.StartTime,
+                    activation.Duration,
+                    field ? "effects.WarpDisruptFieldGenerating" : TackleWire.Graphic(activation.Effect),
+                    FieldRange: field ? activation.Range : null
+                );
+        _cycles[module] = new(active, activation, contact, target, repeats);
+        if (old is null)
         {
             context.Notifications.Add(new ShipEffectChanged(active, Now, true, true));
             context.Flight.SetWeaponEffect(contact, true);
+        }
+        else if (!ReferenceEquals(old, contact))
+        {
+            context.Flight.RepeatWeaponEffect(old, contact);
         }
         context.Notifications.Add(
             new ModuleAttributesChanged([

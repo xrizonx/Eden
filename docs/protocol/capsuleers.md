@@ -2,6 +2,218 @@
 
 [Protocol index](../protocol.md)
 
+## Regional offensive shifts and sovereignty screens
+
+Bot-led corporations stage regional offense around their nullsec headquarters constellation. Their daily
+six-hour UTC form-up windows overlap with neighboring corporations and vary by corporation. Escorts,
+witnessed local defense and screening an allied sovereign hub under attack can launch outside those windows.
+
+The regional planner compares the actual fitted roster's hull strength with recent opposing combat sightings.
+It prioritizes an exposed freight contact when the available gang can contest the grid and passes on known
+stronger opposition. Specialist freight hulls appear in the same reports. The planner uses normal travel,
+visibility and combat rules. An allied hub's active campaign or ongoing valid attack can send a gang to
+screen an approach gate. It returns after the contest ends.
+
+EVE.js 261108.1 references include `server/src/services/faction/factionWarfareAuthority.js` and
+`server/src/services/sovereignty/sovCampaignState.js`. Eden retains the pinned build 3662168 Crimewatch,
+Faction Warfare and Entosis owners. The offensive hours and patrol objective selection are Eden policies.
+[EVE University Faction Warfare](https://wiki.eveuniversity.org/Faction_warfare) ·
+[EVE University sovereignty](https://wiki.eveuniversity.org/Sovereignty)
+
+**Automated validation**
+
+All 19 integrated cases passed in 27.48 seconds after a 6.95-second build. The exact selection included
+`FittedGangChoosesAnExposedHaulerOverAReportedCapitalEscort`,
+`OutmatchedGangInterceptsExposedFreightAndPassesWhenItsSightingExpires`,
+`CorporationsStaggerTheirOffensiveShiftsAndStillScreenAContestedHub`,
+`RivalCommunitiesLaunchOnePaidRaidAndRetainItsObjectiveAcrossRestart`,
+`EscortFollowsOwnedFreightAndCompletesOnlyAfterItsActualDelivery`,
+`SeededPatrolChoicesVaryOnTheSameFrontAndFollowAChangedOccupation`,
+`PaidAttackReinforcesAndNineAttackerNodesDestroyWithoutTransferringClaim`,
+`RegionalTradePaysForTwoLossesWithBountyTaxAndProductionMargin`,
+`LogisticsUsesALockAndPaidRepairCycleForItsDamagedWingmate`, `RemoteWingmatesRallyThroughRealGateBeforeDeparting`,
+both unattended hunt and freight-warning methods, and `MatchedMaintenanceFramesPreserveJobsAndAssetsWithFewerIdleTurns`.
+
+In the fitted gang replay, the gang chose the exposed hauler over one with a reported carrier escort. The three matched
+maintenance replays preserved jobs, assets and fitting counts and took 10 due turns versus 200 polling turns per case.
+Local checkpoint capture took 0.50–0.79 ms, projection 1.64–2.50 ms and writing 25.73–85.89 ms. The SQL assertion now
+recognizes quoted and unquoted catalog reads. These small matched workloads do not establish sustained server capacity
+or natural fight frequency. The solution build, 17 Python policy cases and formatting check passed.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+**Optional maintainer checks**
+
+Compare regional launches across two shift boundaries and follow a convoy during an active sovereignty campaign.
+
+## Fleet attrition, replacement stock, and escorts
+
+A player-caused combat hull loss records corporate attrition in the same resident ship-loss action. A bot-led
+corporation's headquarters stocks complete recent loss kits, up to two per hull within the last 24 hours.
+The local depot and personal hangar must contain a spare kit for a headquarters pilot to lead an elective
+operation in a recently lost hull type. The pilot can keep working while existing corporate production,
+buy orders and freight replenish the depot. Defense, escorts, and ordinary paid recovery still operate.
+The Standard market and funded refits continue to support personal purchases.
+
+A corporation can assign an ordinary convoy escort to a loaded restock courier at a reachable nullsec supplier
+where the gang stages. The ships follow the courier's real route. Only intact delivered cargo satisfies the depot's
+requirements. Loss records, paid stock and assignments persist through existing checkpoints.
+
+EVE.js 261108.1 provides a market ownership reference in `server/src/services/market/marketProxyService.js`.
+Eden owns fleet reserve policy and uses the pinned build 3662168 fittings and charges in individual kits.
+[EVE University ship replacement](https://wiki.eveuniversity.org/Ship_Replacement_Program)
+
+**Automated validation**
+
+All 12 focused cases passed in 24.87 seconds after a 12.05-second build. The filter selected
+`RegionalTradePaysForTwoLossesWithBountyTaxAndProductionMargin`, `BotFundsRegionalKitOrdersAndHaulsManufacturedStockAcrossRestarts`,
+`FundedReplacementBuysAndBoardsFromStationStockWithAnEmptyWallet`, `LostMerlinBuysPaidReplacementsAndReturnsToDutyAcrossRestarts`,
+`EscortFollowsOwnedFreightAndCompletesOnlyAfterItsActualDelivery`, `GangFormsInUnattendedNullsec`,
+and `RemoteWingmatesRallyThroughRealGateBeforeDeparting`. A second paid Merlin loss doubled the procurement target,
+and the arriving shipment left a full spare kit after replacement. The escort replays compared intact and missing
+cargo for ordinary and restock freight. The solution build and formatting check passed.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+**Optional maintainer checks**
+
+Compare ship losses, replacement orders and staged fleet composition at two adjacent corporate depots.
+
+## Roaming gang rallies, scout commitment, and logistics
+
+A station can recruit compatible combat pilots already docked at staging or up to two reciprocal nullsec jumps away.
+Remote recruits use their saved ships and ordinary gate travel. The gang waits up to four active minutes for its roster
+to arrive and uses the existing checkpoint on both sides of a gate. A missed deadline sends surviving members home.
+
+A scout can tackle when its damage wing is near the intended target, or when wingmates already in warp to that grid
+can arrive within the scout's estimated hold time. The estimate uses the scout's tank, capacitor budget and observed
+opposition. A ship merely assigned to help supplies no arrival estimate.
+
+Logistics-only armor and shield repair fits can join gangs, including complete supported snapshot fits. A logistics
+pilot treats a nearby wingmate's reported damage as a repair request, waits for the regular lock deadline, and pays
+the native remote repair cycle. Friendly visibility, assistance and faction rules still apply. The native restart rule
+cancels unfinished armor cycles without refund and the pilot can reacquire its target afterward.
+
+EVE.js 261108.1 fleet warp followers in `server/src/services/fleets/fleetWarpFollowers.js` and player remote repairs
+provide behavior references. Rally timing, scout risk estimates and simulated repair requests are Eden policies.
+[EVE University scouting](https://wiki.eveuniversity.org/Scouting) ·
+[EVE University fleet roles](https://wiki.eveuniversity.org/Fleet_and_Gang_Types) ·
+[EVE University logistics](https://wiki.eveuniversity.org/Logistics)
+
+**Automated validation**
+
+All 14 focused cases passed in 18.08 seconds after a 1.60-second build. The filter selected `PatrolHuntTests`,
+`RemoteWingmatesRallyThroughRealGateBeforeDeparting`, `ScoutCommitsWhenHelpCanArriveBeforeItsHoldGivesOut`,
+`LogisticsUsesALockAndPaidRepairCycleForItsDamagedWingmate`, `ScoutCommitsOnlyWithVisibleActiveDamageSupportWithinReachOfTheOpponent`,
+`GangFormsInUnattendedNullsec`, `GangFormsTravelsWithoutAnObserverAndReturnsAfterRestart`,
+`OffensiveScoutTacklesAVisiblePlayerOrRivalWithItsGang`, and `WarmRemoteRepairPaysAndSettlesOnceOnResidentWorld`.
+The remote recruits crossed a real gate and reached Hunting after reopening while unattended. The logistics replay
+paid for and settled a native armor repair cycle. The solution build, 17 Python policy cases, CSharpier and line width passed.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+**Optional maintainer checks**
+
+Follow a formed gang on the Population inspector across a rally, and compare the scout and logistics roles.
+
+## Nullsec scouting and freight warnings
+
+Independent roams prefer systems with recent sampled in-space activity from the public star map. The bias is capped
+and quiet systems remain eligible. At the destination, a fresh report from the pilot's regional group can put its
+recorded gate or belt first. The pilot uses Eden's directional scanner ship visibility and range to pick a public gate
+or belt for its next search. The scan cannot generate a warp point at a ship. After arrival, normal on-grid observation,
+affiliation, tackle, and combat legality control the engagement. A grid receives one search per sortie, and a contact
+that leaves may be gone by the time the hunter arrives.
+
+Loaded freight can turn back before a nullsec jump if its own group's fresh attack or loss report names the receiving
+gate. The hauler remembers the threatened system through the existing route memory. An expired report allows travel.
+The checks use resident positions and reports. Search order and return travel use their existing checkpoints.
+
+EVE.js 261108.1 uses local interaction scope before acquiring combat targets in `server/src/space/npc/npcBehaviorLoop.js`.
+Eden reuses the scan visibility and catalog ranges for pinned build 3662168. The decision to investigate a known public
+grid and the weight given to public map activity are Eden policies.
+[EVE University directional scanning](https://wiki.eveuniversity.org/Directional_scanning) ·
+[EVE University scouting](https://wiki.eveuniversity.org/Scouting)
+
+**Automated validation**
+
+The focused selection passed all six cases in 18.72 seconds after a 14.62-second build. It selected
+`PatrolHuntTests`, `DirectionalScanningFindsAnOffGridShipButNeverReturnsSelfOrRemoteCargo`,
+`UnattendedPatrolDestroysRivalAndPersistsKillboardAndMapActivity`, and
+`RoamingExpeditionsFavorSystemsWithCapsuleersAndAvoidReportedThreats`. An unattended patrol redirected from
+a seeded lead to a separate watched gate with independently routed healthy freight. Two docked freight journeys
+compared a fresh receiving-gate warning with an expired one. The older kill persistence replay still plants a
+damaged target for the lethal case. Natural encounter rates and dedicated-host checkpoint load remain unmeasured.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+**Optional maintainer checks**
+
+Compare unattended sightings, escapes, and engagement locations across two HostCram checkpoints after deployment.
+
+## Unattended nullsec PvP and map population — November 23, 2026
+
+A read-only HostCram checkpoint capture at 11:23 p.m. Eastern on `8c8dd74a` found 5,749 scheduled bots. Over the
+preceding 24 hours, the map journal recorded 632,475 jumps across 3,318 systems. Combat reports recorded 8,565 NPC
+ships killed by bots, 642 bot ships killed by NPCs, and five bot ships killed by players. The retained combat reports
+contained zero bot-on-bot kills. Roaming, gangs, gate camps, and nullsec expeditions were enabled. The checkpoint had
+780 bots in their acquired PvP hulls, 17 solo roaming journeys, three active patrols, and no active gangs or gate camps.
+
+The 11:17 p.m. checkpoint held 29 empty population samples. The sampler returned early when there were no selected
+human pilots, before counting the active bot roster. It now counts unsuspended resident bots during unattended operation.
+The rolling jump and kill histories come from their separate event records.
+
+Local PvP departures previously required the observer-dependent simulation tier. Eligible resident bots can now start
+solo patrols, gate camps, or gangs from nullsec without a human in the system. A launched patrol uses detailed simulation
+for navigation and combat. Offscreen solo patrols use the configured roam chance. Fit, affiliation, visibility, and
+legality checks continue to govern engagements.
+
+Independent nullsec roams give all eligible populated destinations the same weight and divide the route draw for an
+unpopulated destination by four. Quiet destinations remain eligible, and the picker still favors paths through multiple
+nullsec systems. Belt-ratting expeditions still give quieter systems more weight. EVE.js scene ticking in
+`server/src/space/runtime/scene/tick.js` was checked for the simulation boundary. Nullsec departure and destination
+selection are Eden policy. [EVE University solo PvP](https://wiki.eveuniversity.org/Solo_PvP)
+
+**Automated validation**
+
+`UnattendedPatrolDestroysRivalAndPersistsKillboardAndMapActivity` and `GangFormsInUnattendedNullsec` passed in
+12.40 seconds after a 10.38-second build. In the solo case, a normally scheduled patrol in an unobserved system
+acquired and destroyed a damaged rival placed on its grid. The resulting bot-on-bot kill appeared on the killboard
+and in the map's ship-loss history and survived reopening. The gang case formed four eligible pilots without a
+selected player. The route regression covered the preference for populated systems and continued threat avoidance.
+Both [star map population cases](navigation.md#star-map-statistics-november-20-2026) passed with unattended simulation
+enabled and disabled.
+
+The final exact-method selection for those five cases and the corporate replacement trade case passed all six in
+16.15 seconds after a 5.79-second build.
+
+The 221-case focused run completed in 286.70 seconds with 218 passing cases. The filter selected `MapNavigationTests`,
+`RoamingGangTests`, `PatrolHullTests`, `CapsuleerTrafficRoutesTests`, `RegionalConflictWorldTests`,
+`CapsuleerAmmunitionSupplyTests`, `PilotSpaceActivitiesTests` and `Capsuleers.PatrolTests` with `FullyQualifiedName~`.
+All three failures reproduced on `8c8dd74a`. The corporate replacement trade fixture now explicitly disables automatic
+refit funding so it exercises corporate payment, and passed on rerun. The existing overpriced resupply case of
+`ShoppingChoosesRealAffordableStockAndHonorsThreatMemory` and the bounty payout assertion in
+`ActualCombatFitCanClearAnOrdinaryPirateAndCannotCollectItsBountyTwice` remain baseline failures. The final solution build
+passed without warnings or errors. All 17 Python policy checks passed. Style, CSharpier, line width and local document
+links passed with the local worktree recovery archive excluded from the CSharpier scan.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+**Optional maintainer checks**
+
+After deployment, compare several unattended checkpoints for populated star map samples, nullsec PvP departures
+and bot-on-bot killboard entries.
+
 ## Unattended capsuleer simulation — November 23, 2026
 
 A production log from the November 23 incident showed active background jobs before the last player disconnected and almost
@@ -60,8 +272,8 @@ Not performed; agent client testing is disabled.
 
 Eligible armed travelers can choose an independent expedition from a station using the build 3662168 catalog's
 reciprocal stargates, the world seed and the resident pilot's ship and work settings. The departure draw combines
-the seed, pilot and saved station visit. The picker favors multi-system nullsec routes and gives quieter eligible
-destinations more weight.
+the seed, pilot and saved station visit. The picker favors multi-system nullsec routes. Belt ratting gives quieter
+eligible destinations more weight. Roaming uses the [population preference documented above](#unattended-nullsec-pvp-and-map-population--november-23-2026).
 
 Independent roams use the configured roam chance at the station departure. The existing 10% belt-ratting draw is
 independent and can provide belt work when a roam cannot launch. A ready roaming gang departs before the solo
@@ -268,6 +480,43 @@ None.
 
 ## Activity-funded PvP ships
 
+### Funded refits for existing pilots
+
+A November 23 checkpoint on `3a00e987` contained 3,082 saved hauler pilots. Of those, 1,885 had no wallet balance
+above their starting cash and 37 had a recorded purchased PvP ship. A funded refit now uses existing market stock,
+ordinary matching and recorded executions. Its buyer wallet entry is zero while the seller receives the normal
+proceeds. The same policy funds stocked replacement fits, compatible charges and drones, and career skill purchases.
+Normal and corporate market orders keep their usual wallet and escrow rules. The policy defaults on when the setting
+is absent from a saved revision. Stock, access, fit and skill requirements still govern the outcome.
+
+The local EVE.js market service checks wallet funds before settlement and its ship service supports loading docked
+fits. Eden uses those ordinary market and docked fitting boundaries with a server-paid option for simulated pilots.
+[EVE University fitting](https://wiki.eveuniversity.org/Fitting_ships)
+
+**Automated validation.** The zero-wallet cases bought PvP fits locally and from a supplier, reloaded at dock,
+replaced a lost Venture from station stock, and reopened the checkpoint. The combined market, capsuleer,
+skills and configuration selection passed 101 tests in 46 seconds. The solution built in 9.25 seconds.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Observe refits and PvP departures after deployment.
+
+### Funded replacement with personal market orders
+
+After the November 23 HostCram checkpoint repair, miner `90000019` was still retrying in a capsule
+after losing its Venture. The pilot had a personal market order and no qualifying employer. The resident
+corporation-bid query evaluated the missing employer while selecting indexed orders. Funded replacement
+now skips that query when there is no employer and continues to shop from eligible station stock.
+
+**Automated validation.** `FundedReplacementBuysAndBoardsFromStationStockWithAnEmptyWallet` reproduced the
+exception on `d220dab1` in 8.82 seconds with an unrelated personal bid. The repaired case buys and boards
+the replacement, keeps the bid open and reopens with the new active hull. The focused replacement and
+PvP fit selection passed eight cases in 19.64 seconds. The solution built without warnings.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+### Earlier activity-funded behavior
+
 New worlds use the Established Universe profile with the Standard market and **Buy PvP ships with activity
 income** enabled. Existing worlds load their saved profile and policy. Administrators can enable the setting for an
 existing save. The original purchase rules and validation are recorded below. Current pilots use the
@@ -288,6 +537,11 @@ are outside the snapshot fit. Among affordable fits available at a dock, a stabl
 can deal damage. Support fits qualify where gangs can use them. The resident transaction buys, assembles, fits and
 loads the ship, then saves its identity alongside the parked work ship. Paid fits qualify for roams, camps and gangs
 under ordinary security and contact rules. Capsule recovery can reboard the parked work ship at the same station.
+
+On deployed revision `341589a5`, a November 23 checkpoint showed 24 of 3,082 saved hauler pilots with a recorded
+earned PvP ship and one independent PvP expedition in space. When a pilot's saved first fit cannot be flown or bought,
+it now checks for an affordable, usable snapshot fit at the same dock. The existing fit and budget checks govern
+the purchase. A failed alternative search uses the existing review interval. Later upgrades still follow saved goals.
 
 EVE University documents earning ISK through mining, trade and ratting, and the regional market's station-based orders.
 The local EVE.js 261108.1 reference targets build 3396210. `doc/MARKET_SETUP.md` describes synthetic market seeding over
@@ -1204,6 +1458,20 @@ In a read-only host checkpoint spot sample on November 23, 2026, running revisio
 gate-transfer jobs belonged to Venture pilots. All six had the Mining career and an active Mercoxit expedition.
 The sample describes the queued jobs at that checkpoint. It provides no count of completed jumps or repeated crossings.
 
+### Mercoxit traffic concentration at Y-CWQY
+
+A later November 23 checkpoint on `341589a5` contained 35 simulated ships in space in Y-CWQY. All were Ventures on
+Mercoxit expeditions. All 48 active Mercoxit routes in that checkpoint ended in Y-CWQY through the Amarr link. The
+nearest-deposit cache had assigned the same destination to founders from many staging systems. Live deposits could
+keep attracting departures even after the depleted-belt check was added.
+
+The cached reciprocal-gate search now keeps up to four distinct destinations within eight jumps. A miner tries the
+closest eligible destination with ore and room, or stays with local work. A system stops accepting departures once two
+expeditions are assigned. A committed expedition reserves its destination through its return and releases it when the work ends.
+The resident index rebuilds from saved miner progress. Existing trips can finish at their assigned destination.
+EVE University documents the deep-core mining requirement. The EVE.js asteroid service lists the same three ore variants.
+[EVE University mining](https://wiki.eveuniversity.org/Mining)
+
 The miner unloads at the staging station and lists one reprocessing portion from its mined inventory. The miner pays
 the normal broker fee and can post a lower ask if its wallet cannot fund the reference price. While that listing is
 open it can resume ordinary mining. A Miner II factory's Morphite shortfall can trigger a normal corporate purchase
@@ -1220,9 +1488,13 @@ reference identifies the same three grades (SHA-256 `8CA75BC0E2CA005F2E719D7ED9C
 
 ### Automated validation
 
-`VentureLaunchesForMercoxitOnlyWhenSavedDepositsContainOre` runs the docked founder's departure with a viable and
-a depleted resident belt. The viable case starts its gate leg, while the depleted case skips the Mercoxit trip.
-Both cases and the existing restart and freight replay passed together in 19.55 seconds including the build.
+`VentureLaunchesForMercoxitOnlyWhenThereIsOreAndRoom` runs the docked founder's departure with a viable and
+a depleted resident belt and with a full closer destination. The latter starts its gate leg to the other deposit.
+The existing restart and freight replay also checks that the in-flight miner still occupies a destination slot after reload.
+The expanded PvP replay exercises a blocked saved starter fit with another affordable and flyable fit in local stock.
+The final traffic navigation, patrol, expedition and supply selection passed 41 tests in 34 seconds. The solution build
+took 13.30 seconds with no warnings or errors. The clean rebase build took 11.87 seconds. Its selection also included
+the adjacent HIC changes from main and passed all 55 tests in 28 seconds. Catalog and formatting policy checks passed.
 
 `BotsMineAndHaulMercoxitToTheMinerTwoFactoryAcrossRestarts` starts with no Mercoxit or Morphite sellers, reopens the
 world with the miner operating in a stationless system and again after a hauler buys the first half of a refining

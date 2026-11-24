@@ -13,6 +13,9 @@ namespace Eden.Protocol.Flight;
 
 internal sealed class FlightEffects(Action<DestinyCommand> emit)
 {
+    // Build 3662168 adds one to the FX repeat count. The generator's explicit stop ends the visual.
+    private const int FieldVisualRepeats = int.MaxValue - 1;
+
     private static bool Changed<T>(T[]? current, T[]? previous) =>
         !ReferenceEquals(current, previous) && ((current?.Length ?? 0) != 0 || (previous?.Length ?? 0) != 0);
 
@@ -235,6 +238,7 @@ internal sealed class FlightEffects(Action<DestinyCommand> emit)
         }
     }
 
+    // WarpDisruptFieldGenerating reads graphicInfo.range as an attribute in build 3662168.
     internal void WeaponEffect(long shipId, WeaponContact effect, bool active) =>
         emit(
             new DestinyCommand.TimedSpecialEffect(
@@ -249,11 +253,17 @@ internal sealed class FlightEffects(Action<DestinyCommand> emit)
                 active,
                 effect.Duration,
                 effect.StartedAt,
-                effect.FieldRange is double radius ? new() { ["range"] = radius }
-                    : effect.ArcTargets is { } targets ? new() { ["targets"] = new BlueList<long>(targets) }
+                effect.FieldRange is double radius
+                        ? new BlueInstance("utillib.KeyVal", new Dictionary<string, object?> { ["range"] = radius })
+                    : effect.ArcTargets is { } targets ? new Dictionary<string, object?> { ["targets"] = new BlueList<long>(targets) }
                     : effect.Spool is { } spool
-                        ? new() { ["mulitplierBonusPerCycle"] = spool.PerCycle, ["multiplierBonusMax"] = spool.Maximum }
-                    : null
+                        ? new Dictionary<string, object?>
+                        {
+                            ["mulitplierBonusPerCycle"] = spool.PerCycle,
+                            ["multiplierBonusMax"] = spool.Maximum,
+                        }
+                    : null,
+                Repeat: active && effect.FieldRange is not null ? FieldVisualRepeats : 0
             )
         );
 

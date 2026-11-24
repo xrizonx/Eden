@@ -1078,6 +1078,10 @@ internal sealed partial class CapsuleerHauler(
     private void TradeAndLaunch(CombatAnomaly? scoutedAnomaly)
     {
         using var phase = SessionPerformance.Phase("traffic.tradeAndLaunch");
+        if (InActiveGang && TryGangDeparture())
+        {
+            return;
+        }
         if (WaitForHuntReserve())
         {
             return;
@@ -1212,16 +1216,7 @@ internal sealed partial class CapsuleerHauler(
         {
             if (freight is not null)
             {
-                bool intact =
-                    Work.RegionalEscort is null
-                    || freight.Stacks.Length > 0
-                        && freight.Stacks.All(stack =>
-                            _operation.World.Set<OwnedItem>().Find(stack.ItemId) is { } item
-                            && item.OwnerId == pilotId
-                            && item.LocationId == Pilot.ShipId
-                            && item.TypeId == stack.TypeId
-                            && item.Quantity >= stack.Quantity
-                        );
+                bool intact = EscortedFreightIntact(freight);
                 CapsuleerFreight.Deliver(_operation.World, pilotId, Pilot.ShipId, freight);
                 DeliverRegionalShipment(intact);
             }
@@ -1484,20 +1479,22 @@ internal sealed partial class CapsuleerHauler(
         }
         if (_target.DestinationGateId is not null)
         {
-            if (CanWorkHere && !_background && GateIsDangerous())
+            bool inRange = GateTravelRules.InRange(Pilot.Position!, Pilot.Flight.ShipRadius, _target);
+            bool reported = CanWorkHere && inRange && HeardFreightWarning(_target);
+            if (CanWorkHere && (reported || !_background && GateIsDangerous()))
             {
                 _work = Work with
                 {
                     Routine = TravelerRoutineRules.Threatened(
                         Work.Routine ?? TravelerRoutineRules.Create(pilotId),
-                        Pilot.SystemId,
+                        reported ? _target.DestinationSystemId!.Value : Pilot.SystemId,
                         Work.ActiveTicks
                     ),
                 };
                 BeginRetreat();
                 return;
             }
-            if (GateTravelRules.InRange(Pilot.Position!, Pilot.Flight.ShipRadius, _target))
+            if (inRange)
             {
                 if (WaitForGangAtGate(_target) || WaitForEscortAtGate(_target))
                 {
@@ -1639,6 +1636,7 @@ internal sealed partial class CapsuleerHauler(
                     or TrafficJourneyKind.PvpShopping
                     or TrafficJourneyKind.MilitiaPatrol
                     or TrafficJourneyKind.NullsecExpedition
+                    or TrafficJourneyKind.GangRally
             || !TryRegionalGrid()
         )
         {

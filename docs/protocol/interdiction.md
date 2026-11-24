@@ -93,9 +93,9 @@ unpaid tackle or assistance restriction alive. Checkpoints capture paid deadline
 HIC effects while preserving independent launched probes and spent capacitor/cooldowns.
 
 The pinned default effect is 3380 (`warpDisruptSphere`); script defaults are 6849/6848
-(`shipModuleFocusedWarpDisruptionScript` / `shipModuleFocusedWarpScramblingScript`). Native module notifications use
-those identities. `effects.WarpDisruptFieldGenerating` receives the earned range in `graphicInfo.range`; observer replay
-uses the same typed contact. Scripted beams and incoming EWAR use the existing pinned tackle wire adapter.
+(`shipModuleFocusedWarpDisruptionScript` / `shipModuleFocusedWarpScramblingScript`). Scripted beams and incoming EWAR use
+the existing pinned tackle wire adapter. See [native HIC visuals and scripted activation](#native-hic-visuals-and-scripted-activation)
+for the corrected module notification and `graphicInfo.range` payload.
 The wiki, local evejs snapshot hashes and Carbon revision recorded above remain the references. Contemporary prose and
 the pinned focused-disruption effect differ on micro-jump stopping; Eden applies the documented HIC gameplay restriction
 explicitly without giving the disruption script MWD suppression.
@@ -223,3 +223,66 @@ fix. The isolated build took 12.15 seconds and reported no warnings. The test ru
 **Live acceptance.** Not performed; agent client testing is disabled.
 
 **Optional maintainer checks.** None.
+
+## Native HIC visuals and scripted activation
+
+Build 3662168's `ModuleButton.GetRelevantEffect` checks the loaded script for targeting and safety. `ActivateEffect`
+then calls the generator's default `EffectWrapper.Activate`, which sends `dogmaIM.Activate(moduleID, 'warpDisruptSphere',
+targetID, repeat)`. Eden resolves the effective mode from the loaded charge inside the resident activation transaction.
+The module's Godma state and start/stop notifications use effect 3380 because the button tracks that effect on the
+generator. A focused cycle uses the corresponding disruption or scrambling beam and recipient EWAR indicator.
+
+The pinned `FxSequencer.OnSpecialFX` passes `graphicInfo` through to the effect constructor. `WarpDisruptFieldGenerating`
+reads its `range` attribute and scales the 20 km visual model to the paid gameplay radius. Eden sends a `utillib.KeyVal`
+with that radius for both activation and grid-entry replay. These fixes keep the existing Destiny ball format.
+
+The archive hash and gameplay references are recorded under [References and pinned client](#references-and-pinned-client).
+The local evejs reference resolves the same module-to-charge transition in `server/src/space/runtime/moduleActivationEffectRecord.js`
+(SHA-256 `3d5d044409219f924f0deef8d12426c1436c47ec6fb93f60ae2327b32eb38d7c`).
+
+**Automated validation.** The two scripted activations and the bubble serialization failed against the original code.
+The three exact cases passed after the fix (12.57 s build and 9.63 s runner time). The bubble case checks the same
+19.2 km radius for the source and a late observer. The affected filter below passed 92 tests in 34.99 s. Tool and
+solution restore, build, both Python policy suites, 14 inert pinned-client cases and the format check passed in 77.80 s
+including the affected tests. The full .NET suite was outside the requested scope.
+
+```text
+FullyQualifiedName~Eden.Protocol.Tests.Propulsion.HicInterdictionTests.|FullyQualifiedName~Eden.Protocol.Tests.Propulsion.InterdictionTests.|FullyQualifiedName~Eden.Protocol.Tests.Propulsion.NullifierTests.|FullyQualifiedName~Eden.Protocol.Tests.Ammunition.AmmunitionTests.|FullyQualifiedName~Eden.Protocol.Tests.Combat.AdvancedWeaponTests.|FullyQualifiedName~Eden.Protocol.Tests.Fleets.CommandBurstTests.|FullyQualifiedName~Eden.Protocol.Tests.Structures.StructureTetherTests.
+```
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Inspect the moving bubble from a second client. Cycle both focused scripts on a locked target.
+
+## HIC bubble visuals across paid cycles
+
+Eden previously sent an `OnSpecialFX` stop and start on each paid repeat. This recreated the bubble graphic on the
+pilot's client, and peers received the same transition when the active contact changed. The one-cycle FX timer could
+also expire before the server processed the renewal.
+
+The pilot and observers now keep the original visual through a successful renewal at the same radius. The pinned
+`FxSequencer.OnSpecialFX` adds one to the positive wire repeat count, so Eden uses `int.MaxValue - 1` for the bubble
+visual. `Activation.PurgeTriggers` retains that activation across normal cycle boundaries, and the HIC effect's
+`Repeat` method leaves the graphic in place. The server sends a stop when the generator ends and rebuilds the visual
+when a newly paid cycle changes the radius. Each renewal charges capacitor and commits a new paid deadline in the
+resident world.
+
+The pinned archive and [gameplay references](#references-and-pinned-client) are the same as above. The local evejs
+`server/src/space/runtime/activeModuleSpecialFx.js` uses extended client repeat counts for continuous beam visuals
+(SHA-256 `235a5ae1bd7971ba1649cf58c42c0c5554b5ce7501684990c192444e38980e62`).
+
+**Automated validation.** `HicInterdictionTests.NativeFieldDeactivateFinishesThePaidCycleAndPublishesRange` reproduced
+the one-cycle FX payload before the fix. After the fix, the exact case passed (9.39 s build and 7.85 s runner time),
+including a repeat processed 250 ms after its deadline. The test checks the pilot and observer command queues for
+continuity and verifies one stop after deactivation. The affected filter passed 116 cases in 75.26 s. Both Python
+policy suites and all 16 inert pinned-client cases passed, including native expiration and explicit trigger removal.
+The shared checkout's format sweep included archived packages and concurrent edits. The clean worktree passed
+the repository format and line-width checks after restore in 37.96 s.
+
+```text
+FullyQualifiedName~Eden.Protocol.Tests.Propulsion.HicInterdictionTests.|FullyQualifiedName~Eden.Protocol.Tests.Propulsion.InterdictionTests.|FullyQualifiedName~Eden.Protocol.Tests.Propulsion.NullifierTests.|FullyQualifiedName~Eden.Protocol.Tests.Combat.AdvancedWeaponTests.|FullyQualifiedName~Eden.Protocol.Tests.Combat.SmartbombTests.|FullyQualifiedName~Eden.Protocol.Tests.Combat.AreaWeaponTests.|FullyQualifiedName~Eden.Protocol.Tests.Fleets.CommandBurstTests.|FullyQualifiedName~Eden.Protocol.Tests.Structures.StructureTetherTests.
+```
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Watch two consecutive bubble cycles from both clients and verify the bubble drops after deactivation.

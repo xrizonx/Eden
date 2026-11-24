@@ -66,11 +66,24 @@ internal sealed partial class CapsuleerHauler
 
         var hull = (HullClass)Pilot.ShipGroupId;
         var avoided = NullsecThreats();
-        Func<int, int>? population = Live is { } live ? live.CapsuleerCountInSystem : null;
+        var live = Live;
+        Func<int, int>? rattingPopulation = live is not null && ratting ? live.CapsuleerCountInSystem : null;
+        var activity = roaming ? live?.MapStatistics.Population(Now) : null;
+        int HuntingPopulation(int system) => activity is null ? 0 : activity.Systems.GetValueOrDefault(system).InSpace / activity.Samples;
         if (
             roaming
             && !HasPvpShip
-            && CapsuleerTrafficRoutes.NullsecExpedition(catalog, Pilot.SystemId, hull, policy, avoided, false, true, draw, population)
+            && CapsuleerTrafficRoutes.NullsecExpedition(
+                catalog,
+                Pilot.SystemId,
+                hull,
+                policy,
+                avoided,
+                false,
+                true,
+                draw,
+                HuntingPopulation
+            )
                 is { } potentialRoam
         )
         {
@@ -108,6 +121,14 @@ internal sealed partial class CapsuleerHauler
                 _operation.MarketChanged |= supplies.SpentCents != spent;
                 _work = Work with { Resupply = supplies };
             }
+            else if (
+                CapsuleerRefitFunding.Applies(world, pilotId)
+                && CapsuleerIndustry.CanStagePvp(world, catalog, Pilot.SystemId)
+                && TryShopForPvpShip(world)
+            )
+            {
+                return true;
+            }
         }
         var profile = CapsuleerPatrolFit.CombatHull(catalog, Pilot.ShipTypeId)
             ? CapsuleerDefenseProfile.Read(world, catalog, pilotId, resupplyFit)
@@ -136,13 +157,26 @@ internal sealed partial class CapsuleerHauler
         }
 
         ratting = ratting && !TrafficRules.LightHull(hull) && (replacement is not null || supplies.Requirements.All(need => need.Drone));
-        roaming = roaming && CapsuleerIndustry.HasPvpShip(world, pilotId, replacement?.Id ?? Pilot.ShipId);
+        roaming =
+            roaming
+            && CapsuleerIndustry.HasPvpShip(world, pilotId, replacement?.Id ?? Pilot.ShipId)
+            && CapsuleerIndustry.CanLaunchOffensiveFleet(world, catalog, Pilot, Now, replacement);
         if (!(ratting || roaming))
         {
             return false;
         }
         if (
-            CapsuleerTrafficRoutes.NullsecExpedition(catalog, Pilot.SystemId, hull, policy, avoided, ratting, roaming, draw, population)
+            CapsuleerTrafficRoutes.NullsecExpedition(
+                catalog,
+                Pilot.SystemId,
+                hull,
+                policy,
+                avoided,
+                ratting,
+                roaming,
+                draw,
+                roaming ? HuntingPopulation : rattingPopulation
+            )
             is not { } destination
         )
         {
@@ -296,18 +330,18 @@ internal sealed partial class CapsuleerHauler
             return false;
         }
 
-        var grids = PilotAwareness
-            .Circuit(
-                Objects
-                    .Where(site => site.GroupId == AsteroidDefinitions.BeltGroup || roam && site.DestinationGateId is not null)
-                    .Select(site => site.Id),
-                pilotId,
-                journey.Sequence,
-                Work.VisitedBelts,
-                Work.ActiveTicks
-            )
-            .Take(roam ? PatrolRules.MaximumGrids : RattingRules.MaximumBelts)
-            .ToArray();
+        var grids = roam
+            ? HuntGrids(journey.Sequence)
+            : PilotAwareness
+                .Circuit(
+                    Objects.Where(site => site.GroupId == AsteroidDefinitions.BeltGroup).Select(site => site.Id),
+                    pilotId,
+                    journey.Sequence,
+                    Work.VisitedBelts,
+                    Work.ActiveTicks
+                )
+                .Take(RattingRules.MaximumBelts)
+                .ToArray();
         if (grids.Length == 0)
         {
             return false;

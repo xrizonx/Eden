@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Eden.Data.World.Capsuleers;
 using Eden.Gameplay.Capsuleers;
 using Eden.Gameplay.Characters;
 using Eden.Gameplay.Docking;
@@ -12,10 +14,14 @@ using Eden.Protocol.Tests.Capsuleers;
 using Eden.Protocol.Tests.Persistence;
 using Eden.Protocol.Tests.PilotSessions;
 using Eden.Server;
+using Eden.World.Capsuleers;
 using Eden.World.Catalog;
+using Eden.World.Configuration;
 using Eden.World.Docking;
 using Eden.World.Maps;
 using Eden.World.Runtime;
+using Eden.World.Storage;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Eden.Protocol.Tests.Maps;
@@ -211,6 +217,64 @@ public sealed class MapNavigationTests
         Assert.Empty(Assert.IsType<List<object?>>(jobs["lines"]));
         Assert.Contains(30000142L, Assert.IsType<Dictionary<long, object?>>(replies[12]).Keys);
         Assert.Equal(before, world.Store.FindPilot(1000001));
+    }
+
+    [Fact]
+    public async Task CheckpointBatchesMapActivityAndRestoresLegacyHistoryWithoutDuplicates()
+    {
+        const int system = 30000142;
+        const int newJumps = 10_000;
+        var clock = CalendarTestData.Clock();
+        using TestWorld fixture = new(clock: clock);
+        long cutoff = clock.Now - TimeSpan.TicksPerDay;
+        using (WorldDbContext legacy = new(fixture.Path))
+        {
+            legacy.Database.ExecuteSqlRaw("DROP TABLE WorldMapActivity; PRAGMA user_version=220;");
+            var payload = new MapStatisticsPayload(
+                [new(cutoff, system, MapActivityKind.Jump), new(cutoff + 1, system, MapActivityKind.Jump)],
+                []
+            );
+            string json = JsonSerializer.Serialize(payload);
+            legacy.Database.ExecuteSql($"INSERT INTO WorldMapStatistics(Id,Payload) VALUES(1,{json})");
+        }
+
+        WorldDatabase database = new(fixture.Path);
+        WorldInitialization.Initialize(database);
+        using (var host = ServerServices.Build(database, clock, liveWorld: true))
+        {
+            var live = host.GetRequiredService<LiveWorld>();
+            var statistics = host.GetRequiredService<IMapStatistics>();
+            Assert.Equal(1, Assert.Single(statistics.History(MapHistoryStatistic.Jumps, 24).Rows).Counts.Jumps);
+            using (var action = live.Economy.Begin())
+            {
+                for (int index = 0; index < newJumps; index++)
+                {
+                    MapStatisticsStore.Record(action, system, clock.Now, MapActivityKind.Jump);
+                }
+                action.Commit();
+            }
+            await live.FlushAsync();
+            using (var action = live.Economy.Begin())
+            {
+                MapStatisticsStore.Record(action, system, clock.Now, MapActivityKind.NpcShipLoss);
+                action.Commit();
+            }
+            await live.FlushAsync();
+        }
+
+        using (WorldDbContext checkpoint = new(fixture.Path))
+        {
+            int[] batchSizes = checkpoint.Database.SqlQueryRaw<int>("SELECT length(Payload) AS Value FROM WorldMapActivity").ToArray();
+            Assert.True(batchSizes.Length > 1);
+            Assert.All(batchSizes, size => Assert.InRange(size, 1, 64 * 1024));
+        }
+        using var reopened = ServerServices.Build(new(fixture.Path), clock, liveWorld: true);
+        var restored = reopened.GetRequiredService<IMapStatistics>();
+        Assert.Equal(newJumps + 1, Assert.Single(restored.History(MapHistoryStatistic.Jumps, 24).Rows).Counts.Jumps);
+        Assert.Equal(newJumps, Assert.Single(restored.History(MapHistoryStatistic.Jumps, 1).Rows).Counts.Jumps);
+        Assert.Equal(1, Assert.Single(restored.History(MapHistoryStatistic.Kills, 24).Rows).Counts.NpcShips);
+        clock.AdvanceWallTime(TimeSpan.FromTicks(1));
+        Assert.Equal(newJumps, Assert.Single(restored.History(MapHistoryStatistic.Jumps, 24).Rows).Counts.Jumps);
     }
 
     [Fact]
@@ -438,6 +502,52 @@ public sealed class MapNavigationTests
         Assert.Equal(new(1, 0), restored.Population().Systems[Perimeter]);
         clock.Seconds += 60;
         Assert.Empty(restored.Population().Systems);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void PopulationSamplesOffscreenBotsWhenUnattendedSimulationIsActive(bool runWithoutPlayers)
+    {
+        const int Perimeter = 30000144;
+        using CapsuleerHaulerTests.Fixture fixture = new(isolateRoute: true);
+        var clock = fixture.Clock;
+        WorldConfigurationStore settings = new(fixture.Database, clock);
+        var configuration = settings.Read();
+        var draft = configuration.Active.Draft;
+        settings.Save(
+            configuration.Generation,
+            draft with
+            {
+                Settings = draft.Settings with { Capsuleers = draft.Settings.Capsuleers with { RunWithoutPlayers = runWithoutPlayers } },
+            },
+            "test"
+        );
+        WorldInitialization.Initialize(fixture.Database, clock);
+
+        using var host = ServerServices.Build(fixture.Database, clock, liveWorld: true);
+        var activity = host.GetRequiredService<CapsuleerActivitySource>();
+        var live = host.GetRequiredService<LiveWorld>();
+        var statistics = host.GetRequiredService<IMapStatistics>();
+        var ships = host.GetRequiredService<SqliteWorld>();
+        var founder = live.Economy.Inspect(world =>
+            world.Set<SavedCapsuleerAgent>().Single(agent => agent.Career == CapsuleerCareer.Mining)
+        );
+        ships.SetPosition(founder.FounderShipId, SpacePosition.Zero, Perimeter);
+        activity.StartUnattended();
+        var beforeSelection = activity.Read();
+        Assert.Empty(beforeSelection.Pilots);
+        Assert.Equal(runWithoutPlayers, beforeSelection.Active);
+        live.SampleMapPilots();
+        Assert.Equal(new MapPilotCounts(runWithoutPlayers ? 1 : 0, 0), statistics.Population().Systems.GetValueOrDefault(Perimeter));
+
+        clock.Seconds += 60;
+        var player = ships.FindPilot(1000001)!;
+        using var selected = host.GetRequiredService<IHumanPresence>().Select(player.PilotId, player.SystemId);
+        live.SampleMapPilots();
+        var counts = statistics.Population();
+        Assert.Equal(2, counts.Samples);
+        Assert.Equal(new MapPilotCounts(runWithoutPlayers ? 2 : 1, 0), counts.Systems[Perimeter]);
     }
 
     private static object?[] ClusterArguments() => ["EVE", new object?[] { BlueEmpty.Dictionary, BlueEmpty.Dictionary, 0L }];

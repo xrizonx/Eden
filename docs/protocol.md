@@ -154,6 +154,14 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Autonomous capsuleers
 
+- [Regional offensive shifts and sovereignty screens](protocol/capsuleers.md#regional-offensive-shifts-and-sovereignty-screens)
+- [Fleet attrition, replacement stock, and escorts](protocol/capsuleers.md#fleet-attrition-replacement-stock-and-escorts)
+- [Roaming gang rallies, scout commitment, and logistics](protocol/capsuleers.md#roaming-gang-rallies-scout-commitment-and-logistics)
+- [Nullsec scouting and freight warnings](protocol/capsuleers.md#nullsec-scouting-and-freight-warnings)
+- [Unattended nullsec PvP and map population](protocol/capsuleers.md#unattended-nullsec-pvp-and-map-population--november-23-2026)
+- [Funded refits for existing pilots](protocol/capsuleers.md#funded-refits-for-existing-pilots)
+- [Funded replacement with personal market orders](protocol/capsuleers.md#funded-replacement-with-personal-market-orders)
+- [Mercoxit traffic concentration at Y-CWQY](protocol/capsuleers.md#mercoxit-traffic-concentration-at-y-cwqy)
 - [Unattended capsuleer simulation](protocol/capsuleers.md#unattended-capsuleer-simulation--november-23-2026)
 - [Ship state after gate transfers](protocol/capsuleers.md#ship-state-after-gate-transfers)
 - [Population inspector](protocol/capsuleers.md#population-inspector)
@@ -722,6 +730,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 - [Shared bookmark folders and access lists](protocol/navigation.md#shared-bookmark-folders-and-access-lists--november-11-2026)
 - [Dynamic and scan-result bookmarks](protocol/navigation.md#dynamic-and-scan-result-bookmarks--november-11-2026)
 - [Star map statistics](protocol/navigation.md#star-map-statistics-november-20-2026)
+- [Sustained map activity checkpoints](protocol/performance.md#sustained-map-activity-checkpoints)
 - [Native map navigation support](protocol/navigation.md#native-map-navigation-support-november-9-2026)
 - [Personal map visit history](protocol/navigation.md#personal-map-visit-history)
 - [Cloaking and standard micro-jump drives](protocol/navigation.md#cloaking-and-standard-micro-jump-drives-november-9-2026)
@@ -742,6 +751,8 @@ scope tested at the time. Add new findings to the owning topic page and link the
 - [Stargate handoff timing, November 14, 2026](protocol/navigation.md#stargate-handoff-timing-november-14-2026)
 - [Focused interdiction at NPC stargates](protocol/navigation.md#focused-interdiction-at-npc-stargates)
 - [Interdiction cleanup during session ticks](protocol/interdiction.md#interdiction-cleanup-during-session-ticks)
+- [Native HIC visuals and scripted activation](protocol/interdiction.md#native-hic-visuals-and-scripted-activation)
+- [HIC bubble visuals across paid cycles](protocol/interdiction.md#hic-bubble-visuals-across-paid-cycles)
 - [Empty-space context menu latency](protocol/navigation.md#empty-space-context-menu-latency)
 - [Aligning and native autopilot, November 11, 2026](protocol/navigation.md#aligning-and-native-autopilot-november-11-2026)
 - [Direct station-to-space TR, November 8, 2026](protocol/navigation.md#direct-station-to-space-tr-november-8-2026)

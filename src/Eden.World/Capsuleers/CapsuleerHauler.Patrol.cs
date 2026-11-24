@@ -1,11 +1,12 @@
 using Eden.Gameplay.Capsuleers;
 using Eden.Gameplay.Flight;
-using Eden.Gameplay.Mining;
 
 namespace Eden.World.Capsuleers;
 
 internal sealed partial class CapsuleerHauler
 {
+    private bool CanStartLocalPvp => !_background || Live is not null && CapsuleerTrafficRoutes.IsNullsec(database.Catalog, Pilot.SystemId);
+
     private bool TryLaunchPatrol(long sequence, bool intentional = false)
     {
         var policy = database.Settings.Capsuleers;
@@ -14,12 +15,7 @@ internal sealed partial class CapsuleerHauler
         {
             return false;
         }
-        var grids = Objects
-            .Where(o => o.DestinationGateId is not null || o.GroupId == AsteroidDefinitions.BeltGroup)
-            .OrderBy(o => TravelerRoutineRules.Mix((ulong)o.Id ^ (ulong)pilotId ^ (ulong)sequence))
-            .Take(PatrolRules.MaximumGrids)
-            .Select(o => o.Id)
-            .ToArray();
+        long[] grids = HuntGrids(sequence);
         if (grids.Length == 0)
         {
             return false;
@@ -41,6 +37,7 @@ internal sealed partial class CapsuleerHauler
             _background && !expedition
             || !policy.RoamingPvp
             || !HasPvpShip
+            || Work.Journey?.Kind == TrafficJourneyKind.GangRally
             || OnNullsecExpedition && !expedition
             || Work.Journey?.Kind == TrafficJourneyKind.PvpShopping
             || Work.Retreating
@@ -65,7 +62,7 @@ internal sealed partial class CapsuleerHauler
         var fit = defense.Profile(pilotId);
         if (
             !fit.Combat
-            || !(fit.HasDamage || InActiveGang && fit.HasSupport)
+            || !(fit.HasDamage || InActiveGang && fit.CanContribute)
             || health.Read(pilotId, Now) is not { } current
             || CapsuleerDefenseRules.Retreat(current, true)
         )
@@ -94,6 +91,8 @@ internal sealed partial class CapsuleerHauler
         };
         LaunchActivity();
         FlyToBelt();
+        // Launch needs only static geometry. The first flight turn prepares the active patrol's resource geometry.
+        _background = false;
     }
 
     private bool PatrolAllowed(PatrolProgress patrol) =>
@@ -164,6 +163,8 @@ internal sealed partial class CapsuleerHauler
         PvpDecision decision;
         if (scout && candidates.Length > 0)
         {
+            var inbound = ScoutBackup(gang!, _target.Id);
+            double holdSeconds = inbound.Length == 0 ? 0 : ScoutHold(member!, profile, opposition);
             var contacts = candidates
                 .OrderByDescending(contact => contact.ShipId == reported)
                 .ThenByDescending(contact => PvpTactics.Threat(contact.Hull))
@@ -179,14 +180,19 @@ internal sealed partial class CapsuleerHauler
                     Math.Min(profile.TackleRange, profile.TargetRange),
                     contact,
                     seen,
-                    opposition
+                    opposition,
+                    inbound
+                        .Where(wing => wing.Destination.DistanceTo(contact.Position) <= RoamingGangRules.ScoutBackupMeters)
+                        .Select(wing => new GangBackup(wing.ShipId, wing.ArrivalSeconds))
+                        .ToArray(),
+                    holdSeconds
                 )
             );
             reportingOnly = engage is null;
             decision = new(
                 (engage ?? contacts[0]).ShipId,
                 0,
-                reportingOnly ? "Scouting a visible contact for the gang." : "Tackling with nearby gang support."
+                reportingOnly ? "Scouting a visible contact for the gang." : "Tackling while gang support can reach the fight."
             );
         }
         else

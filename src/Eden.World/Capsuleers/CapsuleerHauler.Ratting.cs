@@ -148,7 +148,14 @@ internal sealed partial class CapsuleerHauler
     )
     {
         var policy = database.Settings.Capsuleers;
-        if (!policy.BeltRatting && (_background || !policy.AnomalyRatting && !policy.RoamingPvp && !policy.GateCamps))
+        if (
+            !policy.BeltRatting
+            && (
+                _background
+                    ? !CanStartLocalPvp || !CapsuleerIndustry.CanStagePvp(_operation.World, _operation.Catalog, Pilot.SystemId)
+                    : !policy.AnomalyRatting && !policy.RoamingPvp && !policy.GateCamps
+            )
+        )
         {
             return false;
         }
@@ -174,18 +181,20 @@ internal sealed partial class CapsuleerHauler
         _work = Work with { ActivitySequence = sequence };
         if (intentionalHunt)
         {
-            return !_background
+            return CanStartLocalPvp
                 && HasPvpShip
+                && CanLaunchOffensiveFleet
                 && (
                     CapsuleerIndustry.RequiresEarnedPvp(_operation.World) && TryLaunchCamp(sequence, profile)
-                    || policy.RoamPercent > 0 && TryLaunchPatrol(sequence, intentional: true)
+                    || policy.RoamPercent > 0 && TryLaunchPatrol(sequence, intentional: !_background)
                 );
         }
         if (
             !fundingFit
-            && !_background
+            && CanStartLocalPvp
             && HasPvpShip
             && (_operation.World is not Eden.World.Runtime.Economy.EconomyTransaction work || !DynamicWorkPilot(work))
+            && CanLaunchOffensiveFleet
             && (TryLaunchCamp(sequence, profile) || TryLaunchPatrol(sequence))
         )
         {
@@ -350,11 +359,15 @@ internal sealed partial class CapsuleerHauler
                         ? checked(patrol.LeaveGridAt + RoamingGangRules.RendezvousTicks)
                         : patrol.LeaveGridAt;
                     if (
-                        patrol.LeaveGridAt > 0 && Work.ActiveTicks >= leaveAt
-                        || patrol.Kind == PatrolKind.Transit
-                            && activity.Phase == RattingPhase.Searching
-                            && _target is not null
-                            && GangContactBeyondGate(_target)
+                        !_warpBlocked
+                        && activity.Phase == RattingPhase.Searching
+                        && (
+                            patrol.LeaveGridAt > 0 && Work.ActiveTicks >= leaveAt
+                            || patrol.Kind == PatrolKind.Transit
+                                && activity.Phase == RattingPhase.Searching
+                                && _target is not null
+                                && GangContactBeyondGate(_target)
+                        )
                     )
                     {
                         NextBelt();
@@ -424,6 +437,7 @@ internal sealed partial class CapsuleerHauler
                 Ratting = activity with
                 {
                     BeltIndex = activity.BeltIndex + 1,
+                    Belts = activity.Patrol?.Kind == PatrolKind.Roam ? SearchNextGrid(activity) : activity.Belts,
                     Patrol = activity.Patrol is { } patrol ? patrol with { LeaveGridAt = 0, NextLook = 0, WatchingForGang = false } : null,
                 },
             };

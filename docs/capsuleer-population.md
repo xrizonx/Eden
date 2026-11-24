@@ -43,6 +43,8 @@ cross empty systems.
 
 **Run bots without players** is on by default. Background travel and work continue while the server runs. Turning it off pauses
 the bot clock whenever no player has selected a character. Server restarts resume from saved time without replaying downtime.
+[Eligible nullsec patrols, gate camps and roaming gangs](protocol/capsuleers.md#unattended-nullsec-pvp-and-map-population--november-23-2026)
+can start in unobserved systems. Active bots also contribute to the star map's sampled in-space and docked populations.
 [Unattended capsuleer traffic](protocol/capsuleers.md#unattended-capsuleer-simulation--november-23-2026)
 
 A failed community expansion rolls back that community while others continue. Completed communities survive and are reused on restart.
@@ -65,15 +67,16 @@ system. Delayed Local keeps its normal privacy rules.
 
 ## Activity-funded PvP ships
 
-A new established world starts with the Standard market and **Buy PvP ships with activity income** enabled. To enable this
-on an existing established save, open **Player bots → PvP roams & regional conflicts**, select that option, save for
-restart and restart the server.
+A new established world starts with the Standard market and **Buy dedicated PvP fits from the market** enabled.
+**Fund bot refits** defaults on for new and existing saves. The server pays for available fits, replacements, ammunition,
+drones and qualifying skillbooks at purchase. Bots with empty wallets can still re-equip. Find both controls under
+**Player bots → PvP roams & regional conflicts**.
 
 An eligible pilot chooses a complete fit from the installed zKillboard traffic snapshot and saves that goal. It trains
 the hull and fitting skills at dock and earns ISK in its current ship. Ratters earn bounties, and miners can sell surplus
-ore after checking production and moon-supply needs. The pilot spends only personal ISK above its starting cash and
-can shop at a reachable market for the full fit. After boarding, it looks for a higher-stage hull or a better-equipped
-fit at the same stage. The pilot keeps its previous ships and can rat between PvP sorties to fund the next goal.
+ore after checking production and moon-supply needs. With refit funding off, the pilot spends only personal ISK above
+its starting cash on PvP fits. It can shop at a reachable market for the full fit. After boarding, it looks for a
+higher-stage hull or a better-equipped fit at the same stage and keeps its previous ships.
 [Import zKillboard traffic](#zkill-backed-travelers) · [Fit progression and validation](protocol/capsuleers.md#bot-pvp-fit-progression-and-rat-damage)
 
 ## Mining fleets
@@ -162,6 +165,7 @@ materials and an available blueprint. The component job delivers back to the ope
 [Miner II component production](protocol/capsuleers.md#miner-ii-components-from-owned-materials)
 
 Venture specialists stage from market stations, reach nearby nullsec Mercoxit belts and sell their mined ore.
+They try alternate systems when the closest deposit is depleted or already has two assigned expeditions.
 A factory short of Morphite can send a corporate hauler to collect the ore in enough trips to run a refining portion.
 [Mercoxit mining and factory freight](protocol/capsuleers.md#mercoxit-mining-and-factory-freight)
 
@@ -272,20 +276,21 @@ escorts and defensive objectives retain their narrower targeting policy. Friends
 
 With **Persistent roaming gangs** enabled (default on), eligible nullsec pilots can assemble existing ships into a
 three-to-six-ship hunting gang. **Roaming gang size** defaults to four. The ordinary roam chance also controls formation.
-A gang needs at least three available combat ships at a station, including separate scout and tackle pilots, and a
-connected nullsec station route within three jumps, or a witnessed local defensive objective. Sparse communities
-continue using individual roams.
+A gang needs at least three available combat ships, including separate scout and tackle pilots, and a connected nullsec
+station route within three jumps or a witnessed local defensive objective. Wingmates can rally from docks up to two
+nullsec jumps away. The gang returns if its members miss the rally deadline. Sparse communities continue using solo roams.
 
 Gangs retain their home, roster, leader, roles and route across checkpoints and restarts. The scout departs first;
 the main body regroups at gates and shares short-lived target reports. A fitted scout can hold a player or rival bot
-when a damage-capable wingmate is visible within 30 km of the target and the local matchup is favorable.
+when damage support is near the target or is already in warp and can arrive before the scout expects to lose tackle.
+Logistics pilots can lock and repair a damaged wingmate with fitted remote armor or shield modules.
 A lone scout reports the contact and can wait briefly for backup. The gang returns after reaching its endpoint, suffering
 losses, or exhausting its sortie time. Individual pilots use their own fits, damage application, health, ammunition and
 capacitor to decide how to engage. Kiting ships preserve range while tacklers close. Lost hulls remain lost.
 
-Active gangs keep traveling in unoccupied systems while somebody has a selected character. They pause when the last
-human leaves and while the server is stopped. This is an exception to the ordinary occupied-system population policy;
-no native scene is required for their combat contacts. Disabling gangs orders surviving active members home after restart;
+Active gangs keep traveling in unoccupied systems when unattended simulation is enabled. They pause while the
+server is stopped or when unattended simulation is disabled and the last human leaves. Their combat contacts use
+resident state. Disabling gangs orders surviving active members home after restart;
 disabling all player bots pauses the entire population. New settings follow the ordinary save-and-restart workflow.
 [Implementation and automated evidence](protocol/capsuleers.md#smarter-pilots-and-persistent-roaming-gangs--november-17-2026).
 
@@ -303,13 +308,15 @@ its gate cloak. [Fleet interception and visibility checks](protocol/capsuleers.m
 An operation needs available crew and a public objective within three nullsec jumps. **Regional operations per group**
 accepts 1–3, default 1, with a two-minute launch interval. Losses delay further offensive launches for five active minutes;
 defense and escort work remain available. Pressure, rivalries, losses, kills, objectives and deadlines survive restart.
-Lost ships are never granted again. Sparse groups continue their ordinary individual routines.
+Corporations stage offensive deployments during staggered UTC shifts. Escorts and defenses can launch at any hour,
+including gate screens around an allied hub under attack. Recent combat sightings can divert a gang to exposed freight.
+Sparse groups continue their ordinary individual routines.
 
 Escorts are assigned to existing owned freight at the start of its real route. The freighter waits for guards at gates;
 the operation succeeds when the original cargo is actually delivered. Missing cargo, lost guards, retreat and finite
 rendezvous or sortie deadlines can abort it. Escorted shipments share the active-gang exception for unoccupied systems.
-All pause when the last human leaves. Disabling regional conflicts returns its gangs home and releases freight to normal
-travel after restart; saved conflict history remains. Population shows regional groups, pressure and operation outcomes.
+Disabling regional conflicts returns its gangs home and releases freight to normal
+travel after restart. Population shows regional groups, pressure and operation outcomes.
 [Implementation and automated evidence](protocol/capsuleers.md#regional-bot-conflicts--november-17-2026).
 
 ## Pilot awareness
