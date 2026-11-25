@@ -2,6 +2,155 @@
 
 [Documentation index](../README.md) / [Protocol index](../protocol.md)
 
+## Fleet group moves
+
+Fleet bosses and commanders can drag a selection of fleet members into a squad. Eden checks each pilot
+against the original command hierarchy before applying the permitted moves together. Moving the issuing
+commander as part of the selection does not affect the other checks. Pilots outside the command scope
+stay in their current positions, and the requester receives the native move failure for those pilots.
+The client receives the pilots who actually changed position. A group move assigns ordinary member
+positions. Use the existing single-member move for command appointments.
+
+Inert inspection of build **3662168**, archive SHA-256
+`37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`, confirms that
+`fleetSvc.MassMove` sends `MassMoveMembers(characterIDs, wingID, squadID, role)` on the bound fleet.
+It passes the returned list of changed IDs to `OnManyFleetMembersChanging`, while the native roster
+still consumes the individual `OnFleetMemberChanged` events. Eden queues one roster batch per observer
+and emits the existing per-member wire events. The EVE.js **261108.1** comparison in
+`server/src/services/fleets/fleetRuntime.js` (SHA-256
+`494727d0f0793202bd9195c417fffc63cce499ea157890fc12981919be521b8f`) returns the same list
+and applies per-pilot command checks.
+[CCP Rubicon fleet changes](https://www.eveonline.com/news/view/fleetchanges_ui) ·
+[EVE University fleet roles](https://wiki.eveuniversity.org/Roles_in_Incursions)
+
+**Automated validation.** `MassMoveUsesOriginalCommandAuthorityAndPublishesOneBatch` and
+`NativeMassMoveReturnsChangedMembersAndUpdatesTheirRoster` passed in 4.78 seconds of combined case time.
+They cover scoped partial success, a commander's own move, native roster updates and no-op retries.
+
+The November 25, 2026 milestone also covers corporation mail restrictions, cargo scans through containers
+and fitted ship repackaging. All five exact cases passed in 10.31 seconds. The solution built with zero
+warnings and errors. The broader filter passed all 234 cases in 94.49 seconds. Container and insurance
+checks passed another 48 cases in 17.71 seconds. Catalog and formatting policy suites passed all 17 cases.
+Style, CSharpier and line-width checks passed with the local `.artifacts` archive excluded from the formatter.
+
+```text
+FullyQualifiedName~FleetRulesTests|FullyQualifiedName~CooperativeFleetTests|FullyQualifiedName~InformationTests|FullyQualifiedName~ProductionInventoryTests|FullyQualifiedName~InactiveShipInventoryTests|FullyQualifiedName~ShipRigTests|FullyQualifiedName~CorporationMailRestrictionTests|FullyQualifiedName~CorporationScreenTests|FullyQualifiedName~CorporationRoleTests|FullyQualifiedName~CorporationCommunicationTests|FullyQualifiedName~MailServiceTests|FullyQualifiedName~MailComposerDefaultsTests|FullyQualifiedName~Persistence.MailTests|FullyQualifiedName~InsuranceTests|FullyQualifiedName~CargoContainerTests|FullyQualifiedName~DetachedCheckpointTests
+FullyQualifiedName~CargoContainerAssemblyTests|FullyQualifiedName~InsuranceServiceTests|FullyQualifiedName~InsuranceLossTests
+```
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+## Fleet composition and map locations
+
+The fleet boss and commanders can inspect current hulls, docked locations and trained leadership skills for
+pilots in their command scope. The fleet boss sees the full fleet. The map's **My Fleet** filter uses the same
+bound reply and receives pilot IDs and systems for the full roster. Outside the viewer's command scope,
+other pilots' detail fields are empty. Current membership is required for either view.
+
+Fleet presence supplies the system, hull and docked location. Leadership, Wing Command and Fleet Command levels
+come from the resident skill rows. The pinned catalog identifies their type IDs as **3348**, **11574** and **24764**,
+with training ranks **1**, **8** and **12**. The reply uses the current server state on each call.
+
+Inert inspection of build **3662168**, archive SHA-256
+`37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`, confirms the bound
+`fleetSvc.GetFleetComposition()` call, the no-argument native request and client cache, and the fields used
+by `fleetCompositionWnd.pyj` and `mapFilterFleet.pyj`. The composition window displays the skill and ID arrays
+in reverse order, starting with Fleet Command. EVE.js **261108.1** uses a list of KeyVals in
+`server/src/services/fleets/fleetPayloads.js` (SHA-256
+`bad4210618f0053dfb1a075f3bdaaaa94452f32b5c120e455e83c2d49487fea9`).
+[Fleet composition window](https://wiki.eveuniversity.org/Fleet_User_Interface#Fleet_composition)
+
+**Automated validation.** `NativeFleetCompositionProvidesCommandDetailsAndMapLocationsToCurrentMembers`
+passed. It checks role-based details, map fields, trained levels, undocking and loss of access after departure.
+The warmed native read recorded zero SQL commands, connections or fitting calculations.
+
+The November 25, 2026 milestone also covers medal award notifications, bulk personal contract cancellation
+and ship scanning of Upwell structures. All four exact cases passed in 10.07 seconds. The solution built with
+zero warnings and errors. All 258 focused cases passed in 121.18 seconds, and the catalog and formatting
+policy suites passed all 17 cases. Style, CSharpier and line-width checks passed with the local
+`.artifacts` archive excluded from the formatter.
+
+```text
+FullyQualifiedName~CooperativeFleetTests|FullyQualifiedName~FleetRulesTests|FullyQualifiedName~InformationTests|FullyQualifiedName~StructureTargetingTests|FullyQualifiedName~StructureEquipmentTests|FullyQualifiedName~StructureAttackTests|FullyQualifiedName~ShipContentCoverageTests|FullyQualifiedName~CorporationMedalTests|FullyQualifiedName~InboxServiceTests|FullyQualifiedName~Persistence.InboxTests|FullyQualifiedName~ContractServiceTests|FullyQualifiedName~ContractAssetServiceTests|FullyQualifiedName~Persistence.ContractTests|FullyQualifiedName~AuctionContractTests|FullyQualifiedName~CourierContractTests|FullyQualifiedName~DetachedCheckpointTests
+```
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+## Fleet recruitment limits and default squads
+
+The fleet boss can set a maximum size from **1 to 256** and select or clear an existing default squad.
+The size limit applies to new direct invitations, Fleet Finder applications and acceptance of pending
+invitations. Lowering it keeps the current roster. A Fleet Finder advert can set a tighter join limit.
+
+Open Fleet Finder invitations use the configured squad and its wing. Explicit invitations retain their chosen
+placement. Deleting the empty default squad clears the choice and publishes the updated options. Fleet init,
+option reads and option-change notifications carry the current default squad, including during free-move and
+advert changes. Both settings belong to the running fleet.
+
+Inert inspection of build **3662168**, archive SHA-256
+`37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`, confirms
+`fleetSvc.SetFleetMaxSize` reads `GetFleetMaxSize()` before sending `SetFleetMaxSize(qty)`. The native
+squad menu passes the squad ID or None to `SetAutoJoinSquadID` and consumes `autoJoinSquadID` from both
+options values in `OnFleetOptionsChanged`. EVE.js **261108.1** uses the fleet cap at invitation acceptance
+and the default squad for open applications in `server/src/services/fleets/fleetRuntime.js` (SHA-256
+`494727d0f0793202bd9195c417fffc63cce499ea157890fc12981919be521b8f`).
+[Fleet window controls](https://wiki.eveuniversity.org/Fleet_User_Interface#Fleet_Window) ·
+[CCP 22.02 fleet changes](https://www.eveonline.com/news/view/patch-notes-version-22-02)
+
+**Automated validation.** `NativeFleetSizeLimitsNewApplicationsAndRechecksPendingInvitations` and
+`NativeDefaultSquadFollowsOpenFinderApplicationsAndClearsWhenDeleted` passed in 1.04 seconds of combined
+case time. They exercise the native size controls, pending invitations, option notifications and squad placement.
+
+The November 25, 2026 milestone also covers personal buy order minimum volume, corporation medals and ship-scanner
+falloff. All 10 exact cases passed in 9.74 seconds. The solution built with zero warnings and errors. All 282
+focused cases passed in 85.43 seconds, and the catalog and formatting policy suites passed all 17 cases.
+Style, CSharpier and line-width checks passed. The formatter excluded the local `.artifacts` archive.
+
+```text
+FullyQualifiedName~CooperativeFleetTests|FullyQualifiedName~FleetRulesTests|FullyQualifiedName~InformationRuleTests|FullyQualifiedName~InformationTests|FullyQualifiedName~PersonalMarketTests|FullyQualifiedName~PersonalMarketRulesTests|FullyQualifiedName~StandardMarketTests|FullyQualifiedName~MarketReadCompatibilityTests|FullyQualifiedName~CharacterSheetServiceTests|FullyQualifiedName~CorporationMedalTests|FullyQualifiedName~CorporationWalletTests|FullyQualifiedName~PlayerCorporationTests|FullyQualifiedName~WorldMigrationTests|FullyQualifiedName~DetachedCheckpointTests
+```
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+## Native fleet regroup
+
+Fleet, wing and squad commanders can use **Regroup** to have eligible subordinates on grid approach their
+ship at full speed. The command follows the existing fleet hierarchy and observer grid. Recipients can use
+**Accept Fleet Regroups** independently of fleet warp and conduit jumps. The preference belongs to the active
+fleet membership and defaults to accepting regroups.
+
+The transient fleet owner queues movement for each eligible pilot and rechecks both memberships, ships,
+command scope, opt-out, range and transit state before delivery. Orders expire after the existing ten-second
+movement window. Newer personal flight commands invalidate pending orders. Delivery uses Eden's existing
+zero-range approach and normal flight restrictions, including whether the commander is a visible follow target.
+
+Inert disassembly of build **3662168**, archive SHA-256
+`37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`, confirms
+`fleetSvc.Regroup` sends `beyonce.CmdFleetRegroup()` and `SetAcceptRegroupValue` sends the bound
+`SetAcceptsRegroupValue(value)` call. `evefleet.members.GetNewMemberOptOutsKeyval` defaults
+`acceptsFleetRegroups` to True. EVE.js **261108.1** exposes the same preference in
+`server/src/services/fleets/fleetObjectHandlerService.js` (SHA-256
+`87115f9522803bd4d6803329a8e17b6f92fa5df9f5ea044a901bbdf92a13cbc1`).
+[Fleet interface](https://wiki.eveuniversity.org/Fleet_User_Interface#Fleet_Window) ·
+[CCP 22.02 fleet changes](https://www.eveonline.com/news/view/patch-notes-version-22-02)
+
+**Automated validation.** Both exact cases passed. `NativeFleetRegroupUsesFlightFollowAndHonorsMemberOptOut`
+verified native dispatch, the preference update, and the Destiny follow and full-speed commands in a resident world.
+`RegroupOrdersRespectSquadRangeAndCurrentMovementAuthority` verified squad scope, grid range, expiry,
+manual override and loss of command authority after the issuing pilot changes ships.
+
+The November 25, 2026 milestone also includes corporation kill reports, mailing-list organization access
+and cargo-scan immunity. All six exact cases passed in 11.43 seconds. The solution built with zero warnings
+and errors. All 196 focused tests passed in 87.10 seconds, and the catalog and formatting policy suites
+passed all 17 cases. CSharpier and the line-width check passed with the ignored `.artifacts` directory
+excluded from the formatter's scan.
+
+```text
+FullyQualifiedName~FleetRulesTests|FullyQualifiedName~CooperativeFleetTests|FullyQualifiedName~FlightSessionTests|FullyQualifiedName~InformationTests|FullyQualifiedName~MailingList|FullyQualifiedName~UniversalSearch|FullyQualifiedName~CharacterInteractionHistoryTests|FullyQualifiedName~CorporationCombatReportTests|FullyQualifiedName~CorporationWarReport|FullyQualifiedName~AllianceIntegrationTests|FullyQualifiedName=Eden.Protocol.Tests.Administration.AdministrationTests.KillboardFiltersCommittedKillsAndLossesAndPagesAcrossRestart
+```
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
 ## Fleet finder advert creation, November 15, 2026
 
 The maintainer's Create Advert screenshot showed **Use a bound fleet reference.** after Submit.

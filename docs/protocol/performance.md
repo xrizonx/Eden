@@ -6,6 +6,197 @@ Diagnostics, replay benchmarks, resident caches, combat objects and checkpoints.
 
 These records preserve milestone evidence and historical observations. Dates, schema versions, test results and live acceptance apply to the recorded change; they do not establish acceptance of later changes.
 
+## Runtime admission and checkpoint recovery
+
+A failed system initialization leaves the system available for another admission attempt. The registry publishes one
+complete runtime per system and preserves lock-free access to already admitted systems. Checkpoint capture sees only
+successfully admitted systems. After a failed shutdown save, the save timer resumes at the interval configured at world
+startup and retains pending changes for retry.
+
+The REA audit at `d61177af` identified the cached initialization exception and the 15-second recovery interval in the
+local World assembly. Regression fixtures inject a one-time initialization or save failure and then exercise the
+normal admission and checkpoint paths.
+
+### Automated validation
+
+The exact `RuntimeAdmissionRetriesAfterAFactoryFailureAndPublishesOneEntry` and
+`FailedShutdownResumesCheckpointsAtTheConfiguredInterval` tests passed in 9.56 seconds. An adjacent
+checkpoint-copy concurrency test timed out at the second shot on both the unchanged `d61177af` build and the fix
+candidate. The structure lookup takes the same persistence owner that the fixture holds during checkpoint copy.
+The integrated filter excludes that pre-existing timeout. It passed 196 cases in 143.83 seconds across resident
+runtime and checkpoint tests, corporation wars, affected combat, capsuleer replacement, and markets. The solution
+build completed with zero warnings or errors. The full .NET suite was outside this validation scope.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+## Memory reclamation after runtime churn
+
+Best-ask summaries now retain at most 131,072 order rows across regional, system and station views. At capacity the
+cache evicts the least recently used views and their weakly keyed encoded replies. The service still returns a complete
+reply when a single view exceeds the budget. A regional view releases its previous rows as soon as its dirty type count
+passes the existing eight-type incremental refresh limit. The regional best-ask contract was checked against EVE.js's
+`marketProxyService.js` and the regional market description. [EVE University trading](https://wiki.eveuniversity.org/Trading)
+
+A matched probe generated and encoded the same 298,794 rows across 163 views, using the order counts from the frozen
+HostCram checkpoint. After a full collection the cache retained 130,539 rows and used 70.6 MiB of managed memory,
+down from 140.8 MiB. The response bytes generated across the workload matched. The probe exercises cache retention with
+saved-world view sizes and synthetic order values.
+
+Asteroid and celestial snapshots allocate their feature-specific metadata only when populated. In three matched probes
+on 879,221 asteroid bodies across 1,024 systems, retained managed memory fell from 255.15 to 127.72 MiB and geometry
+digests matched. Build allocations fell from 475.19 to 284.62 MiB. A synthetic mix of one- and two-feature bodies allocated
+112 more bytes per body with the new layout.
+
+Checkpoint overlays reclaim sparse backing storage after pending changes drain. Empty oversized overlays release their
+capacity after the committing action, and nonempty ones compact at capture or after SQL acknowledgement. Matched probes
+on 953,823 dirty-then-reverted market keys freed 58.5 MiB in the empty case and 57.8 MiB with 8,192 updates and 8,192
+deletions still pending. The larger sparse-case capture took 7.47 ms with compaction, up from 6.49 ms.
+
+Flight observers release old gate-event identifiers and remove cloak markers for hulls that are no longer published in
+the system. The tests cover retired hulls, off-grid uncloaking and the exact gate deadlines.
+[Peer gate and cloak history](navigation.md#peer-gate-and-cloak-history)
+
+### Automated validation
+
+The exact market order budget and regional invalidation cases passed in 6.01 seconds. The geometry selection passed
+70 cases in 20 seconds, the checkpoint selection passed seven cases in 21.86 seconds, and 79 flight cases passed in
+54.03 seconds. The market wire digests matched across all 163 probes. The geometry digest matched on every run.
+
+The combined selection passed 96 cases in 27.97 seconds. The installed-catalog Rhea acquisition case was skipped
+because its opt-in fixture path was unset. The solution build, all 17 Python policy cases and the 38.89-second
+clean-worktree formatting check passed.
+
+```text
+FullyQualifiedName~MarketSummaryPerformanceTests|FullyQualifiedName~StandardMarket|FullyQualifiedName~TrafficGeometryTests|FullyQualifiedName~StaticCollisionGeometryTests|FullyQualifiedName~StaticCollisionAllocationTests|FullyQualifiedName~GateActivityProtocolTests|FullyQualifiedName~DetachedCheckpointTests|FullyQualifiedName~IncrementalCheckpointTests|FullyQualifiedName~ResidentQueryIndexTests
+```
+
+The `ServerPerformanceReplayTests.ReplaySustainedBotThroughput` Release comparison used the same incident save and
+3.85 GiB managed heap cap. Each 75-second workload kept 5,770 bots scheduled and wrote six disk-backed checkpoints,
+with zero simulation failures, gameplay SQL commands or connections. Peak process working set fell from 4.15 to
+4.02 GiB and peak managed committed memory fell from 3.43 to 3.32 GiB. Full collections around 61 seconds left
+2.50 GiB on the baseline and 2.38 GiB on the candidate. The final-half medians were 2.10 and 2.57 GiB because the
+sampler carries the last full collection forward and those collections occurred at different times. The candidate
+completed 71,469 actions and the baseline completed 73,058. Each build ran once on Windows with other validation
+active. The control and candidate commands took 188.53 and 141.23 seconds including setup and final checkpoint.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+None.
+
+## Compact resident rows and map history
+
+Resident NPCs, missiles and market executions now use integer primary keys and compact secondary-index memberships.
+Detached checkpoint captures store changed rows inline in a sized array. Three matched table probes on the compacted
+incident save retained 46.5 MiB less managed memory across 102,069 NPCs, 670 missiles and 36,579 market executions.
+Capturing the same 138,648 changed rows allocated 4.23 MiB, down from 8.91 MiB.
+
+Map history now appends exact timestamps, systems and activity kinds to arrays. Captures retain fixed-length prefixes so
+the live world can keep appending while the checkpoint serializes. Projection reuses one 64 KiB buffer and preserves the
+existing checkpoint format. On the last good incident save, the focused probe held all 521,053 events and reported
+17.0 MiB of retained managed memory, down from 34.3 MiB. Loading that map history allocated 31.8 MiB, down from
+557.6 MiB. A separate 1,100,000-event probe retained 17.2 MiB, down from 58.8 MiB, with identical event counts after saving.
+
+Prepared catalog records share 64 KiB payload pages. Planetary records use a lower compression threshold, and runtime
+type lookups share the pinned typed table without retaining another copy of its encoded records. Across three catalog
+probes, median retained managed memory after preparation fell from 559.2 to 528.2 MiB. The same 14,128 catalog reads
+produced identical digests and issued zero gameplay SQL commands or connections. Median Windows working set in the
+isolated catalog probe rose from 1,098 to 1,158 MiB. Catalog preparation times varied from 8.4 to 14.0 seconds on the
+baseline and 8.6 to 20.6 seconds on the candidate while other builds were active.
+
+Ship movement replay keeps cursors with the live movement history and discards departed hulls from the shared journal.
+Observers reconcile trimmed history and hull reappearances. [Peer movement history](navigation.md#peer-movement-history)
+
+### Automated validation
+
+The exact map activity snapshot and legacy checkpoint restore cases passed in 10.67 seconds. The catalog provider,
+fitting reads and planetary selection passed 36 of 37 tests in 49 seconds. The fitting scope SQL-count failure reproduced
+on unchanged `3059cadf` with `CatalogFittingReadTests.HostOperationSharesFittingInputsAndOneConnectionAcrossAwaitAndNestedScopes`.
+
+The combined affected selection passed all 139 cases in 127.53 seconds. The solution build, 17 Python policy tests and
+73.54-second clean-worktree formatting check passed.
+
+```text
+FullyQualifiedName~MapNavigationTests|FullyQualifiedName~CatalogProviderTests|FullyQualifiedName~IncrementalCheckpointTests|FullyQualifiedName~DetachedCheckpointTests|FullyQualifiedName~MarketHistoryTests|FullyQualifiedName~GateActivityProtocolTests|FullyQualifiedName~ShipCollisionTests|FullyQualifiedName~NpcMissileTests|FullyQualifiedName~PilotMissileTests
+```
+
+The Release `ServerPerformanceReplayTests.ReplaySustainedBotThroughput` comparison used the same incident save,
+1,001 communities, one automated observer, a 3.85 GiB managed heap cap and six disk-backed checkpoints per run. Each
+75-second run maintained 5,770 scheduled bots and recorded zero simulation failures, gameplay SQL commands or connections.
+Peak process working set fell from 4.41 to 4.22 GiB. Median managed allocation during checkpoint projection fell from
+49.54 to 35.65 MiB per save. The workload completed 57,373 actions on the baseline and 81,035 on the candidate.
+Post-collection heap samples in the final half had a higher median on the candidate (2.48 vs. 2.29 GiB). Collection timing
+varied. Each build ran once on Windows with concurrent build activity. The control and
+candidate test commands took 175.10 and 218.93 seconds, including setup and final checkpoint.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+None.
+
+## Resident retention and checkpoint stall on HostCram
+
+On November 24, 2026, HostCram ran `23a4bca1` with a 7 GiB container limit and a 55% managed heap limit.
+The last successful checkpoint finished at 04:46:37 Eastern. The capsuleer scheduler began reporting a missing resident
+`OwnedItem` at 04:50:53, followed by repeated checkpoint foreign-key failures and managed out-of-memory exceptions at 06:21:16.
+The saved image passed `foreign_key_check`. The failed projection rolled back before it reached that image.
+
+At 11:35 Eastern the container used 5.20 GiB of its 7 GiB limit and recorded zero cgroup OOM kills. A subsequent
+managed stack capture showed the scheduler waiting for a system owner and 311 map-population timer callbacks waiting for
+the world owner. Checkpoint and other maintenance workers were also waiting for that owner.
+
+World and system acquisition prepare leases before taking ownership or release ownership if post-acquisition work fails.
+The map population sampler allows one pending callback when the owner is busy. Idle systems can apply scoped resident invalidations
+immediately. Checkpoint capture drains remaining invalidations, including those of runtimes that have never simulated a frame.
+The combat runtime forgets retired NPC profiles and ignores invalidations for uncached NPCs. Deleted ship owner mappings,
+unused capsuleer revision maps and departed heat-condition views are released. Failed detached projections report sample
+foreign-key violations from the transaction before rollback.
+
+Schema 222 reclaims unreferenced retired convoy and mining hauler rows before resident hydration. The same eligibility rules
+apply during resident population refreshes, with bounded removals per system. Recent traffic and referenced NPCs remain
+available through the existing wreck lifetime and combat records. In a private copy of the 04:46 checkpoint, reclamation
+removed 297,265 rows and kept all 64,211 active NPCs. SQLite's `quick_check` and `foreign_key_check` passed. The compacted
+checkpoint was 426.1 MiB, down from 554.7 MiB. The delete and compaction took 10.37 and 5.19 seconds locally.
+
+### Automated validation
+
+The affected selection passed 267 of 268 tests in 166.08 seconds. It covered map sampling, ownership and system isolation,
+detached saves, retired traffic, NPC combat and population, heat, handoff and migration. The failing resident pirate reward
+assertion reproduced on unchanged `23a4bca1` in a six-case control that finished in 24.72 seconds including build.
+The exact `OwnershipTimingTests.FailedWaitMeasurementReleasesSqlOwnership` regression passed in 6.62 seconds. It injects
+an allocation failure after taking the database owner and checks that another acquisition succeeds.
+The final ownership and detached checkpoint selection passed all 14 cases. The solution build, 17 Python policy checks and
+the 36.60-second format check in a clean worktree passed.
+
+```text
+FullyQualifiedName~MapNavigationTests|FullyQualifiedName~OwnershipTimingTests|FullyQualifiedName~SystemRuntimeIsolationTests|FullyQualifiedName~DetachedCheckpointTests|FullyQualifiedName~RetiredNpcTrafficTests|FullyQualifiedName~NpcCombatTests|FullyQualifiedName~NpcPopulationTests|FullyQualifiedName~NpcEwarTests|FullyQualifiedName~ResidentHandoffTests|FullyQualifiedName~CapsuleerTierTests|FullyQualifiedName~ElectronicSupportResidentCheckpointTests|FullyQualifiedName~NpcConvoyTests|FullyQualifiedName~NpcMiningTests|FullyQualifiedName~WorldMigrationTests
+```
+
+The `ServerPerformanceReplayTests.ReplaySustainedBotThroughput` Release comparison used the same copied 04:46 save,
+1,001 communities, one automated observer and a 3.85 GiB managed heap cap. Both five-minute runs maintained 5,770
+scheduled bots and completed more than 277,000 actions, with zero simulation failures, gameplay SQL commands or
+connections. Both runs wrote two checkpoints. Peak process working set fell from 5.44 to 4.73 GiB, and median
+live heap after full collections in the final half fell from 2.96 to 2.65 GiB. The candidate command took 374.53 seconds.
+The replay used in-memory checkpoint capture on Windows. HostCram uses disk-backed capture. The replay did not reproduce
+the production foreign-key failure on either build. The final SQL wait allocation guard was verified separately by the
+injected failure test above.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+None.
+
 ## Sustained map activity checkpoints
 
 On November 23, 2026, HostCram was running `b0a708a0` with a 7 GiB container limit and a 55% .NET heap limit.

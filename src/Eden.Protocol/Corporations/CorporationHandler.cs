@@ -61,6 +61,10 @@ internal sealed partial class CorporationHandler(
         {
             context.ReleaseReference("allianceRegistry");
         }
+        if ((context.Pilot.Identity.AllianceId ?? context.Pilot.CorpId) != (identity.AllianceId ?? identity.Id))
+        {
+            context.ReleaseReference("warRegistry");
+        }
         context.Flight.UpdateCorporation(identity);
         context.Roster = context.Roster.Select(p => p.PilotId == context.Pilot.PilotId ? context.Pilot : p).ToArray();
     }
@@ -96,14 +100,7 @@ internal sealed partial class CorporationHandler(
         if (
             service != "corpRegistry"
             || method
-                is not (
-                    "AddCorporation"
-                    or "GetSuggestedTickerNames"
-                    or "GetEveOwners"
-                    or "GetMember"
-                    or "DoesMyCorpAcceptStructures"
-                    or "DoesCorpRestrictCorpMails"
-                )
+                is not ("AddCorporation" or "GetSuggestedTickerNames" or "GetEveOwners" or "GetMember" or "DoesMyCorpAcceptStructures")
         )
         {
             return PilotCallResult.Unsupported;
@@ -157,7 +154,7 @@ internal sealed partial class CorporationHandler(
                         corporations.Members(context.Pilot.PilotId).SingleOrDefault(m => m.PilotId == pilot)
                         ?? throw new InvalidDataException("That pilot is not a member of your corporation.");
                     return new PlayerCorporationMemberReply(member);
-                case ("DoesMyCorpAcceptStructures" or "DoesCorpRestrictCorpMails", []):
+                case ("DoesMyCorpAcceptStructures", []):
                     return false;
                 default:
                     throw new InvalidDataException("Invalid corporation request.");
@@ -221,7 +218,7 @@ internal sealed record PlayerCorporationMemberReply(CorporationMember Member) : 
     }
 }
 
-internal sealed record PlayerCorporationReply(PlayerCorporation Corporation) : BlueModel
+internal sealed record PlayerCorporationReply(PlayerCorporation Corporation, bool AllowWar = false) : BlueModel
 {
     internal static BlueConstructor Descriptor() =>
         BlueRows.Descriptor([
@@ -302,7 +299,7 @@ internal sealed record PlayerCorporationReply(PlayerCorporation Corporation) : B
                     logo.Color2,
                     logo.Color3,
                     logo.Typeface,
-                    false,
+                    AllowWar,
                     divisions["division1"],
                     divisions["division2"],
                     divisions["division3"],

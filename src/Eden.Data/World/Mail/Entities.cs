@@ -49,6 +49,11 @@ public sealed class SavedInboxNotification
                     ? JsonSerializer.Deserialize<StructureDeliveryContent>(Message)
                     : null,
             ExpertSystemTypeId = Type == InboxNotificationType.ExpertSystemExpired ? JsonSerializer.Deserialize<int>(Message) : null,
+            CorporationWar = InboxRules.IsWar(Type) ? JsonSerializer.Deserialize<CorporationWarNotificationContent>(Message) : null,
+            MedalAward =
+                Type == InboxNotificationType.CorporationMedalAwarded
+                    ? JsonSerializer.Deserialize<MedalAwardNotificationContent>(Message)
+                    : null,
         };
 }
 

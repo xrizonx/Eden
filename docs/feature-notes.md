@@ -5,7 +5,7 @@
 ## Gameplay overview
 
 - **Flight and combat.** Fit a ship, join a fleet, take agent missions, and fight NPCs or other pilots.
-  [Fitting and modules](#fitting-weapons-and-modules) · [Supported missions](missions.md)
+  [Fitting and modules](#fitting-weapons-and-modules) · [Supported missions](missions.md) · [Sansha Incursions](protocol/incursions.md)
 - **Exploration.** Scan and hack data and relic sites, explore wormholes with mass and lifetime limits, and run Abyssal pockets.
   [Scanning and hacking](protocol/information.md) · [Wormholes](protocol/wormholes.md) · [Abyssal Deadspace](protocol/abyssal.md)
 - **Industry and trade.** Mine resources, operate planetary colonies and moon refineries, run blueprint and production jobs,
@@ -17,11 +17,14 @@
   contest shared complexes. [Faction Warfare](protocol/faction-warfare.md#dynamic-faction-warfare-patrols)
 - **Simulated capsuleers.** Encounter pilots that mine, haul, fight, explore and salvage. On established worlds, eligible
   bots buy and fit separate PvP ships. The server funds bot refits by default. Corporate pilots can take paid production work,
-  replace lost ships and fund first sovereignty claims. Recent PvP losses raise local replacement targets and can
+  replace lost ships and fund first sovereignty claims. Stranded pilots can travel to a stocked trade hub for a replacement
+  fit. Recent PvP losses raise local replacement targets and can
   delay offensive launches. Bot work continues with nobody logged in by default. With background
   preparation enabled, eligible high-security systems gain bots ahead of player visits. The default departure policy favors
   PvP roams for eligible independent pilots heading into nullsec. Hunters use regional reports and directional
   scanning. Loaded freight can turn back after a fresh warning about the next gate.
+  [Trade hub refits](protocol/capsuleers.md#trade-hub-replacement-trips) ·
+  [Replacement after pod loss](protocol/capsuleers.md#replacement-after-pod-loss-and-market-affordability) ·
   [Nullsec scouting](protocol/capsuleers.md#nullsec-scouting-and-freight-warnings) · [Activity-funded PvP](protocol/capsuleers.md#activity-funded-pvp-ships) ·
   [Independent nullsec expeditions](capsuleer-population.md#independent-nullsec-expeditions) ·
   [Capsuleer encounters](capsuleer-population.md) · [Population settings](world-configuration.md#autonomous-population) ·
@@ -105,7 +108,7 @@ The admin site's **Progression → Skill training speed** sets the server rate f
 
 The Character Sheet's **Attributes** tab now has saved neural attributes and remapping: 99 base points, 17–27 per attribute, one timed remap every 365 days, and two initial bonus remaps. Remapping preserves earned SP and recalculates the remaining training queue. The **Biography** tab supports Unicode text and formatting, saves through the client's autosave call, and retains each pilot's biography across restarts. These additions have automated coverage; native presentation and editing remain unverified. Implants, boosters and clone management remain separate work. See [attributes and biography](protocol/characters.md#character-sheet-attributes-and-biography-november-4-2026).
 
-Pilot **Show Info** has public-profile and corporation replies for another saved pilot, including a pilot on another account who is offline. The response includes saved identity, birth date and Unicode biography. The header includes the explicit no-militia field required before tab construction; medal and rank reads reflect the current empty state, and employment history shows the saved starter corporation. Automated coverage checks native reply shapes, startup requests and saved-data reads; native presentation remains unverified. See [pilot Show Info startup](protocol/characters.md#pilot-show-info-header-and-tab-startup-follow-up-november-4-2026).
+Pilot **Show Info** has public-profile and corporation replies for another saved pilot, including a pilot on another account who is offline. The response includes saved identity, birth date and Unicode biography. The header supplies the militia field required before tab construction. Decorations includes medals the pilot chose to publish. Automated coverage checks native reply shapes, startup requests and saved-data reads. See [pilot Show Info startup](protocol/characters.md#pilot-show-info-header-and-tab-startup-follow-up-november-4-2026) and [corporation medals](protocol/corporations.md#corporation-medals).
 
 The **Notes** tab reads and saves private notes about local pilots and catalog NPCs. Notes preserve Unicode and formatting up to the native 5,000-character limit, remain separate for each viewing character, and survive server restarts. Clearing a note removes only that character's saved entry. The server upgrades existing saves to schema 64 on startup. Automated coverage checks privacy, persistence and the native calls; editor presentation and close/autosave timing remain unverified. See [private pilot notes](protocol/characters.md#private-pilot-show-info-notes-november-4-2026).
 
@@ -115,13 +118,20 @@ The **Notes** tab reads and saves private notes about local pilots and catalog N
 
 Native chat now supports multi-pilot Local, corporation and alliance chat, and private conversations over TLS. Local membership follows the selected pilot’s system and cleans up on disconnect/logoff; delayed Local hides silent peers. Chat completes the native availability handshake before joining channels. Initial joins include complete native rosters, and a bounded startup wait preserves the first message racing its system-channel join. The companion launcher provisions certificate trust only in prepared client copies. Server-side archives and persistent custom channel settings remain deferred. See the [chat notes](protocol/social.md#native-chat-and-multi-pilot-local-november-5-2026).
 
-Mailing lists now support native creation/joining, membership and role management, access rules, welcome messages and subscriber broadcasts. Delivery snapshots keep subscriber identities private, preserve each mailbox's state and retain list names in historical mail. Native presentation remains unverified. Corporation/alliance mail is implemented; mailing-list alliance access rules and paid CSPA remain pending. See the [mailing-list notes](protocol/social.md#persistent-mailing-lists).
+Mailing lists support native creation, joining, membership and role management, welcome messages and subscriber broadcasts.
+Managers can set access rules for characters, corporations and alliances. Delivery snapshots preserve each mailbox's state
+and keep subscriber identities private. Paid CSPA remains pending.
+[Mailing-list notes](protocol/social.md#persistent-mailing-lists) ·
+[Organization access](protocol/social.md#mailing-list-organization-access)
 
 Mail-arrival events now match the stock client's eight-argument callback. An extra label-mask argument previously caused the recipient callback to be rejected before its native unread/popup handling. See the [arrival-event correction](protocol/social.md#mail-arrival-notification-arity); live popup/blink confirmation remains pending.
 
 New personal mail now accepts the stock compose window's `False` defaults for unused reply/forward IDs. This fixes the reported **Expected a mail identifier or None** rejection when sending to another pilot. See the [compose-default correction](protocol/social.md#mail-compose-optional-source-defaults); live confirmation of the fix remains pending.
 
 Personal EVE Mail now supports local-pilot sending, inbox/sent state, replies/forwards, compressed bodies, read/unread actions, trash/restoration/deletion and private labels. Mail and change notifications persist across restarts, with recipient ownership, blocking and rate limits enforced atomically. Native presentation remains unverified. Corporation/alliance broadcasts now snapshot their member recipients; paid CSPA remains pending. Mailing lists are implemented above. See the [personal mail notes](protocol/social.md#persistent-personal-eve-mail).
+
+Corporation directors can restrict corporation-wide mail to Communications Officers and directors.
+[Corporation mail restrictions](protocol/corporations.md#corporation-mail-restrictions)
 
 The notification inbox now saves contact-add and contact-edit notifications, including the contact form's **Send Notification** message. Recipients can fetch history/unread groups, mark items read and delete selected items, groups or all history. Connected pilots receive native notifications; offline recipients retain them across restarts. Blocked messages fail together with the contact edit. Other gameplay notification families and paid CSPA communication remain pending; native inbox presentation is unverified. See the [notification inbox notes](protocol/social.md#persistent-notification-inbox-and-contact-messages).
 
@@ -134,13 +144,25 @@ Station Guests lists all connected pilots docked at that station, with live arri
 ## Cooperative fleets
 
 Pilots can create fleets, invite online pilots, manage command roles, broadcast, chat, and warp members to supported system
-objects, bookmarks and same-system pilots. Members can opt out of fleet warp. Fleets support eligible mission reward and bounty
-sharing, on-grid loot access, watchlist damage and Command Bursts.
+objects, bookmarks and same-system pilots. Commanders can regroup their eligible subordinates on grid. Members can opt out of
+fleet warp and regroup independently. Fleets support eligible mission reward and bounty sharing, on-grid loot access, watchlist
+damage and Command Bursts. [Fleet regroup](protocol/fleets.md#native-fleet-regroup) ·
 [Cooperative fleet records](protocol/fleets.md)
 
-Fleet Finder supports corporation and public adverts, with standings filters and open or approval-based applications.
-Alliance and militia adverts, reconnect grace, saved setups and geometric formations remain open. Fleets and their adverts
-last for the running server session. [Fleet Finder](protocol/fleets.md#fleet-finder-advert-creation-november-15-2026)
+Fleet Composition shows hulls, docking status and leadership skills for pilots in the viewer's command scope.
+Fleet members can see the fleet's system locations through the map's **My Fleet** filter.
+[Fleet composition](protocol/fleets.md#fleet-composition-and-map-locations)
+
+Commanders can move a selection of permitted fleet members into a squad with one drag-and-drop action.
+[Fleet group moves](protocol/fleets.md#fleet-group-moves)
+
+Fleet Finder supports corporation, alliance, militia and public adverts, with standings filters and open or approval-based
+applications. Fleet bosses can cap the roster and choose a default squad for open applications. Fleets and their adverts
+last for the running server session. Reconnect grace, saved setups and geometric formations remain open.
+[Fleet recruitment controls](protocol/fleets.md#fleet-recruitment-limits-and-default-squads) ·
+[Fleet Finder](protocol/fleets.md#fleet-finder-advert-creation-november-15-2026) ·
+[Alliance adverts](protocol/alliances.md#shared-tools-and-affiliation-consumers--november-16-2026) ·
+[Militia fleet adverts](protocol/faction-warfare.md#organization-enlistment-and-militia-communications--november-20-2026)
 
 ## Player corporations
 
@@ -148,6 +170,24 @@ Player corporations support persistent membership, delegated roles and titles, w
 recruitment, shares, dividends, voting and CEO succession. Alliance members can make qualifying EverMark donations to the
 executor, and the executor can transfer EverMarks to member corporations.
 [Corporation features](corporations.md) · [Alliance EverMark eligibility](protocol/alliances.md#alliance-membership-age-and-evermark-donations)
+
+Player corporations and alliances can declare wars from the native Corporation window. Standard wars require structure
+ownership on both sides, an eligible high-security War HQ, and 500 million ISK per week. Mutual wars use invitations and
+have no fee or HQ requirement. Combat becomes legal after 24 hours and remains legal through the 24-hour cooldown.
+Defenders can hire eligible allies, either principal can negotiate surrender, and War Reports show attributed losses and
+killmails. [Corporation and alliance wars](protocol/corporations.md#corporation-and-alliance-wars) ·
+[Allies, surrender and War Reports](protocol/corporations.md#defender-allies-surrender-and-war-reports) ·
+[War report side filters](protocol/corporations.md#war-report-side-filters-and-former-ally-updates)
+
+The Corporation window's **Kill Reports** tab lists capsuleer kills credited to the corporation and losses suffered by
+its members at the time of combat. Reports retain their attribution and kill IDs across restarts.
+[Corporation Kill Reports](protocol/corporations.md#corporation-kill-reports)
+
+Corporation managers can create and award custom medals from the selected corporation wallet division. Recipients can
+publish, hide or discard awards from their Character Sheet. Medal designs, awards and visibility survive restarts.
+Award notices reach the recipient's inbox even when the pilot is offline.
+[Corporation medals](protocol/corporations.md#corporation-medals) ·
+[Medal award notifications](protocol/corporations.md#medal-award-notifications)
 
 ## Travel and navigation
 
@@ -247,6 +287,10 @@ The personal contract wizard now supports the global inventory binding used by P
 
 Bulk ship contracts now create one personal item-exchange offer per assembled ship, up to the pinned client's **30-ship** limit and the pilot's available skill slots. Each offer keeps its own price, fees, fitted contents and later settlement. The complete batch commits together; a rejected ship, insufficient funds or a failed write leaves all ships and funds unchanged. Native requests and progress notifications have automated coverage; client presentation remains unverified. See the [bulk ship contract notes](protocol/contracts.md#bulk-fitted-ship-contract-creation).
 
+Issuers can cancel or reclaim multiple eligible personal contracts from **My Contracts**. The batch returns eligible
+goods and rewards from escrow and reports each contract it could not cancel.
+[Bulk contract cancellation](protocol/contracts.md#bulk-personal-contract-cancellation)
+
 Personal auctions now support public offers and private assignments, held bids, automatic outbid refunds, repeated late-bid extensions and buyouts. Ordinary auction winners collect their goods after expiry; issuers collect proceeds separately. Buyouts deliver goods immediately. Bid history, claims, wallet entries and fitted hull contents survive restarts. Native calls have automated coverage; client presentation remains unverified. See the [auction notes](protocol/contracts.md#personal-auction-contracts).
 
 Personal courier contracts now support public offers and private assignments between NPC stations. Acceptance creates a sealed package with its actual cargo volume and holds collateral; delivery settles the reward, collateral and public deposit together. Packages survive restarts and can survive ship destruction and wreck recovery. Failure pays the issuer, while breaking an intact package releases its goods to the hauler. Search, progress lists, wallet history and native calls have automated coverage; client presentation remains unverified. See the [courier notes](protocol/contracts.md#personal-courier-contracts).
@@ -272,16 +316,26 @@ materials or blueprints follow their own eligibility rules.
 
 Originals support ME/TE research and copying at laboratory stations. Copies inherit research and retain limited manufacturing runs; invention consumes copy runs, datacores and optional generic decryptors. Ancient relic stacks now support their catalog Tech III invention choices and consume one relic per attempt. Outcomes are saved at installation, and delivery/cancellation cannot reroll them. Separate manufacturing/laboratory slots, fees, ownership checks, installation reservations, restart persistence and exactly-once delivery remain authoritative. Missing price references reject priced jobs rather than silently waiving component costs. See [catalog-wide production](protocol/industry.md#catalog-wide-station-production-november-9-2026), its reproducible [recipe audit](production-catalog.json), and the earlier [science implementation](protocol/industry.md#science-jobs-november-8-2026).
 
-Eden's default testing market sells all **19,727 published market types** in the pinned client catalog for **1 ISK per unit**. Each station with a market service is populated when a docked pilot accesses it, with **1,000,000 units per type** and replenishing supply. Existing and new pilots receive **1,000,000 ISK once**, recorded as a GM Cash Transfer in their wallet journal; restarting never repeats the grant. Ships, modules, ammunition, skillbooks, blueprint originals and other published market items can be purchased into Item Hangar. Purchasing an item does not implement its missing gameplay: the assembly, fitting, activation and industry limits described below still apply. NPC buyback orders for Veldspar, Scordite, Tritanium and Pyerite retain their finite demand, original prices and sales tax. The native Regional Market browser displays stock and history from actual regional trades. Personal immediate trades require docking at the selling station. Personal station-local buy/sell listings now reserve goods and fully funded ISK escrow, match partial fills across orders, charge broker/relist fees and sales tax, and support modification, cancellation and expiry while the owner is offline. Orders, payments, delivery and notifications survive save/reopen. Corporation trading, remote/ranged orders and minimum volumes above one remain separate work. New worlds can explicitly disable testing supply and grants; see [personal market orders](protocol/industry.md#persistent-personal-market-orders-november-6-2026).
+Eden's default testing market sells all **19,727 published market types** in the pinned client catalog for **1 ISK per unit**. Each station with a market service is populated when a docked pilot accesses it, with **1,000,000 units per type** and replenishing supply. Existing and new pilots receive **1,000,000 ISK once**, recorded as a GM Cash Transfer in their wallet journal; restarting never repeats the grant. Ships, modules, ammunition, skillbooks, blueprint originals and other published market items can be purchased into Item Hangar. Purchasing an item does not implement its missing gameplay: the assembly, fitting, activation and industry limits described below still apply. NPC buyback orders for Veldspar, Scordite, Tritanium and Pyerite retain their finite demand, original prices and sales tax. The native Regional Market browser displays stock and history from actual regional trades. Personal immediate trades require docking at the selling station. Personal station-local buy/sell listings now reserve goods and fully funded ISK escrow, match partial fills across orders, charge broker/relist fees and sales tax, and support modification, cancellation and expiry while the owner is offline. Orders, payments, delivery and notifications survive save/reopen. Personal station-buy listings can set a minimum quantity. A seller can fill the entire remainder once the order drops below the original minimum. [Buy order minimum volume](protocol/industry.md#personal-buy-order-minimum-volume). New worlds can explicitly disable testing supply and grants; see [personal market orders](protocol/industry.md#persistent-personal-market-orders-november-6-2026).
 
 Economy worlds supply catalog-offered original blueprints and skillbooks at their NPC corporation's stations, using the pinned base price. Institutional stock defaults to 1,000 replenishing units per order and is saved independently of development stock; change it in the [first-start configuration draft](world-configuration.md#first-start). Finished ships, modules, ammunition and minerals are not institutionally supplied. The first supported production fits are a three-gun Merlin, a two-laser Venture and a Badger with expanded cargo. Their recipes, suppliers and all seven mineral sources are recorded in the [starter production audit](starter-production.json); see [milestone evidence](protocol/industry.md#tech-i-starter-production-chain-november-6-2026).
 
 Catalog-backed belts now renew at a saved daily UTC boundary (11:00 by default), including when no pilot visits the system. Startup catches up overdue belts once; reconnecting does not reset depletion. New economy worlds save configurable material price inputs and industry indices, charge atomic industry/reprocessing fees, and value the manufactured starter hulls for insurance from their material recipes. See [resource renewal and economic charges](protocol/industry.md#renewable-belts-and-economic-service-charges-november-6-2026).
 
-Native **Stack All** now consolidates compatible personal stacks in Item Hangar or an active ship hold without changing total volume or ownership. Repackaging supports inactive, empty, unfitted, undamaged supported ships and offline modules in the current station hangar. Repackaged ships lose their insurance without a refund. Damaged ships, fitted ships, loaded modules, active ships, corporate assets and destructive confirmation forms remain unsupported. See [stacking and repackaging](protocol/inventory.md#production-stack-consolidation-and-repackaging-november-6-2026).
+Native **Stack All** consolidates compatible personal stacks in Item Hangar or an active ship hold. Repackaging an
+eligible inactive ship with ordinary fittings returns its modules and charges to Item Hangar and voids the hull's
+insurance. The hull must be undamaged and free of cargo and rigs.
+[Fitted ship repackaging](protocol/inventory.md#fitted-ship-repackaging) ·
+[Stacking and repackaging](protocol/inventory.md#production-stack-consolidation-and-repackaging-november-6-2026)
 
 ## Combat and NPC populations
 
+- **Sansha Incursions.** Find rotating highsec, lowsec and nullsec focuses in the Agency and star map. Fight the
+  Scout, Vanguard, Assault and Headquarters variants under local system effects. Damage and effective remote
+  repairs earn site ISK and bank CONCORD LP. Defeat the mothership to recover its wreck cargo and release the focus's LP.
+  During a focus, Sansha replace ordinary belt and ice-field rats, and camps move between gates in lowsec and nullsec.
+  [Sansha Incursions](protocol/incursions.md#security-campaigns-and-system-effects) ·
+  [Roaming Sansha populations](protocol/incursions.md#roaming-sansha-populations)
 - The administration killboard shows recorded ship and capsule destruction across the server, with independent NPC,
   player and bot filters for final blows and losses. [Server killboard](protocol/combat.md#server-killboard)
 - Belt pirates use regional catalog pools with supported missiles, turrets, electronic warfare and self-repairs.
@@ -330,7 +384,14 @@ Native **Stack All** now consolidates compatible personal stacks in Item Hangar 
   together. [Subcapital Micro Jump Field Generator](protocol/navigation.md#subcapital-micro-jump-field-generator)
 - **Drones and information modules.** Supported hulls can control combat, mining and utility drones. Combat drones can
   assist and guard fleetmates. Scanners, probes, salvagers and tractors use their own eligibility and range rules.
-  [Drones](protocol/drones.md) · [Information modules](protocol/information.md)
+  Ship scanners can reveal partial ship fittings in falloff and complete fittings on targetable Upwell structures.
+  Cargo scanners respect full cargo-scan immunity when they start and when the paid cycle finishes.
+  A successful cargo scan can inspect the first layer of a container.
+  [Drones](protocol/drones.md) · [Information modules](protocol/information.md) ·
+  [Ship-scanner falloff](protocol/information.md#ship-scanner-falloff) ·
+  [Upwell ship scans](protocol/information.md#ship-scanning-upwell-structures) ·
+  [Cargo scans through containers](protocol/information.md#cargo-scans-through-containers) ·
+  [Cargo scan immunity](protocol/information.md#cargo-scan-immunity)
 - **Capital and Upwell roles.** Supported capitals have ship-specific jump, fighter, fleet hangar, maintenance, refitting and clone
   services. Upwell gunners can lock targets and launch and recall Standup fighter squadrons.
   [Capital logistics](protocol/capital-logistics.md) · [Upwell structures](protocol/structures.md)

@@ -2,6 +2,95 @@
 
 [Documentation index](../README.md) / [Protocol index](../protocol.md)
 
+## Cargo scans through containers
+
+A paid cargo scan shows the immediate contents of ordinary, secure, audit-log and freight containers found in
+scannable holds. It omits the outer container and reports any container found inside it as an item. Deeper contents stay
+hidden. The scan reads the container owner's ordinary, locked and unlocked rows at the cycle deadline. It does not unlock
+items or grant inventory access. Courier package escrow remains outside this container read.
+
+CCP's Revelations II patch notes document scanning cargo containers. EVE University and the EVE.js 261108.1 scanner
+reference describe the one-layer limit. The pinned 3662168 catalog uses container groups **12**, **340**, **448** and
+**649**. Eden uses the existing `OnCargoScanComplete` item-type and quantity pairs for inner rows.
+[CCP Revelations II patch notes](https://www.eveonline.com/news/view/revelations-ii-patch-notes-features-fixes-and-improvements-1) ·
+[EVE University cargo scanning](https://wiki.eveuniversity.org/Cargo_scanning)
+
+**Automated validation.** `NativeCargoScannerRevealsOneContainerLayerWithoutChangingContents` passed in 1.17 seconds
+of test execution. The resident protocol case checks the paid deadline, one-layer disclosure from a password-protected
+container, privacy of the result and preservation of item locations and access settings.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+## Ship scanning Upwell structures
+
+A locked, targetable Upwell structure within ship-scan range now returns its complete fitted hardware and current
+capacitor through `OnShipScanCompleted`. The scan uses the structure's surface distance, including normal scanner falloff
+for range eligibility. Every fitted combat module, rig and service module is reported, including offline fittings.
+Repeated modules are counted by type. The scanner reads the committed structure fit and capacitor at the paid deadline.
+Destruction, lost locks and invalid range cancel the result without refund. The scan belongs to the initiating pilot and
+works without docking or fitting access. Hangar contents, fuel and loaded charges are outside the fitting report.
+
+EVE University documents complete Upwell scan results. The EVE.js 261108.1 scanner admits structures through its standard
+target-inventory callback. Eden uses the same native result arguments as ship scans, verified against the pinned client
+under [native scans and targeting](#native-scans-and-targeting). The pinned Astrahus profile **35832** supplies a **45 km**
+radius and **200,000 GJ** base capacitor. [EVE University ship scanning](https://wiki.eveuniversity.org/Ship_scanning)
+
+**Automated validation.** `NativeShipScannerReturnsCompleteUpwellFitThroughFalloffAndCancelsAfterDestruction` passed in
+1.63 seconds of test execution. Its resident protocol flow checks the complete offline equipment and service fit,
+capacitor, owner-independent access, private results and destruction before disclosure. The initial fixture registered the
+structure without a valid inventory owner. The passing case creates the owning corporation through the resident service.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+## Ship scanner falloff
+
+Ship scanners can complete a paid scan beyond optimal range. Ship Scanner I has **50 km** optimal and **30 km** falloff.
+The compact scanner has **55 km + 33 km**, and Ship Scanner II has **60 km + 36 km**. Build 3662168 binds optimal
+attribute **125** and falloff attribute **510** to `shipScan`, effect **46**. Attribute 510 defines the distance beyond
+optimal at which accuracy is halved.
+
+Eden uses surface distance and accepts targets through one falloff beyond optimal. At the paid deadline, the scanner
+checks the current distance again. Inside optimal it reveals all fitted hardware. In falloff it rolls each fitted item
+independently with reveal probability `0.5 ^ (((distance - optimal) / falloff) ^ 2)`. Results combine revealed items of
+the same type and report the target's current capacitor. Moving beyond the allowed range before completion suppresses
+the result and retains the scanner's paid cooldown.
+
+The falloff curve, cutoff and per-item sampling follow the EVE.js scanner reference, `server/src/space/modules/scannerModuleRuntime.js`
+in release 261108.1. CCP's balance record supplies the scanner ranges, and its Retribution notes confirm that scans can
+omit hardware but report truthful quantities. [CCP scanner balance](https://www.eveonline.com/news/view/rebalancing-eve-one-module-at-a-time) ·
+[CCP Retribution patch notes](https://www.eveonline.com/news/view/patch-notes-for-retribution-1) ·
+[EVE University ship scanning](https://wiki.eveuniversity.org/Ship_scanning)
+
+**Automated validation.** The focused methods `ShipScanAccuracyFollowsOptimalAndFalloffBoundaries` and
+`PaidShipScansSampleCurrentFalloffWithoutInventingHardwareOrChargingForRejectedActivation` passed all six cases in
+5.02 seconds of combined case time. They cover the range boundaries, exact half accuracy at one falloff, truthful item
+counts, movement out of range during a paid scan and payment and cooldown behavior.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+## Cargo scan immunity
+
+Cargo scanners reject a fully resistant ship before spending capacitor, starting a cooldown or publishing a scan effect.
+The resident scan owner checks the target's current resistance again at the paid deadline before reading its cargo. If the
+target gains immunity during the cycle, the scanner finishes without a result and retains the paid capacitor and cooldown.
+Ship scanners can still read the target's fitting. The native scan notifications use the existing [scanner contract](#native-scans-and-targeting).
+
+Build 3662168 identifies this property as dogma attribute **188**, `cargoScanResistance`. The Crane, Prorator, Prowler,
+Viator, Deluge, Boobook, Cenotaph and Tholos all have value **1.0**. The Serpentis Battlecruiser catalog profile **38657**
+has **1.1**. Pilot targets use their effective fitted attributes and NPC targets use their catalog attributes. Eden uses
+the threshold **1.0** for full immunity. [EVE University cargo scanning](https://wiki.eveuniversity.org/Cargo_scanning) ·
+[CCP Retribution patch notes](https://www.eveonline.com/news/view/patch-notes-for-retribution-1.1)
+
+The EVE.js 261108.1 `server/src/space/modules/scannerModuleRuntime.js` reference uses the same attribute and rejects
+fully resistant targets before activation. Its source SHA-256 is
+`1F5DDD4448F6A0C94ACBB38E3A206ACFE08C9900208C3E7FEC39C56D2C3B85DC`.
+
+**Automated validation.** `CargoScanImmunityIsEnforcedBeforePaymentAndAtDisclosure` passed both resident protocol
+cases in 2.43 seconds of combined case time. The Crane fixture checks the failed activation, the still-functional ship
+scan and a paid scan whose target regains immunity before disclosure.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
 ## DED complexes and Ghost Sites
 
 **DED complexes.** High- and low-security systems in the corresponding pirate regions can spawn Serpentis Drug Outlet
@@ -367,7 +456,7 @@ Cargo and ship scanners use `dogmaIM.Activate(moduleID, effectName, targetID, re
 | `OnCargoScanComplete` | target ID, Python list of `(typeID, quantity)` tuples |
 | `OnShipScanCompleted` | ship ID, capacitor charge, capacitor capacity, Python list of hardware tuples |
 
-Results belong only to the scanning session. Cargo reads expose supported ship holds, wreck/container contents and saved NPC mining cargo without transferring ownership. Ship reads expose fitted player hardware and current capacitor; NPCs use their existing nominal capacitor profile and have no synthetic inventory modules. These are truthful optimal-range snapshots. Exact server ship-scan falloff and hardware sampling are not established by client presentation code; the three ship-scanner profiles remain **partial** for those details. No guessed falloff distribution is enabled.
+Results belong only to the scanning session. Cargo reads expose supported ship holds, wreck/container contents and saved NPC mining cargo without transferring ownership. Ship reads expose fitted player hardware and current capacitor. NPCs use their existing nominal capacitor profile and have no synthetic inventory modules. See [ship scanner falloff](#ship-scanner-falloff) for partial hardware results and [Upwell structure scans](#ship-scanning-upwell-structures) for their complete fitting reports.
 
 `Survey` is skill **3551**, distinct from CPU Management **3426**. Its pinned modifiers enter the existing fitting graph once. Duration, native skill brain and paid deadlines share that calculation. Five online survey chipsets apply their mining critical/residue modifiers and `miningScannerUpgrade`, with real group limits. On an eligible hull with `integratedMiningScanner`, `miningScanMgr.perform_scan()` returns Python-list triples `(asteroidID, typeID, remainingQuantity)` for live deposits within the pinned **250 km** radius. Unupgraded tier-one presentation remains client-local.
 

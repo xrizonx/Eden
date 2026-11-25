@@ -8,6 +8,12 @@ These records preserve milestone evidence and historical observations. Dates, sc
 
 ## Contents
 
+- [Corporation Kill Reports](#corporation-kill-reports)
+- [Corporation medals](#corporation-medals)
+- [Medal award notifications](#medal-award-notifications)
+- [Corporation mail restrictions](#corporation-mail-restrictions)
+- [Corporation and alliance wars](#corporation-and-alliance-wars)
+- [Defender allies, surrender and War Reports](#defender-allies-surrender-and-war-reports)
 - [Edit member private identity reply, November 16, 2026](#edit-member-private-identity-reply-november-16-2026)
 - [Ordinary member auto-removal, November 15, 2026](#ordinary-member-auto-removal-november-15-2026)
 - [Blueprint lock and unlock votes, November 15, 2026](#blueprint-lock-and-unlock-votes-november-15-2026)
@@ -48,6 +54,314 @@ These records preserve milestone evidence and historical observations. Dates, sc
 - [Corporation window voting-capability startup correction](#corporation-window-voting-capability-startup-correction)
 - [Player corporation applications and membership](#player-corporation-applications-and-membership)
 - [Player corporations: creation foundation](#player-corporations-creation-foundation)
+
+## Corporation Kill Reports
+
+**Corporation → General → Kill Reports** shows recent capsuleer ship and capsule kills and losses for the selected pilot's
+corporation. A kill is credited to the final-blow pilot's corporation, and a loss is credited to the victim's corporation.
+NPC-inflicted capsuleer losses appear in the loss view. Attribution uses the saved combat parties, and the canonical loss
+record supplies one kill ID even when several pilots have copies in their personal logs. The resident economy indexes
+existing combat reports by corporation and side and restores the index from checkpoints. Structure reports are available
+through the War Report for attributed structure losses.
+
+Inert inspection of build **3662168**, archive SHA-256
+`37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`, confirms the navigation in
+`corporationWindow.pyj` and the `corpRegistry.GetRecentKills` and `GetRecentLosses` calls in `base_corporation.pyj`.
+`corp_ui_killreports.pyj` sends a page size of 25 and a Python None or an exclusive kill ID. The same archive's
+`crowset.pyj` accepts the descriptor and rows in its `CRowset` constructor. Both replies use a corporation-scoped cached
+`CRowset` like the EVE.js **261108.1** reference and share Eden's combat report fields and killmail XML.
+EVE.js reference files are `corpRegistryRuntime.js` (SHA-256
+`41d691387ff45dce3cf4680da40291557b868f0b3f589234d0eb244b77c4e35c`) and `killmailState.js` (SHA-256
+`920fca640077c858230c273b7fdb52bd5869196fd1d5ffad316ad27e871451cd`).
+[UniWiki Killmail](https://wiki.eveuniversity.org/Killmail)
+
+### Automated validation
+
+`FullyQualifiedName=Eden.Protocol.Tests.Alliances.CorporationCombatReportTests.NativeCorporationPagesUseCanonicalKillIdsAndSurviveCheckpoint`
+passed. It exercises a bound registry call, corporation isolation, native reply fields, exclusive paging, duplicate
+personal reports, NPC-inflicted loss and checkpoint reload.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+1. Open **Corporation → General → Kill Reports**, switch between kills and losses, and open a saved report.
+
+## Corporation medals
+
+**Corporation → Members → Decorations** lets CEOs, directors and personnel managers create and award custom medals.
+Creating a medal costs 5 million ISK. Each award costs 5 million ISK per selected member, and a member can receive
+the same medal again. Both operations use the selected corporation wallet division and request confirmation before
+charging it. The resident economy commits the fee, journal entry and medal or award together.
+
+Recipients start with private awards. In **Character Sheet → Decorations**, they can publish awards to Show Info,
+make them private or discard them. Discarding removes an award from the character's list and preserves the issuing
+corporation's award history. Issuing corporations can review their own catalogue and recipients. Checkpoint schema 230
+preserves medal art, award reasons, visibility and corporation attribution. The recipient keeps a medal after leaving
+the issuing corporation. The issuing connection receives the catalogue refresh event. Recipients get
+[medal award notifications](#medal-award-notifications).
+
+Inert inspection of build **3662168**, archive SHA-256
+`37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`, confirmed the operations and quote flow in
+`medals.pyj`, the layered ribbon and medal triples in `medalribbonranks.pyj` and the statuses and journal references in
+`appConst.pyj`. The EVE.js **261108.1** comparison used `corpService.js` (SHA-256
+`a9ef788e32125b80e5725d00c919bf837365cb5187954c93068f765cb8212d6a`) for client row shapes.
+[CCP Quantum Rise patch notes](https://www.eveonline.com/news/view/patch-notes-for-quantum-rise-1) ·
+[UniWiki Managing corporation members](https://wiki.eveuniversity.org/Managing_corporation_members#Decorations)
+
+### Automated validation
+
+`FullyQualifiedName=Eden.Protocol.Tests.Alliances.CorporationMedalTests.NativeMedalsChargeTheSelectedDivisionAndPersistVisibilityAcrossCheckpoint`
+passed in 0.43 seconds. It exercises native fee quotes and confirmations, role checks, selected wallet debits, repeat
+awards, insufficient-funds rollback, private and public reads, discard, and checkpoint reload.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+1. Create a medal from **Members → Decorations** and confirm the selected corporation wallet division pays the fee.
+2. Award the medal to a corporation member and verify that reopening **Decorations** shows the private award.
+3. Make the medal public and open the recipient's Show Info from another pilot.
+
+## Medal award notifications
+
+An award records a notification in each recipient's **Corporation** inbox with the medal, issuing corporation and
+award reason. The resident transaction commits the notification alongside the award, fee and wallet journal.
+Connected recipients also receive `OnMedalIssued`, which refreshes **Decorations**. The regular inbox read and
+delivery cursor prevent a fetched notification from appearing twice. Unread notices remain available after a restart.
+
+Build **3662168** `notificationconst.pyj` assigns type 3 to `notificationTypeCharMedalMsg` and places it in the
+Corporation group. `notificationUtil.pyj` reads `medalID` and `corpID` for the native formatter. In `medals.pyj`,
+`OnMedalIssued` refreshes the recipient's medals and takes no required arguments. The EVE.js **261108.1** reference
+`corporationNotifications.js` (SHA-256 `101462c93041e9de1f42ae8707f4e90c0a34a96483fb3d6d55b8cc686dddd3c9`)
+also targets the recipient connection with this event.
+[CCP Quantum Rise patch notes](https://www.eveonline.com/news/view/patch-notes-for-quantum-rise-1) ·
+[UniWiki award flow](https://wiki.eveuniversity.org/Managing_corporation_members#Decorations)
+
+### Automated validation
+
+`FullyQualifiedName=Eden.Protocol.Tests.Alliances.CorporationMedalTests.MedalAwardsNotifyOnlyTheirRecipientsAndUnreadNoticesSurviveCheckpoint`
+passed in 4.83 seconds. It verifies recipient-only delivery, the native fields and Decorations refresh, no notice
+for quotes or failed awards, and unread notification persistence after an offline award.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+1. Award a medal while its recipient has Decorations open and confirm the view refreshes and the unread notice appears.
+2. Award another medal while the recipient is signed out, then verify the notification after sign-in.
+
+## Corporation mail restrictions
+
+CEOs and directors can set **Corp Mail** to **Communications Officers only** on the Corporation home panel.
+When enabled, Communications Officers and directors can address a mail to their corporation. The resident send
+checks the pilot's current corporation roles before creating the message, recipient copies or delivery events.
+If the draft also addresses individuals, a rejected corporation address prevents the entire send. Removing the
+restriction restores corporation-addressed sending for all current members. Existing saves default to unrestricted
+and the setting persists in the standard corporation details checkpoint.
+
+The pinned build **3662168** `corp_ui_home.pyj` checks `SessionChecker.IsCorpDirector` before showing its toggle.
+The read uses `corpRegistry.DoesCorpRestrictCorpMails()` and the toggle sends one Boolean to
+`RegisterNewCorpMailRestrictionSettings`. The restricted label identifies Communications Officers, who use the
+pinned `corpRoleChatManager` bit. The archive SHA-256 is
+`37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`.
+The EVE.js **261108.1** reference `corpRegistryRuntime.js` (SHA-256
+`41d691387ff45dce3cf4680da40291557b868f0b3f589234d0eb244b77c4e35c`) implements the settings calls.
+Eden keeps its existing Boolean read and checks the effective role in the mail transaction.
+[UniWiki corporation mail](https://wiki.eveuniversity.org/EVE_Mail#Corp_Mails) ·
+[CCP corporation roles](https://support.eveonline.com/hc/en-us/articles/203217712-Roles-Listing)
+
+### Automated validation
+
+`FullyQualifiedName=Eden.Protocol.Tests.Alliances.CorporationMailRestrictionTests.NativeCorporationMailRestrictionChecksCurrentRoleAndSurvivesCheckpoint`
+passed in 0.42 seconds. It checks native reads and edits, authorization, atomic rejection of mixed recipients, personal
+mail, immediate role changes, and restriction persistence after reopening a checkpoint.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+1. Enable **Communications Officers only** on Corporation Home and try sending to the corporation as an ordinary member.
+2. Assign the member the Communications Officer role, send again, and confirm the message appears in the Corp mailbox.
+
+## Corporation and alliance wars
+
+Directors use **Corporation → Wars** to select another eligible organization and one of their own anchored, dockable
+high-security Upwell structures as War HQ. Alliance wars use the executor corporation's authority and wallet. Owning a
+deployed Upwell structure makes a player corporation eligible, including when it belongs to an alliance. A standard
+declaration debits 500 million ISK immediately and issues the next bill. The wallet's Bills panel supports manual payment
+and the corporation's existing automatic payment settings. Each renewal has its own invoice and advances the original
+billing deadline by seven days.
+
+Hostilities start 24 hours after declaration. Unpaid bills, loss of eligibility or loss of the selected HQ start the
+24-hour combat cooldown. Losing the HQ prevents the attacker from redeclaring against the same defender for 14 days.
+Mutual invitations are free, expire after 30 days and require both organizations' consent. Either party can retract an
+accepted mutual war. A defending corporation's war follows it into an alliance. An aggressor or party to a mutual war
+must resolve its war before joining an alliance. A departing corporation inherits its alliance's current wars with their
+original combat and billing dates. An inherited offensive war without a usable HQ runs through its paid cycle and
+cooldown. Pilots who leave during hostilities can rejoin after seven days or when hostilities end.
+
+Crimewatch treats opposing pilots and eligible Upwell targets as legal during hostilities. The normal weapons and PvP
+timers still apply. Neutral remote assistance to a war participant with an active PvP timer is criminal in high security
+and suspect in low security. In high security, neutral command bursts skip those participants. War HQs use the shorter
+reinforcement window. The resident economy owns war, invitation and invoice state and saves it in checkpoint schema 227.
+Declaration and end notifications reach members and shareholders through the saved inbox.
+
+Native service coverage includes declaration, target and HQ selection, public and cached war records, bill payment,
+eligibility, peace treaties, mutual invitation settings and war-change notifications. See the follow-up for
+[defender allies, surrender and War Reports](#defender-allies-surrender-and-war-reports).
+
+### Source evidence
+
+The original build **3662168** archive has SHA-256
+`37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`.
+Static inspection covered `evewar/const.pyj`, `warDeclare.pyj`, `war_cso.pyj`, `mutualWarInvites.pyj`,
+`notifications/common/formatters/war.pyj` and `notificationconst.pyj`. The registry cache consumes KeyVal dictionaries
+keyed by numeric war ID. Public war history uses a native indexed rowset. `OnWarChanged` includes the updated war,
+the participant owner set and a dictionary of old and new field values.
+
+The local EVE.js **261108.1** snapshot was used for independent behavior comparison. SHA-256 references under
+`server/src/services/corporation/` follow.
+
+| File | SHA-256 |
+| --- | --- |
+| `warDeclarationState.js` | `5e0a89c44dd6429034bb0a8261317f0525e57840afcac83890fa57451660fb06` |
+| `warRuntimeState.js` | `7dd95ae03e39ce4c226b26a3f6d0802f440b73222d7c944f9183398ebdd065c7` |
+| `warNotificationCenter.js` | `a47a1486d61090f49da112ae0a71fd015e340eedb7414a54cbf2fec8f1008842` |
+
+The pinned client and September 22 CCP patch use 500 million ISK per week. The EVE.js snapshot still uses 100 million.
+[CCP Wars](https://support.eveonline.com/hc/en-us/articles/115004152745-Wars) ·
+[War Eligibility](https://support.eveonline.com/hc/en-us/articles/360001975920-War-Eligibility) ·
+[Mutual War](https://support.eveonline.com/hc/en-us/articles/360005659379-Mutual-War) ·
+[War Notifications](https://support.eveonline.com/hc/en-us/articles/203279981-War-Notifications) ·
+[Version 24.01 patch notes](https://www.eveonline.com/news/view/patch-notes-version-24-01) ·
+[CCP Crimewatch changes](https://www.eveonline.com/news/view/patch-notes-for-april-2019-release) ·
+[CCP reinforcement changes](https://www.eveonline.com/news/view/patch-notes-version-20-05#h3-structures-deployables) ·
+[UniWiki War declarations](https://wiki.eveuniversity.org/War_declarations)
+
+### Automated validation
+
+The final solution build passed in 9.34 seconds with zero warnings and errors. The focused .NET run passed all
+294 selected cases in 110.59 seconds, with zero skipped. The filter covered `Alliances`, `CorporationShowInfoTests`,
+`CorporationPublicInfoTests`, `CorporationFinancialPanelTests`, `CorporationMembershipTests`, `CrimewatchTests`,
+`RemoteAssistanceTests`, `StructureTests`, `StructureAttackTests`, `StructureWeaponTests`, `CommandBurstTests`,
+`ServerServicesTests` and the exact migration case `Version226AddsCorporationWarStateAndPreservesTheExistingWorld`.
+The final filter excluded both cases of `FutureLogisticsHullSelectorsHaveKnownConsumersWithoutEnablingTheirHullCohort`
+after the exact method reproduced the same failures on unchanged main `36e86fae`.
+
+Development started with the exact `CorporationWarTests.DeclarationAndWeeklyInvoiceCommitOnceAndSurviveRestart`
+filter. The catalog setup and formatting policy suites passed 8 and 9 cases in 1.388 and 0.018 seconds respectively.
+The style, CSharpier, line-width, local-link and diff checks passed. The full .NET suite was outside this validation scope.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+1. Declare a standard war from **Corporation → Wars**, then verify the next bill, the War HQ's Show Info and the defender's inbox.
+2. Accept a mutual war invitation and verify a green-safety tackle succeeds after warmup and is blocked again after cooldown.
+
+## Defender allies, surrender and War Reports
+
+Defenders in a declared war can advertise for assistance. Eligible corporations and alliances can offer assistance on
+the defender's side for a quoted one-time payment or for free. The defender can accept or decline, and the offering
+organization can retract an outstanding offer. A contract opens legal combat against the aggressor after four hours,
+provided the war has started, and expires two weeks after acceptance or when the war ends. Existing safety and third-party
+assistance rules use the same war relationship. Accepted fees and CONCORD registration charges settle with the contract
+in the same resident transaction.
+
+Either principal can propose surrender for zero ISK or a payment to the recipient. Acceptance transfers the agreed ISK,
+starts the 24-hour combat cooldown and sets a 14-day bilateral redeclaration restriction. Expired, declined and private
+offers cannot be accepted by another organization. The War inbox records offers, responses and withdrawals for the
+appropriate parties. Checkpoint schema 228 preserves negotiations, active ally contracts and war losses.
+
+The public War Report shows ship and structure losses, estimated ISK losses by side, the ship-class graph and a filtered
+list of linked killmails. Eden assigns an opposing loss to one active war at destruction and saves its participants and
+valuation with the loss. The latest qualifying war wins when a loss qualifies for several wars. The report uses local
+market reference prices and catalog prices for available hull and item valuations. Losses from before schema 228 have
+no recorded war attribution and do not populate the report retroactively.
+
+### Contract and report evidence
+
+The original build **3662168** archive has SHA-256
+`37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`. Inert inspection of `war_cso.pyj` and
+`warWindows.pyj` verified the negotiation methods, argument order, floating ISK offers and private offer IDs.
+`eveMoniker.GetWarStatistic` binds a numeric war ID. The bound `GetBaseInfo` returns the war, kills by
+organization, ISK by organization and the ally dictionary. `GetKills` filters by side and ship class.
+`GetKillsByGroup` uses raw inventory group IDs, which `cfg.GetShipClassTypeByGroupID` maps to graph classes.
+`crimewatch.util.GetKillReportHashValue` uses SHA-1 of the victim pilot, final pilot, victim type and FILETIME fields
+in that order. The service checks this hash before returning a linked killmail.
+
+EVE.js **261108.1** references under `server/src/services/` were consulted for independent behavior comparison.
+
+| File | SHA-256 |
+| --- | --- |
+| `corporation/warNegotiationRuntimeState.js` | `79fb2eb65e51f8fde5530b50ca68e7f4805cbf29ec113e13f528a8b85cd4a1eb` |
+| `corporation/warStatisticMgrService.js` | `54d81629f93eafc508d6958f9114614c252371844f4582aeb0096ea8b52e8809` |
+| `killmail/killmailState.js` | `920fca640077c858230c273b7fdb52bd5869196fd1d5ffad316ad27e871451cd` |
+
+[CCP Wars](https://support.eveonline.com/hc/en-us/articles/115004152745-Wars) ·
+[War Notifications](https://support.eveonline.com/hc/en-us/articles/203279981-War-Notifications) ·
+[CCP ally registration fee schedule](https://www.eveonline.com/ko/news/view/inferno-1.1-changes-to-the-war-dec-system) ·
+[UniWiki War declarations](https://wiki.eveuniversity.org/War_declarations)
+
+### Automated validation
+
+The integrated filter selected 555 cases across `Alliances`, `CapsuleCombatTests`, `CrimewatchTests`,
+`RemoteAssistanceTests`, `PilotCombatTests`, `MissileCombatTests`, `CombatDroneTests`, `ExpandedCombatDroneTests`,
+`InsuranceLossTests`, `StructureAttackTests`, `StructureWeaponTests`, `InteractionHistoryPersistenceTests`,
+`CharacterInteractionHistoryTests`, `CorporationShowInfoTests`, `CorporationPublicInfoTests`,
+`CorporationFinancialPanelTests`, `CommandBurstTests`, `ServerServicesTests`, and the exact schema 226 and 227
+war upgrade tests. It passed 554 cases in 305.48 seconds. Two known logistics assertions from the initial wars
+milestone were excluded.
+
+The resident case of `FailedCapsuleSettlementRollsBackBodyTrainingHealthPaymentAndNotifications` reproduced its
+failure on main `76298346`. The fixture now projects the seeded queue into the in-memory checkpoint base before testing
+rollback. Both cases passed the exact retest, followed by 63 passing affected combat and report cases in 25 seconds.
+The final solution build had zero warnings or errors. The final 20-case filter covering `CorporationWar`, the exact
+capsule rollback and two fatal war loss cases, and the schema 227 upgrade passed in 15.08 seconds. Catalog setup
+and formatting policy passed all 8 and 9 cases in 1.382 and 0.016 seconds respectively. The style, CSharpier,
+line-width, local-link and diff checks passed. The full .NET suite was outside this validation scope.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+1. Accept a paid ally offer, inspect the defender and aggressor views, and check that combat becomes legal after the ally warmup.
+2. Open a War Report after an opposing loss, filter by ship class, and open its killmail.
+3. Accept surrender and confirm the payment, the cooldown and the peace treaty in the native window.
+
+## War report side filters and former ally updates
+
+War Report ship counts, ISK totals, ship-class graphs, and filtered lists require the recorded loss side to agree with
+the client’s final-blow classifier. The rule also applies to archived reports. A loss with opposing damage and an
+incompatible final blow still retains its original killmail and attribution data.
+
+When withdrawing a war from a connected ally’s results, Eden sends the client’s war-removal delta on that connection.
+The war continues to appear for organizations that still participate.
+
+Inert analysis of the build 3662168 archive identified the client’s second side filter in
+`warReport.pyj` (`_GetKillsScrollList`, offsets 193–286). It uses the final corporation and alliance IDs.
+`evewar/util.pyj` handles the existing `warID` delta ending in Python None, and the client’s war lookup skips an
+evicted war. The local EVE.js 261108.1 comparison used `warStatisticMgrService.js` and `killmailState.js`.
+[UniWiki War Report](https://wiki.eveuniversity.org/War_declarations#War_Report)
+
+### Automated validation
+
+`DefensiveAllianceFormationRemovesWarFromFormerAllyConnection` verifies the decoded removal event for the ally and a
+regular war update for the aggressor. `WarReportSideFiltersMatchTheClientBeforeAndAfterCheckpoint` verifies both
+report sides, incompatible final blows, direct killmail links, and the same outcomes after reopening a checkpoint.
 
 ## Edit member private identity reply, November 16, 2026
 

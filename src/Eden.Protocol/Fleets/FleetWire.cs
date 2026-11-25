@@ -4,16 +4,42 @@ using Eden.Protocol.Serialization;
 
 namespace Eden.Protocol.Fleets;
 
-internal sealed record FleetOptionsReply(bool FreeMove, bool Registered = false) : BlueModel
+internal sealed record FleetOptionsReply(FleetOptions Options) : BlueModel
 {
     public override object ToBlue() =>
         new BlueInstance(
             "util.KeyVal",
             new Dictionary<string, object?>
             {
-                ["isFreeMove"] = FreeMove,
-                ["isRegistered"] = Registered,
-                ["autoJoinSquadID"] = null,
+                ["isFreeMove"] = Options.FreeMove,
+                ["isRegistered"] = Options.Registered,
+                ["autoJoinSquadID"] = Options.AutoJoinSquadId,
+            }
+        );
+}
+
+internal sealed record FleetCompositionReply(FleetCompositionMember Member) : BlueModel
+{
+    public override object ToBlue() =>
+        new BlueInstance(
+            "util.KeyVal",
+            new Dictionary<string, object?>
+            {
+                ["characterID"] = Member.PilotId,
+                ["solarSystemID"] = Member.SystemId,
+                ["stationID"] = Member.DockedLocationId,
+                ["shipTypeID"] = Member.ShipTypeId,
+                ["skills"] = Member.Leadership is { } levels
+                    ? new List<object?> { levels.Leadership, levels.WingCommand, levels.FleetCommand }
+                    : new List<object?>(),
+                ["skillIDs"] = Member.Leadership is not null
+                    ? new List<object?>
+                    {
+                        (int)FleetLeadershipSkill.Leadership,
+                        (int)FleetLeadershipSkill.WingCommand,
+                        (int)FleetLeadershipSkill.FleetCommand,
+                    }
+                    : new List<object?>(),
             }
         );
 }
@@ -27,7 +53,7 @@ internal sealed record FleetMemberReply(FleetMember Member) : BlueModel
             {
                 ["acceptsFleetWarp"] = member.TakesFleetWarp,
                 ["acceptsConduitJumps"] = member.AcceptsConduitJumps,
-                ["acceptsFleetRegroups"] = false,
+                ["acceptsFleetRegroups"] = member.AcceptsFleetRegroups,
             }
         );
 
@@ -82,7 +108,7 @@ internal sealed record FleetInitReply(CooperativeFleet Fleet) : BlueModel
                 ["fleetID"] = Fleet.Id,
                 ["members"] = Fleet.Members.ToDictionary(m => m.Pilot.Id, m => (object?)new FleetMemberReply(m)),
                 ["wings"] = new FleetWingsReply(Fleet.Wings),
-                ["options"] = new FleetOptionsReply(Fleet.FreeMove, Fleet.Registered),
+                ["options"] = new FleetOptionsReply(Fleet.Options),
                 ["motd"] = Fleet.Motd,
             }
         );
@@ -103,6 +129,11 @@ internal sealed record FleetJoinNotification(FleetMember Member) : FleetNotifica
 internal sealed record FleetLeaveNotification(long PilotId) : FleetNotification("OnFleetLeave")
 {
     public override object?[] Arguments => [PilotId];
+}
+
+internal sealed record FleetMoveFailedNotification(long PilotId) : FleetNotification("OnFleetMoveFailed")
+{
+    public override object?[] Arguments => [PilotId, false];
 }
 
 internal sealed record FleetMemberNotification(long FleetId, FleetMember Before, FleetMember After, bool OnlyMember)
@@ -147,10 +178,9 @@ internal sealed record FleetHierarchyNotification(FleetEvent.Hierarchy Change)
         : [Change.WingId];
 }
 
-internal sealed record FleetOptionsNotification(bool Before, bool After, bool Registered = false)
-    : FleetNotification("OnFleetOptionsChanged")
+internal sealed record FleetOptionsNotification(FleetOptions Before, FleetOptions After) : FleetNotification("OnFleetOptionsChanged")
 {
-    public override object?[] Arguments => [new FleetOptionsReply(Before, Registered), new FleetOptionsReply(After, Registered)];
+    public override object?[] Arguments => [new FleetOptionsReply(Before), new FleetOptionsReply(After)];
 }
 
 internal sealed record FleetMotdNotification(string Text) : FleetNotification("OnFleetMotdChanged")

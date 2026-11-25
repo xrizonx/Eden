@@ -54,7 +54,26 @@ public sealed record FleetPilot(
     SpacePosition? Position,
     bool InTransit = false,
     int? AllianceId = null,
-    MilitiaFaction? WarFaction = null
+    MilitiaFaction? WarFaction = null,
+    long? DockedLocationId = null
+);
+
+// Leadership skill type IDs in build 3662168.
+public enum FleetLeadershipSkill
+{
+    Leadership = 3348,
+    WingCommand = 11574,
+    FleetCommand = 24764,
+}
+
+public sealed record FleetLeadershipLevels(int Leadership, int WingCommand, int FleetCommand);
+
+public sealed record FleetCompositionMember(
+    long PilotId,
+    int SystemId,
+    long? DockedLocationId,
+    int? ShipTypeId,
+    FleetLeadershipLevels? Leadership
 );
 
 public sealed record FleetAffiliation(int CorporationId, int? AllianceId, MilitiaFaction? WarFaction = null);
@@ -70,12 +89,15 @@ public sealed record FleetMember(
     FleetPlacement Placement,
     int Job,
     bool TakesFleetWarp = true,
-    bool AcceptsConduitJumps = true
+    bool AcceptsConduitJumps = true,
+    bool AcceptsFleetRegroups = true
 );
 
 public sealed record FleetSquad(long Id, string Name);
 
 public sealed record FleetWing(long Id, string Name, IReadOnlyList<FleetSquad> Squads);
+
+public sealed record FleetOptions(bool FreeMove, bool Registered, long? AutoJoinSquadId);
 
 public sealed record CooperativeFleet(
     long Id,
@@ -83,8 +105,13 @@ public sealed record CooperativeFleet(
     IReadOnlyList<FleetWing> Wings,
     bool FreeMove,
     string Motd,
-    bool Registered = false
-);
+    bool Registered = false,
+    int MaximumSize = FleetRules.MaximumMembers,
+    long? AutoJoinSquadId = null
+)
+{
+    public FleetOptions Options => new(FreeMove, Registered, AutoJoinSquadId);
+}
 
 public sealed record FleetTargetTag(long ItemId, int SystemId, string Tag);
 
@@ -105,6 +132,15 @@ public sealed record FleetWarpOrder(
     long ExpiresAt
 );
 
+public sealed record FleetRegroupOrder(
+    long CommanderId,
+    long CommanderShipId,
+    FleetMembership Commander,
+    FleetMembership Recipient,
+    long ControlVersion,
+    long ExpiresAt
+);
+
 public abstract record FleetEvent
 {
     public sealed record Invitation(long FleetId, long InviterId) : FleetEvent;
@@ -115,11 +151,15 @@ public abstract record FleetEvent
 
     public sealed record Changed(FleetMember Before, FleetMember After, bool OnlyMember) : FleetEvent;
 
+    public sealed record MembersMoved(IReadOnlyList<Changed> Changes) : FleetEvent;
+
+    public sealed record MoveFailed(long PilotId) : FleetEvent;
+
     public sealed record Hierarchy(long WingId, long? SquadId, bool Deleted, string? Name = null) : FleetEvent;
 
-    public sealed record Options(bool Before, bool After, bool Registered = false) : FleetEvent;
+    public sealed record Options(FleetOptions Before, FleetOptions After) : FleetEvent;
 
-    public sealed record Registration(bool Before, bool After, bool FreeMove) : FleetEvent;
+    public sealed record Registration(bool Before, bool After, bool FreeMove, long? AutoJoinSquadId) : FleetEvent;
 
     public sealed record JoinRequest(FleetPilot Pilot) : FleetEvent;
 
@@ -128,6 +168,8 @@ public abstract record FleetEvent
     public sealed record Broadcast(FleetBroadcast Value) : FleetEvent;
 
     public sealed record Warp(FleetWarpOrder Order) : FleetEvent;
+
+    public sealed record Regroup(FleetRegroupOrder Order) : FleetEvent;
 
     public sealed record StandingChanged(long SourceId, double Value) : FleetEvent;
 
@@ -157,6 +199,7 @@ public interface ICooperativeFleets
     CooperativeFleet Create(long actor);
     bool CanBind(long actor, long fleet);
     CooperativeFleet Read(long actor, long fleet);
+    IReadOnlyList<FleetCompositionMember> Composition(long actor, long fleet);
     void Invite(long actor, long fleet, long target, FleetPlacement placement);
     void Accept(long actor, long fleet);
     void Reject(long actor, long fleet);
@@ -164,14 +207,18 @@ public interface ICooperativeFleets
     void Kick(long actor, long fleet, long target);
     void Disband(long actor, long fleet);
     void Move(long actor, long fleet, long target, FleetPlacement placement);
+    IReadOnlyList<long> MoveMany(long actor, long fleet, IReadOnlyList<long> targets, FleetPlacement placement);
     void MakeBoss(long actor, long fleet, long target);
     long CreateWing(long actor, long fleet);
     long CreateSquad(long actor, long fleet, long wing);
     void ChangeGroup(long actor, long fleet, long group, bool squad, string? name);
     void SetFreeMove(long actor, long fleet, bool enabled);
+    int SetMaximumSize(long actor, long fleet, int size);
+    void SetAutoJoinSquad(long actor, long fleet, long? squad);
     void SetMotd(long actor, long fleet, string text);
     void SetTakesWarp(long actor, long fleet, bool enabled);
     void SetAcceptsConduitJumps(long actor, long fleet, bool enabled);
+    void SetAcceptsRegroup(long actor, long fleet, bool enabled);
     void Broadcast(
         long actor,
         long fleet,
@@ -185,7 +232,9 @@ public interface ICooperativeFleets
     void TagTarget(long actor, long fleet, FleetTagTarget target, string? tag);
     void Warp(long actor, long fleet, long target, double range, SpacePosition? point);
     bool CanExecuteWarp(long actor, FleetWarpOrder order);
-    void CancelWarpOrders(long actor);
+    void Regroup(long actor, long fleet);
+    bool CanExecuteRegroup(long actor, FleetRegroupOrder order);
+    void CancelMovementOrders(long actor);
 }
 
 public static class FleetRules
@@ -208,7 +257,7 @@ public static class FleetRules
     public const double CommandRange = NavigationDefinitions.MaximumTargetDistance;
     public const double MaximumWarpRange = 100000;
     public static readonly TimeSpan InvitationLifetime = TimeSpan.FromMinutes(2);
-    public static readonly TimeSpan WarpOrderLifetime = TimeSpan.FromSeconds(10);
+    public static readonly TimeSpan MovementOrderLifetime = TimeSpan.FromSeconds(10);
     public static readonly TimeSpan BroadcastInterval = TimeSpan.FromSeconds(1);
 
     public static bool Subordinate(FleetMember commander, FleetMember member) =>

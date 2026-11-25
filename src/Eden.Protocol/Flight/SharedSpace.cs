@@ -152,9 +152,24 @@ internal sealed record ShipContact(
     long ConnectionId = 0,
     Eden.Gameplay.Structures.PilotTether? Tether = null,
     IReadOnlyList<ShipCompressionFacility>? Compression = null
-);
+)
+{
+    // A remote client may only enter warp once the simulation has started the course.
+    internal ShipContact ForObserver() =>
+        Warp is null && AlignTo is { } destination ? this with { AlignTo = null, Heading = (destination - Pilot.Position!).Unit } : this;
+}
 
-internal sealed record MotionOrder(long Sequence, StampedDestinyUpdate Update);
+internal sealed record MotionOrder(long Sequence, long PreviousSequence, StampedDestinyUpdate Update);
+
+internal readonly record struct MotionOrderBatch(IReadOnlyList<MotionOrder> Orders)
+{
+    internal long Sequence => Orders.Count == 0 ? 0 : Orders[^1].Sequence;
+
+    internal bool MissingOrders(long after) => Orders.Count > 0 && after < Orders[0].PreviousSequence;
+
+    internal bool Restarted(long after) =>
+        after > 0 && (Orders.Count == 0 || Orders[0] is { PreviousSequence: 0 } first && after < first.Sequence);
+}
 
 [Injectable(InjectionType.Singleton)]
 internal sealed class SharedSpace(
@@ -239,22 +254,22 @@ internal sealed class SharedSpace(
 
     internal bool IsGateCloaked(long ship) => SpatialStatus(ship).GateCloaked(Now);
 
+    internal bool HasPublishedShip(int system, long ship) =>
+        _ships.TryGetValue(ship, out var contact)
+        && contact.Pilot.SystemId == system
+        && contact.Pilot.Position is not null
+        && contact.Health?.Remaining.Destroyed != true;
+
     private bool ArrivalProtected(ShipContact ship) => ship.Arriving && (ship.GateCloakUntil == 0 || IsGateCloaked(ship.Pilot.ShipId));
 
     internal void CancelGateCloak(long pilot, long ship) => gateCloaks?.Cancel(pilot, ship);
 
     internal bool PreservesGateCloak(long pilot, long ship, long module) => gateCloaks?.PreservesCloak(pilot, ship, module) == true;
 
-    private readonly ConcurrentDictionary<long, IReadOnlyList<MotionOrder>> _orders = new();
-    private readonly ConcurrentDictionary<long, long> _orderSequences = new();
+    private readonly ConcurrentDictionary<long, MotionOrder[]> _orders = new();
+    private long _lastOrderSequence;
 
-    public long OrderSequence(long shipId) => _orderSequences.GetValueOrDefault(shipId);
-
-    public IReadOnlyList<MotionOrder> Orders(long shipId, long after) =>
-        _orders.GetValueOrDefault(shipId)?.Where(o => o.Sequence > after).ToArray() ?? [];
-
-    public bool MissingOrders(long shipId, long after) =>
-        _orders.TryGetValue(shipId, out var orders) && orders.Count > 0 && after < orders[0].Sequence - 1;
+    internal MotionOrderBatch ReadOrders(long shipId) => new(_orders.GetValueOrDefault(shipId) ?? []);
 
     public void RecordOrder(long shipId, StampedDestinyUpdate update)
     {
@@ -285,10 +300,12 @@ internal sealed class SharedSpace(
         }
         using (EnterMotion())
         {
-            long sequence = _orderSequences.GetValueOrDefault(shipId) + 1;
-            _orderSequences[shipId] = sequence;
-            _orders[shipId] = (_orders.GetValueOrDefault(shipId) ?? [])
-                .Append(new MotionOrder(sequence, update))
+            var batch = ReadOrders(shipId);
+            // A cursor from before the same hull left must be older than any new order.
+            // The previous order for this ship tells observers whether pruning lost a command.
+            long sequence = Interlocked.Increment(ref _lastOrderSequence);
+            _orders[shipId] = batch
+                .Orders.Append(new MotionOrder(sequence, batch.Sequence, update))
                 .Where(order => order.Update.Stamp >= update.Stamp - MovementHistoryTicks)
                 .ToArray();
         }
@@ -698,6 +715,50 @@ internal sealed class SharedSpace(
 
     internal ShipContact[] Peers(int system, long viewerId, SpacePosition? viewer) =>
         viewer is null ? [] : RunMotion(system, () => PeersOwned(system, viewerId, viewer), nameof(Peers));
+
+    internal ShipContact? FindTargetablePeer(int system, long viewer, SpacePosition? origin, long id)
+    {
+        return origin is null || id == viewer
+            ? null
+            : RunMotion(system, () => FindTargetablePeerOwned(system, origin, id), nameof(FindTargetablePeer));
+    }
+
+    private ShipContact? FindTargetablePeerOwned(int system, SpacePosition origin, long id)
+    {
+        using var ownership = EnterMotion(systemId: system);
+        var ship = _ships.GetValueOrDefault(id);
+        if (ship is null && crimewatch?.LoggedOff(system).FirstOrDefault(p => p.Pilot.ShipId == id) is { } offline)
+        {
+            ship = new(PilotContact.From(offline.Pilot), SpacePosition.Zero, null, 0, null);
+        }
+        if (
+            ship?.Pilot.Position is not { } position
+            || ship.Pilot.SystemId != system
+            || ship.Warp is not null
+            || ship.DepartureGate is not null
+            || ArrivalProtected(ship)
+            || ship.Health?.Remaining.Destroyed == true
+            || IsCloaked(id)
+            || origin.DistanceTo(position) > NavigationDefinitions.MaximumTargetDistance
+        )
+        {
+            return null;
+        }
+        if (autonomous?.Owns(id) != true)
+        {
+            return ship;
+        }
+        // The published ball can lag a committed bot flight step.
+        return
+            autonomous.Read(system, id) is { Protected: false, Sighting: var current }
+            && origin.DistanceTo(current.Position) <= NavigationDefinitions.MaximumTargetDistance
+            ? ship with
+            {
+                Pilot = ship.Pilot with { Position = current.Position },
+                Velocity = current.Velocity,
+            }
+            : null;
+    }
 
     internal IEnumerable<ShipContact> GateArrivals(DockedPilot pilot) => GateArrivals(pilot.SystemId, pilot.ShipId, pilot.Position);
 

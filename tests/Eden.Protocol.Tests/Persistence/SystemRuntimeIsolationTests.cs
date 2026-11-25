@@ -32,6 +32,96 @@ public sealed class SystemRuntimeIsolationTests
     }
 
     [Fact]
+    public async Task RuntimeAdmissionRetriesAfterAFactoryFailureAndPublishesOneEntry()
+    {
+        int attempts = 0;
+        SystemRuntimeRegistry<int> registry = new(id =>
+        {
+            if (Interlocked.Increment(ref attempts) == 1)
+            {
+                throw new OutOfMemoryException("Injected runtime creation failure.");
+            }
+            return id;
+        });
+
+        Assert.Throws<OutOfMemoryException>(() => registry.Get(LocalSystem));
+        Assert.Empty(registry.Existing([LocalSystem]));
+        Assert.Empty(registry.Snapshot());
+
+        var callers = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => Task.Run(() => registry.Get(LocalSystem))));
+        var admitted = Assert.Single(registry.Snapshot());
+        Assert.All(callers, entry => Assert.Same(admitted, entry));
+        Assert.Same(admitted, Assert.Single(registry.Existing([LocalSystem])));
+        Assert.Equal(2, attempts);
+    }
+
+    [Fact]
+    public async Task ScopedPublicationDrainsDeferredChangesWhenTheRecipientBecomesIdle()
+    {
+        using TestWorld fixture = new(liveWorld: true);
+        var live = fixture.Services.GetRequiredService<LiveWorld>();
+        long ship = Assert.Single(fixture.Store.ListPilots(1000001)).ShipId;
+        var combat = live.CombatForSystem(RemoteSystem)!;
+        SpacePosition position = new(100, 0, 0);
+        combat.PublishPilotPosition(ship, RemoteSystem, position);
+        using ManualResetEventSlim entered = new();
+        using ManualResetEventSlim release = new();
+        var remote = Task.Run(() =>
+        {
+            using var ownership = live.Enter("paused recipient", RemoteSystem);
+            entered.Set();
+            Assert.True(release.Wait(TimeSpan.FromSeconds(15)));
+        });
+        try
+        {
+            Assert.True(entered.Wait(TimeSpan.FromSeconds(10)));
+            await Task.Run(() => Publish("WorldPosition")).WaitAsync(TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            release.Set();
+            await remote;
+        }
+
+        Assert.Equal(position, combat.InformationPosition(ship));
+        Publish("WorldWreck");
+        Assert.Null(combat.InformationPosition(ship));
+        combat.PublishPilotPosition(ship, RemoteSystem, position);
+        Publish("WorldPosition");
+        Assert.Null(combat.InformationPosition(ship));
+
+        void Publish(string table)
+        {
+            using var ownership = live.EnterShared("scoped publication");
+            live.PublishEconomic([new(table, ship, Resident: true)], new(systems: [RemoteSystem]), []);
+        }
+    }
+
+    [Fact]
+    public void CheckpointDrainsBroadcastsForSystemsThatHaveNeverEnteredSimulation()
+    {
+        TestClock clock = new();
+        using TestWorld fixture = new(clock: clock, liveWorld: true);
+        var live = fixture.Services.GetRequiredService<LiveWorld>();
+        LiveNaniteRepairs repairs;
+        using (live.UseSystem(RemoteSystem))
+        {
+            repairs = live.Nanites;
+            repairs.Advance(clock.Now);
+        }
+
+        Assert.True(repairs.TryRepairing(1, clock.Now, out _));
+        using (live.EnterShared("unscoped publication"))
+        {
+            live.PublishEconomic([new("WorldNaniteRepair", 1, Resident: true)], null, []);
+            live.EconomicObjectsChanged();
+        }
+        Assert.True(repairs.TryRepairing(1, clock.Now, out _));
+        using var snapshot = Assert.IsType<WorldSnapshot>(live.CaptureSnapshot());
+        Assert.False(repairs.TryRepairing(1, clock.Now, out _));
+    }
+
+    [Fact]
     public void PopulationSqlDoesNotGrowWithUnrelatedResidentSystems()
     {
         var baseline = Measure(0);
@@ -49,7 +139,7 @@ public sealed class SystemRuntimeIsolationTests
             foreach (int system in Enumerable.Range(1, unrelated))
             {
                 var runtime = live.CombatForSystem(system)!;
-                Assert.Empty(runtime.Simulate(system, clock.Now, () => long.MaxValue)!);
+                Assert.Empty(runtime.Simulate(system, clock.Now, _ => long.MaxValue)!);
             }
             var simulation = fixture.Services.GetRequiredService<Eden.Gameplay.Combat.INpcSimulation>();
             (int, int, int) counts;

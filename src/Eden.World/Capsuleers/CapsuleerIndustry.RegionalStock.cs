@@ -224,14 +224,13 @@ internal sealed partial class CapsuleerIndustry
 
             if (
                 pilot.ActiveShip.DockedLocationId != station
-                || world.Filter<ShipLoss>(loss => loss.CapsuleId == pilot.ActiveShipId).FirstOrDefault(loss => loss.PilotId == pilot.Id)
-                    is not { } loss
+                || ReplacementLoss(world, catalog, pilot.Id, pilot.ActiveShipId) is not { } loss
             )
             {
                 continue;
             }
             var hangar = Hangar(world, pilot.Id, station).ToLookup(item => item.TypeId);
-            var needed = ReadyKits(catalog, loss, agent.Career, LostKit(catalog, loss))
+            var needed = ReadyKits(catalog, loss.TypeId, agent.Career, LostKit(catalog, loss))
                 .Select(kit => (Kit: kit, Parts: kit.Parts()))
                 .Where(fit => CanReplaceKit(world, catalog, pilot.Id, agent.Career, fit.Kit, fit.Parts))
                 .Select(fit => MissingParts(fit.Parts, hangar))

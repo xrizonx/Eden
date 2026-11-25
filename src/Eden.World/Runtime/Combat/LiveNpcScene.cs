@@ -7,12 +7,12 @@ internal sealed partial class LiveCombatRuntime
 {
     private readonly ResidentMap<int, NpcSceneIndex> _npcSceneIndices = [];
 
-    internal NpcSceneContacts? ReadScene(int system, SpacePosition position, long now, Func<long> refreshPopulation)
+    internal NpcSceneContacts? ReadScene(int system, SpacePosition position, long now, Func<bool, long> refreshPopulation)
     {
         return Execute(() => ReadSceneOwned(system, position, now, refreshPopulation), nameof(ReadScene));
     }
 
-    private NpcSceneContacts? ReadSceneOwned(int system, SpacePosition position, long now, Func<long> refreshPopulation)
+    private NpcSceneContacts? ReadSceneOwned(int system, SpacePosition position, long now, Func<bool, long> refreshPopulation)
     {
         using var ownership = owner.Enter();
         if (!simulationObjects || !CanRun)
@@ -45,7 +45,6 @@ internal sealed partial class LiveCombatRuntime
 
     private void SetNpc(LiveCombatNpc npc)
     {
-        owner.TrackNpc(npc.Id, npc.SystemId);
         if (
             !_npcs.TryGetValue(npc.Id, out var previous)
             || previous.SystemId != npc.SystemId
@@ -77,6 +76,9 @@ internal sealed partial class LiveCombatRuntime
 
     private void RemoveNpc(long id)
     {
+        _savedNpcs.Remove(id);
+        _staleNpcs.Remove(id);
+        _effectiveNpcs.Remove(id);
         if (_npcs.Remove(id, out var npc))
         {
             _npcSceneIndices.Remove(npc.SystemId);

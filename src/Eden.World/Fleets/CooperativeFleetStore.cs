@@ -3,7 +3,9 @@ using Eden.Gameplay.Characters;
 using Eden.Gameplay.Fleets;
 using Eden.Gameplay.Flight;
 using Eden.Infrastructure.Registration;
+using Eden.World.Catalog;
 using Eden.World.Runtime;
+using Eden.World.Skills;
 using Eden.World.Storage;
 
 namespace Eden.World.Fleets;
@@ -122,6 +124,36 @@ internal sealed class CooperativeFleetStore(TimeProvider clock, IPilotSecuritySt
 
     public CooperativeFleet Read(long actor, long fleet) => Read(() => _world.Read(actor, fleet));
 
+    public IReadOnlyList<FleetCompositionMember> Composition(long actor, long fleet)
+    {
+        if (database is null || LiveWorld.Find(database.Path) is not { } resident)
+        {
+            throw new InvalidDataException("Fleet composition requires a running world.");
+        }
+        using CatalogDbContext catalog = new(database.CatalogPath);
+        return resident.Economy.Inspect(world =>
+            Read(() => _world.Composition(actor, fleet))
+                .Select(member =>
+                {
+                    var (pilot, detailed) = member;
+                    return new FleetCompositionMember(
+                        pilot.Id,
+                        pilot.SystemId,
+                        detailed ? pilot.DockedLocationId : null,
+                        detailed ? pilot.ShipTypeId : null,
+                        detailed
+                            ? new(
+                                PilotSkillReader.Level(world, catalog, pilot.Id, (int)FleetLeadershipSkill.Leadership),
+                                PilotSkillReader.Level(world, catalog, pilot.Id, (int)FleetLeadershipSkill.WingCommand),
+                                PilotSkillReader.Level(world, catalog, pilot.Id, (int)FleetLeadershipSkill.FleetCommand)
+                            )
+                            : null
+                    );
+                })
+                .ToArray()
+        );
+    }
+
     public void Invite(long actor, long fleet, long target, FleetPlacement placement) =>
         Write(() => _world.Invite(actor, fleet, target, placement, Now));
 
@@ -142,6 +174,9 @@ internal sealed class CooperativeFleetStore(TimeProvider clock, IPilotSecuritySt
     public void Move(long actor, long fleet, long target, FleetPlacement placement) =>
         Write(() => _world.Move(actor, fleet, target, placement));
 
+    public IReadOnlyList<long> MoveMany(long actor, long fleet, IReadOnlyList<long> targets, FleetPlacement placement) =>
+        Read(() => _world.MoveMany(actor, fleet, targets, placement));
+
     public void MakeBoss(long actor, long fleet, long target) => Write(() => _world.MakeBoss(actor, fleet, target));
 
     public long CreateWing(long actor, long fleet) => Read(() => _world.CreateWing(actor, fleet));
@@ -153,12 +188,18 @@ internal sealed class CooperativeFleetStore(TimeProvider clock, IPilotSecuritySt
 
     public void SetFreeMove(long actor, long fleet, bool enabled) => Write(() => _world.SetFreeMove(actor, fleet, enabled));
 
+    public int SetMaximumSize(long actor, long fleet, int size) => Read(() => _world.SetMaximumSize(actor, fleet, size));
+
+    public void SetAutoJoinSquad(long actor, long fleet, long? squad) => Write(() => _world.SetAutoJoinSquad(actor, fleet, squad));
+
     public void SetMotd(long actor, long fleet, string text) => Write(() => _world.SetMotd(actor, fleet, text));
 
     public void SetTakesWarp(long actor, long fleet, bool enabled) => Write(() => _world.SetTakesWarp(actor, fleet, enabled));
 
     public void SetAcceptsConduitJumps(long actor, long fleet, bool enabled) =>
         Write(() => _world.SetAcceptsConduitJumps(actor, fleet, enabled));
+
+    public void SetAcceptsRegroup(long actor, long fleet, bool enabled) => Write(() => _world.SetAcceptsRegroup(actor, fleet, enabled));
 
     public void Broadcast(
         long actor,
@@ -178,7 +219,11 @@ internal sealed class CooperativeFleetStore(TimeProvider clock, IPilotSecuritySt
     public void Warp(long actor, long fleet, long target, double range, SpacePosition? point) =>
         Write(() => _world.Warp(actor, fleet, target, range, point, Now));
 
-    public void CancelWarpOrders(long actor) => Write(() => _world.CancelWarpOrders(actor));
+    public void CancelMovementOrders(long actor) => Write(() => _world.CancelMovementOrders(actor));
 
     public bool CanExecuteWarp(long actor, FleetWarpOrder order) => Read(() => _world.CanExecuteWarp(actor, order, Now));
+
+    public void Regroup(long actor, long fleet) => Write(() => _world.Regroup(actor, fleet, Now));
+
+    public bool CanExecuteRegroup(long actor, FleetRegroupOrder order) => Read(() => _world.CanExecuteRegroup(actor, order, Now));
 }

@@ -220,6 +220,31 @@ public sealed class MapNavigationTests
     }
 
     [Fact]
+    public void MapActivityCaptureKeepsItsExactPrefixAcrossRotationAndExpiry()
+    {
+        const int count = 300;
+        long now = CalendarTestData.Clock().Now;
+        MapStatistics statistics = new();
+        var activity = Enumerable
+            .Range(0, count * 3)
+            .Select(index => new MapActivityEvent(
+                now + index,
+                30000142 + index % 3,
+                index % 2 == 0 ? MapActivityKind.Jump : MapActivityKind.NpcShipLoss
+            ))
+            .ToArray();
+        statistics.RestoreEvents(activity.Take(count), now);
+        var first = statistics.Capture(now);
+        statistics.RestoreEvents(activity.Skip(count), now);
+        var second = statistics.Capture(now);
+        var empty = statistics.Capture(now + 2 * TimeSpan.TicksPerDay);
+
+        Assert.Equal(activity.Take(count), first.Events.SelectMany(batch => batch.Read()));
+        Assert.Equal(activity, second.Events.SelectMany(batch => batch.Read()));
+        Assert.Empty(empty.Events);
+    }
+
+    [Fact]
     public async Task CheckpointBatchesMapActivityAndRestoresLegacyHistoryWithoutDuplicates()
     {
         const int system = 30000142;
@@ -502,6 +527,45 @@ public sealed class MapNavigationTests
         Assert.Equal(new(1, 0), restored.Population().Systems[Perimeter]);
         clock.Seconds += 60;
         Assert.Empty(restored.Population().Systems);
+    }
+
+    [Fact]
+    public async Task PopulationTimerKeepsOnlyOneSampleWaitingForTheWorldOwner()
+    {
+        var clock = CalendarTestData.Clock();
+        using TestWorld world = new(clock: clock, liveWorld: true);
+        var live = world.Services.GetRequiredService<LiveWorld>();
+        live.Economy.Warm();
+        var pilot = world.Store.FindPilot(1000001)!;
+        using var selected = world.Services.GetRequiredService<IHumanPresence>().Select(pilot.PilotId, pilot.SystemId);
+        live.SampleMapPilots();
+        clock.Seconds += 60;
+        using ManualResetEventSlim acquired = new();
+        using ManualResetEventSlim release = new();
+        var holder = Task.Run(() =>
+        {
+            using var ownership = live.EnterPersistence("held test owner");
+            acquired.Set();
+            Assert.True(release.Wait(TimeSpan.FromSeconds(10)));
+        });
+        Task sample = Task.CompletedTask;
+        try
+        {
+            Assert.True(acquired.Wait(TimeSpan.FromSeconds(10)));
+            sample = Task.Run(live.SampleMapPilotsOnTimer);
+            Assert.True(SpinWait.SpinUntil(() => live.WaitingOwners == 1, TimeSpan.FromSeconds(5)));
+            await Task.Run(live.SampleMapPilotsOnTimer).WaitAsync(TimeSpan.FromSeconds(3));
+            Assert.False(sample.IsCompleted);
+            Assert.Equal(1, live.WaitingOwners);
+            Assert.Equal(1, live.MapStatistics.Population(live.SimulationTime).Samples);
+        }
+        finally
+        {
+            release.Set();
+            await holder;
+            await sample;
+        }
+        Assert.Equal(2, live.MapStatistics.Population(live.SimulationTime).Samples);
     }
 
     [Theory]

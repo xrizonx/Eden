@@ -1,8 +1,10 @@
 using Eden.Gameplay.Combat;
+using Eden.Gameplay.Corporations;
 using Eden.Gameplay.Inventory;
 using Eden.Gameplay.Market;
 using Eden.Gameplay.Notifications;
 using Eden.Infrastructure.Registration;
+using Eden.Protocol.Corporations;
 using Eden.Protocol.Docking;
 using Eden.Protocol.PilotSessions;
 using Eden.Protocol.Serialization;
@@ -55,6 +57,7 @@ internal sealed class InboxHandler(IPilotInbox inbox, IPilotInventory inventory)
         var batch = inbox.Changes(context.Pilot.PilotId, _cursor);
         var pilot = context.Pilot;
         HashSet<long>? deliveredItems = null;
+        bool decorationChanged = false;
         foreach (var notification in batch.Items)
         {
             if (notification.KillRight is { Right: var right })
@@ -74,6 +77,10 @@ internal sealed class InboxHandler(IPilotInbox inbox, IPilotInventory inventory)
                 }
             }
             bool fetched = _fetched.Remove(notification.Id);
+            if (notification.ReceiverId == _pilot && notification.MedalAward is not null)
+            {
+                decorationChanged = true;
+            }
             // Earned and used events also invalidate the target's client cache. The inbox row belongs to the right owner.
             if (notification.ReceiverId == _pilot && !fetched && !notification.Processed && !notification.Deleted)
             {
@@ -89,6 +96,10 @@ internal sealed class InboxHandler(IPilotInbox inbox, IPilotInventory inventory)
             {
                 (deliveredItems ??= []).UnionWith(delivery.ItemIds);
             }
+        }
+        if (decorationChanged)
+        {
+            context.Notifications.Add(new DecorationIssued());
         }
         if (deliveredItems is { Count: > 0 })
         {
@@ -223,6 +234,102 @@ internal sealed record InboxExpertSystemData(int TypeId) : BlueModel
     public override object ToBlue() => new Dictionary<string, object?> { ["typeID"] = TypeId };
 }
 
+internal sealed record InboxCorporationWarData(InboxNotificationType Type, CorporationWarNotificationContent Content, long CreatedAt)
+    : BlueModel
+{
+    public override object ToBlue()
+    {
+        if (Content.Negotiation is { } offer)
+        {
+            return Negotiation(offer);
+        }
+        var fields = new Dictionary<string, object?> { ["declaredByID"] = Content.AttackerId, ["againstID"] = Content.DefenderId };
+        if (Content.WarId > 0)
+        {
+            fields["warID"] = Content.WarId;
+        }
+        if (Type == InboxNotificationType.WarMutualInvitation)
+        {
+            fields["expireTimeStamp"] = CreatedAt + CorporationWarRules.InvitationLifetime;
+        }
+        else if (Type == InboxNotificationType.WarMutualAccepted)
+        {
+            fields["time"] = CreatedAt + CorporationWarRules.Warmup;
+        }
+        if (Content.StartsAt is long start)
+        {
+            fields["timeDeclared"] = CreatedAt;
+            fields["timeStarted"] = start;
+            fields["delayHours"] = (int)((start - CreatedAt) / TimeSpan.TicksPerHour);
+            fields["hostileState"] = 0;
+            fields["cost"] = Content.HeadquartersId is null ? 0 : CorporationWarRules.WeeklyFeeCents / MarketDefinitions.CentsPerIsk;
+        }
+        if (Content.HeadquartersId is long headquarters && Content.HeadquartersTypeId is int type)
+        {
+            fields["warHQ"] = new BlueUnicode(Content.HeadquartersName ?? "");
+            fields["warHQ_IdType"] = new object?[] { headquarters, type };
+        }
+        if (Content.EndsAt is long end)
+        {
+            fields["endDate"] = end;
+        }
+        return fields;
+    }
+
+    private Dictionary<string, object?> Negotiation(WarNegotiationNotificationContent offer)
+    {
+        double amount = (double)offer.AmountCents / MarketDefinitions.CentsPerIsk;
+        return Type switch
+        {
+            InboxNotificationType.WarMercenaryOffer or InboxNotificationType.WarMercenaryOfferRetracted => new()
+            {
+                ["mercID"] = offer.FromOwnerId,
+                ["defenderID"] = Content.DefenderId,
+                ["aggressorID"] = Content.AttackerId,
+                ["iskValue"] = amount,
+            },
+            InboxNotificationType.WarOfferedToAlly or InboxNotificationType.WarOfferToAllyRetracted => new()
+            {
+                ["allyID"] = offer.FromOwnerId,
+                ["defenderID"] = Content.DefenderId,
+                ["enemyID"] = Content.AttackerId,
+                ["charID"] = offer.ActorId,
+                ["iskValue"] = amount,
+            },
+            InboxNotificationType.WarAllyOfferDeclined => new()
+            {
+                ["defenderID"] = Content.DefenderId,
+                ["aggressorID"] = Content.AttackerId,
+                ["allyID"] = offer.FromOwnerId,
+                ["charID"] = offer.ActorId,
+            },
+            InboxNotificationType.WarAllyAccepted => new()
+            {
+                ["allyID"] = offer.FromOwnerId,
+                ["enemyID"] = Content.AttackerId,
+                ["charID"] = offer.ActorId,
+                ["iskValue"] = amount,
+                ["time"] = CreatedAt,
+            },
+            InboxNotificationType.WarSurrenderOffer => new()
+            {
+                ["ownerID1"] = offer.FromOwnerId,
+                ["ownerID2"] = offer.ToOwnerId,
+                ["iskValue"] = amount,
+            },
+            InboxNotificationType.WarSurrenderDeclined => new() { ["ownerID"] = offer.ToOwnerId, ["iskValue"] = amount },
+            _ => new()
+            {
+                ["entityID"] = offer.ToOwnerId,
+                ["offeringID"] = offer.FromOwnerId,
+                ["charID"] = offer.ActorId,
+                ["iskValue"] = amount,
+                ["endDate"] = Content.EndsAt,
+            },
+        };
+    }
+}
+
 internal sealed record InboxNotificationReply(InboxNotification Notification) : BlueModel
 {
     internal static BlueModel Data(InboxNotification notification) =>
@@ -231,6 +338,8 @@ internal sealed record InboxNotificationReply(InboxNotification Notification) : 
         : notification.KillRight is { } killRight ? new InboxKillRightData(notification.Type, notification.SenderId, killRight.Right)
         : notification.StructureDelivery is { } delivery ? new InboxStructureDeliveryData(notification.SenderId, delivery)
         : notification.ExpertSystemTypeId is int typeId ? new InboxExpertSystemData(typeId)
+        : notification.CorporationWar is { } war ? new InboxCorporationWarData(notification.Type, war, notification.Created)
+        : notification.MedalAward is { } medal ? new InboxMedalAwardData(medal)
         : new InboxContactData(notification.Content);
 
     public override object ToBlue() =>
@@ -247,6 +356,17 @@ internal sealed record InboxNotificationReply(InboxNotification Notification) : 
                 ["data"] = Data(Notification),
             }
         );
+}
+
+internal sealed record InboxMedalAwardData(MedalAwardNotificationContent Content) : BlueModel
+{
+    public override object ToBlue() =>
+        new Dictionary<string, object?>
+        {
+            ["medalID"] = Content.MedalId,
+            ["corpID"] = Content.CorporationId,
+            ["reason"] = new BlueUnicode(Content.Reason),
+        };
 }
 
 internal sealed record InboxNotificationReceived(InboxNotification Notification) : PilotNotification("OnNotificationReceived")

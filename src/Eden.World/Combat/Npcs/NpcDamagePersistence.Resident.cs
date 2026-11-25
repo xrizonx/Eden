@@ -15,6 +15,7 @@ using Eden.Gameplay.Ships;
 using Eden.World.Agents;
 using Eden.World.Catalog;
 using Eden.World.Characters;
+using Eden.World.Exploration;
 using Eden.World.FactionWarfare;
 using Eden.World.Inventory;
 using Eden.World.Loot;
@@ -46,6 +47,17 @@ internal static partial class NpcDamagePersistence
         if (npc.DestroyedAt.HasValue || npc.RetiredAt.HasValue)
         {
             throw new InvalidDataException("The NPC is no longer available.");
+        }
+        bool incursionSite = npc.AnchorKind == NpcAnchorKind.Incursion;
+        if (npc.ExpiresAt <= now || incursionSite && !CombatAnomalyStore.IncursionNpcActive(world, npc, now))
+        {
+            var savedDefense = ShipHealth.DefenseFrom(attributes);
+            HullDamage savedHealth = new(
+                npc.ShieldCharge,
+                Math.Max(0, savedDefense.Armor - npc.ArmorDamage),
+                Math.Max(0, savedDefense.Structure - npc.StructureDamage)
+            );
+            return new(new(npc.Id, savedDefense, savedHealth), 0, false, null);
         }
         if (npc.Role == NpcRole.MilitiaHub)
         {
@@ -139,6 +151,29 @@ internal static partial class NpcDamagePersistence
                 Eden.World.Exploration.AbyssalStore.Killed(world, catalog, npc, pilot, now);
                 return new(new(npc.Id, defense, result.Remaining), result.Applied, true, null);
             }
+            if (incursionSite || NpcPopulationRules.IsIncursionPatrol(npc.AnchorKind))
+            {
+                Maps.MapStatisticsStore.Record(world, npc.SystemId, now, Eden.Gameplay.Maps.MapActivityKind.NpcShipLoss);
+                if (incursionSite)
+                {
+                    CombatAnomalyStore.Killed(world, catalog, npc, now, pilot.Id);
+                }
+                else
+                {
+                    NpcPopulationSeeder.RecordKill(world, npc, now);
+                }
+                PilotInteractionHistoryStore.Destroyed(
+                    world,
+                    pilot.Id,
+                    $"npc:{npc.Id}:{now}",
+                    now,
+                    npc.SystemId,
+                    PilotInteractionHistoryStore.Npc(npc),
+                    attacker,
+                    []
+                );
+                return new(new(npc.Id, defense, result.Remaining), result.Applied, true, null);
+            }
             if (
                 npc.Role is NpcRole.Pirate or NpcRole.Navy or NpcRole.Customs or NpcRole.Concord or NpcRole.MilitiaNavy
                 && !NpcMotionRules.IsStationary(catalog.RequireItem(npc.TypeId).GroupId, npc.Role)
@@ -186,7 +221,10 @@ internal static partial class NpcDamagePersistence
                 PilotInteractionHistoryStore.FactionLoss(world, catalog, pilot, npc, attributes, now);
             }
             long originalCents = militiaMission ? 0 : NpcBountyRules.BaseCents(npc.Role, attributes);
-            long cents = WorldTuningRules.Reward(originalCents, world.Settings.Rewards.BountyMultiplier);
+            decimal multiplier =
+                world.Settings.Rewards.BountyMultiplier
+                * IncursionSystemEffectStore.Bounties(LiveWorld.Find(world.WorldPath), npc.SystemId, now);
+            long cents = WorldTuningRules.Reward(originalCents, multiplier);
             long skillPoints = NpcSkillPointRewards.FromBounty(
                 cents,
                 world.Settings.Progression.KillSkillPointMultiplier,

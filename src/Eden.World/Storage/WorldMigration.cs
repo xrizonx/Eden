@@ -17,7 +17,7 @@ namespace Eden.World.Storage;
 
 internal static class WorldMigration
 {
-    internal const int CurrentVersion = 221;
+    internal const int CurrentVersion = CorporationMedalSchema.Version;
 
     public static void Open(
         WorldDbContext world,
@@ -165,6 +165,10 @@ internal static class WorldMigration
         Eden.World.Exploration.HackingSchema.Upgrade(world);
         Eden.World.Exploration.WormholeTravelSchema.Upgrade(world);
         Eden.World.Exploration.SleeperSiteSchema.Upgrade(world);
+        Eden.World.Exploration.IncursionSchema.Upgrade(world, version);
+        CorporationWarSchema.Upgrade(world);
+        WarReportSchema.Upgrade(world);
+        CorporationMedalSchema.Upgrade(world);
         Eden.World.Inventory.MutationSchema.Upgrade(world);
         Eden.World.Inventory.CargoContainerSchema.Upgrade(world);
         Eden.World.Exploration.AbyssalSchema.Upgrade(world);
@@ -268,8 +272,12 @@ internal static class WorldMigration
         if (version < DevelopmentMarketOrderMigration.Version)
         {
             DevelopmentMarketOrderMigration.RemoveUnusedAsks(world);
+        }
+        if (version < RetiredNpcTrafficMigration.Version)
+        {
+            RetiredNpcTrafficMigration.RemoveCompletedTraffic(world, clock.GetUtcNow().UtcDateTime.ToFileTimeUtc());
             // Commit the schema and sanitized rows first. A restart retries reclamation if interrupted.
-            world.Database.ExecuteSqlRaw($"PRAGMA user_version={CapsuleerCheckpointMigration.Version}");
+            world.Database.ExecuteSqlRaw($"PRAGMA user_version={RetiredNpcTrafficMigration.Version - 1}");
             history.Commit();
             history.Dispose();
             // The next startup step copies the file into RAM, including freelist pages.

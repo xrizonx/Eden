@@ -4,6 +4,9 @@ using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Text.Json;
 using Eden.Data.World.Combat.Npcs;
+using Eden.Data.World.Mining;
+using Eden.Gameplay.Combat;
+using Eden.Gameplay.Mining;
 using Eden.Infrastructure.Diagnostics;
 using Eden.World.Combat.Npcs;
 using Eden.World.Storage;
@@ -13,7 +16,7 @@ namespace Eden.World.Runtime.Economy;
 
 internal readonly record struct EconomyKey(long Id, long Part = 0, string? Name = null);
 
-internal sealed record EconomyChange<T>(EconomyKey Key, T? Value)
+internal readonly record struct EconomyChange<T>(EconomyKey Key, T? Value)
     where T : class;
 
 internal interface IEconomyProjection
@@ -101,11 +104,14 @@ internal sealed partial class EconomyTable<TRow, TState>(
     where TRow : class
     where TState : class
 {
+    private const int MinimumBaselineCapacityToReclaim = 4096;
+    private const int BaselineSparseRatio = 8;
+
     private readonly Dictionary<EconomyKey, TState>? _rows = rowIdIsKey || groupedRows is not null ? null : [];
     private readonly Dictionary<long, TState>? _integerRows = rowIdIsKey ? [] : null;
 
     // Keep the SQLite baseline only until a resident change is projected or reverted.
-    private readonly Dictionary<EconomyKey, TState?> _sqlBaselines = [];
+    private Dictionary<EconomyKey, TState?> _sqlBaselines = [];
 
     // INTEGER PRIMARY KEY tables can use SQLite's update-hook row ID directly.
     private readonly Dictionary<long, EconomyKey>? _rowIds = rowIdIsKey ? null : [];
@@ -271,7 +277,14 @@ internal sealed partial class EconomyTable<TRow, TState>(
         }
     }
 
-    internal void CompleteWrites() => groupedRows?.CompleteWrites();
+    internal void CompleteWrites()
+    {
+        groupedRows?.CompleteWrites();
+        if (_sqlBaselines.Count == 0)
+        {
+            ReclaimSparseBaselines();
+        }
+    }
 
     public void Load(WorldDbContext world)
     {
@@ -283,6 +296,7 @@ internal sealed partial class EconomyTable<TRow, TState>(
             index.Clear();
         }
         _sqlBaselines.Clear();
+        ReclaimSparseBaselines();
         _rowIds?.Clear();
         ReadRows(world, null);
     }
@@ -336,14 +350,24 @@ internal sealed partial class EconomyTable<TRow, TState>(
             }
         }
         ReadRows(world, rowIds);
+        ReclaimSparseBaselines();
     }
 
-    public IEconomyProjection Capture() =>
-        new EconomyProjection<TState>(
-            name,
-            _sqlBaselines.Keys.Select(id => new EconomyChange<TState>(id, Snapshot(id))).ToArray(),
-            project
-        );
+    public IEconomyProjection Capture()
+    {
+        ReclaimSparseBaselines();
+        if (_sqlBaselines.Count == 0)
+        {
+            return new EconomyProjection<TState>(name, [], project);
+        }
+        var rows = new EconomyChange<TState>[_sqlBaselines.Count];
+        int index = 0;
+        foreach (var id in _sqlBaselines.Keys)
+        {
+            rows[index++] = new(id, Snapshot(id));
+        }
+        return new EconomyProjection<TState>(name, rows, project);
+    }
 
     internal bool HasPendingProjection(EconomyChange<TState> row) => _sqlBaselines.ContainsKey(row.Key) && Same(row.Key, row.Value);
 
@@ -381,6 +405,26 @@ internal sealed partial class EconomyTable<TRow, TState>(
         {
             _rowIds.Clear();
             ReadRows(world, null);
+        }
+        ReclaimSparseBaselines();
+    }
+
+    private void ReclaimSparseBaselines()
+    {
+        int capacity = _sqlBaselines.Capacity;
+        if (capacity < MinimumBaselineCapacityToReclaim || _sqlBaselines.Count > capacity / BaselineSparseRatio)
+        {
+            return;
+        }
+        // Rebased and reverted keys can leave a large, mostly empty allocation.
+        // Keep the old dictionary valid until the smaller copy is ready.
+        try
+        {
+            _sqlBaselines = _sqlBaselines.Count == 0 ? [] : new(_sqlBaselines);
+        }
+        catch (OutOfMemoryException)
+        {
+            // Reclamation is optional. Projection still owns every pending baseline.
         }
     }
 
@@ -476,7 +520,22 @@ internal sealed partial class EconomySet<TRow, TState>(EconomyTable<TRow, TState
                     beforeRow is WorldNpc beforeNpc
                     && afterRow is WorldNpc afterNpc
                     && NpcPopulationMember.RetainsBeltPirateDeadline(beforeNpc, afterNpc);
-                changes.Add(new(table.Name, key.Id, Resident: true, KeepNpcPopulationDeadline: keepPopulationDeadline));
+                // A final site clear can retire NPCs in other systems outside the weapon action's participant set.
+                int? retirementSystem =
+                    beforeRow is WorldNpc { RetiredAt: null }
+                    && afterRow is WorldNpc { RetiredAt: not null } retired
+                    && (
+                        retired.AnchorKind == NpcAnchorKind.Incursion
+                        || NpcPopulationRules.IsIncursionPatrol(retired.AnchorKind)
+                        || retired is { Role: NpcRole.Pirate, AnchorKind: NpcAnchorKind.Belt }
+                    )
+                        ? retired.SystemId
+                        : null;
+                var miningSite = (afterRow as SavedMiningSite) ?? (beforeRow as SavedMiningSite);
+                int? changedSystem = miningSite is { Family: MiningFamily.Ice } ? miningSite.SystemId : retirementSystem;
+                changes.Add(
+                    new(table.Name, key.Id, Resident: true, System: changedSystem, KeepNpcPopulationDeadline: keepPopulationDeadline)
+                );
                 changes.AddRange(transaction.FitChanges(beforeRow, afterRow));
                 if (typeof(TRow) == typeof(Eden.Data.World.Mining.WorldAsteroid))
                 {

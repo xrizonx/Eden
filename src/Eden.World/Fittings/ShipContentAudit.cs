@@ -423,17 +423,6 @@ internal static class ShipContentAudit
                 )
             );
         }
-        if (type.GroupId == (int)InformationGroup.ShipScanner)
-        {
-            checks.Add(
-                new(
-                    ContentOperation.ConsumerCoverage,
-                    false,
-                    ShipContentMilestone.InformationAndSalvage,
-                    "Paid optimal-range ship scans work; exact server falloff and hardware sampling remain evidence-blocked."
-                )
-            );
-        }
         if (
             type.GroupId == (int)InformationGroup.TractorBeam
             && InventoryDefinitions.RequiresSpecificShip(catalog.FittingAttributes(type.Id))

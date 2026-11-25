@@ -47,6 +47,10 @@ internal static partial class NpcDamagePersistence
         {
             throw new InvalidDataException("The NPC is no longer available.");
         }
+        if (npc.AnchorKind == NpcAnchorKind.Incursion || NpcPopulationRules.IsIncursionPatrol(npc.AnchorKind))
+        {
+            throw new InvalidDataException("Incursion combat requires the resident world.");
+        }
         // A paid missile already checked safety and recorded CONCORD hostility
         // at launch. Its impact cannot recheck a later safety setting or hull.
         if (!paidProjectile || npc.Role != NpcRole.Concord)

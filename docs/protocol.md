@@ -15,7 +15,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 | [Startup and authentication](protocol/startup.md) | Launcher accounts, handshake, encryption, character selection and initial sessions. |
 | [Characters and skills](protocol/characters.md) | Profiles, attributes, training, clones, implants and redemption. |
 | [Chat, mail and contacts](protocol/social.md) | Native chat, guests, address books, calendars and notifications. |
-| [Corporations](protocol/corporations.md) | Membership, governance, offices, wallets and shared assets. |
+| [Corporations](protocol/corporations.md) | Membership, governance, offices, wallets, shared assets and wars. |
 | [Alliances](protocol/alliances.md) | Membership, governance, bills, diplomacy and shared services. |
 | [Cooperative fleets](protocol/fleets.md) | Membership, command roles, chat, broadcasts, travel and rewards. |
 | [Personal contracts](protocol/contracts.md) | Item exchange, couriers, auctions and bulk offers. |
@@ -39,6 +39,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 | Topic | Coverage |
 | --- | --- |
 | [The Agency](protocol/agency.md) | Native activity directories, Agent Finder and mission cards. |
+| [Sansha Incursions](protocol/incursions.md) | Highsec, lowsec and nullsec focuses, site variants, logistics, flagship loot and system effects. |
 | [Agent missions and research](protocol/agents.md) | Offers, objectives, standings, storylines, career chains, epic arcs, militia missions and R&D agents. |
 | [Information modules and salvage](protocol/information.md) | Scanning, hacking, targeting, tractors and salvage. |
 | [Wormholes](protocol/wormholes.md) | Connections, mass and lifetime, Sleeper encounters and native system effects. |
@@ -161,6 +162,8 @@ scope tested at the time. Add new findings to the owning topic page and link the
 - [Unattended nullsec PvP and map population](protocol/capsuleers.md#unattended-nullsec-pvp-and-map-population--november-23-2026)
 - [Funded refits for existing pilots](protocol/capsuleers.md#funded-refits-for-existing-pilots)
 - [Funded replacement with personal market orders](protocol/capsuleers.md#funded-replacement-with-personal-market-orders)
+- [Replacement after pod loss and market affordability](protocol/capsuleers.md#replacement-after-pod-loss-and-market-affordability)
+- [Trade hub replacement trips](protocol/capsuleers.md#trade-hub-replacement-trips)
 - [Mercoxit traffic concentration at Y-CWQY](protocol/capsuleers.md#mercoxit-traffic-concentration-at-y-cwqy)
 - [Unattended capsuleer simulation](protocol/capsuleers.md#unattended-capsuleer-simulation--november-23-2026)
 - [Ship state after gate transfers](protocol/capsuleers.md#ship-state-after-gate-transfers)
@@ -342,6 +345,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Chat, mail and contacts
 
+- [Mailing-list organization access](protocol/social.md#mailing-list-organization-access)
 - [Corporation calendar events](protocol/social.md#corporation-calendar-events)
 - [Corporation chat MOTD](protocol/social.md#corporation-chat-motd-november-15-2026)
 - [Notepad and shared settings](protocol/social.md#notepad-and-shared-settings--november-14-2026)
@@ -441,6 +445,10 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Cooperative fleets
 
+- [Fleet group moves](protocol/fleets.md#fleet-group-moves)
+- [Fleet composition and map locations](protocol/fleets.md#fleet-composition-and-map-locations)
+- [Fleet recruitment limits and default squads](protocol/fleets.md#fleet-recruitment-limits-and-default-squads)
+- [Native fleet regroup](protocol/fleets.md#native-fleet-regroup)
 - [Fleet finder adverts](protocol/fleets.md#fleet-finder-advert-creation-november-15-2026)
 - [Fleet target tags](protocol/fleets.md#fleet-target-tags-november-14-2026)
 - [Shared fleet rewards and watchlist damage](protocol/fleets.md#shared-mission-rewards-bounties-loot-and-watchlist-damage)
@@ -451,6 +459,13 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Corporations
 
+- [Corporation mail restrictions](protocol/corporations.md#corporation-mail-restrictions)
+- [Medal award notifications](protocol/corporations.md#medal-award-notifications)
+- [Corporation medals](protocol/corporations.md#corporation-medals)
+- [Corporation Kill Reports](protocol/corporations.md#corporation-kill-reports)
+- [Corporation and alliance wars](protocol/corporations.md#corporation-and-alliance-wars)
+- [War report side filters and former ally updates](protocol/corporations.md#war-report-side-filters-and-former-ally-updates)
+- [Defender allies, surrender and War Reports](protocol/corporations.md#defender-allies-surrender-and-war-reports)
 - [Corporation Edit Member identity](protocol/corporations.md#edit-member-private-identity-reply-november-16-2026)
 - [Ordinary corporation member auto-removal](protocol/corporations.md#ordinary-member-auto-removal-november-15-2026)
 - [Corporation blueprint lock/unlock votes](protocol/corporations.md#blueprint-lock-and-unlock-votes-november-15-2026)
@@ -602,8 +617,19 @@ scope tested at the time. Add new findings to the owning topic page and link the
 - <a id="fitting-expansion-milestone-21-scripted-tracking-guidance-and-sensor-modules"></a>[Fitting expansion milestone 21: scripted tracking, guidance and sensor modules](protocol/fitting.md#fitting-expansion-milestone-21-scripted-tracking-guidance-and-sensor-modules)
 - <a id="fitting-expansion-milestone-22-tackle-and-warp-navigation"></a>[Fitting expansion milestone 22: tackle and warp navigation](protocol/fitting.md#fitting-expansion-milestone-22-tackle-and-warp-navigation)
 
+### Sansha Incursions
+
+- [Roaming Sansha populations](protocol/incursions.md#roaming-sansha-populations)
+- [Security campaigns and system effects](protocol/incursions.md#security-campaigns-and-system-effects)
+- [High-security Incursion campaign](protocol/incursions.md#high-security-incursion-campaign)
+- [High-security Vanguard milestone](protocol/incursions.md#high-security-vanguard-milestone)
+
 ### Information modules and salvage
 
+- [Cargo scans through containers](protocol/information.md#cargo-scans-through-containers)
+- [Ship scanning Upwell structures](protocol/information.md#ship-scanning-upwell-structures)
+- [Ship-scanner falloff](protocol/information.md#ship-scanner-falloff)
+- [Cargo scan immunity](protocol/information.md#cargo-scan-immunity)
 - [Automatic signature resolution](protocol/information.md#automatic-signature-resolution--november-15-2026)
 - [DED complexes and Ghost Sites](protocol/information.md#ded-complexes-and-ghost-sites)
 - [DED catalog expansion and escalations](protocol/information.md#ded-catalog-expansion-and-escalations)
@@ -621,6 +647,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Inventory and ship ownership
 
+- [Fitted ship repackaging](protocol/inventory.md#fitted-ship-repackaging)
 - [Inactive ship transfers and move-rule audit](protocol/inventory.md#inactive-ship-transfers-and-move-rule-audit-november-15-2026)
 - [Crystal damage in inventory](protocol/inventory.md#crystal-damage-in-inventory)
 - [Container stacking and fitting](protocol/inventory.md#container-stacking-and-fitting-november-15-2026)
@@ -697,6 +724,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 - [PLEX history and multibuy structure discovery (November 8, 2026)](protocol/industry.md#plex-history-and-multibuy-structure-discovery-november-8-2026)
 - [Renewable belts and economic service charges (November 6, 2026)](protocol/industry.md#renewable-belts-and-economic-service-charges-november-6-2026)
 - [Tech I starter production chain (November 6, 2026)](protocol/industry.md#tech-i-starter-production-chain-november-6-2026)
+- [Personal buy order minimum volume](protocol/industry.md#personal-buy-order-minimum-volume)
 - [Persistent personal market orders (November 6, 2026)](protocol/industry.md#persistent-personal-market-orders-november-6-2026)
 - <a id="personal-market-corporation-wallet-checkbox-compatibility-november-6-2026"></a>[Personal market corporation-wallet checkbox compatibility (November 6, 2026)](protocol/industry.md#personal-market-corporation-wallet-checkbox-compatibility-november-6-2026)
 - <a id="currency-redemption-and-loyalty-wallets"></a>[Currency redemption and loyalty wallets](protocol/industry.md#currency-redemption-and-loyalty-wallets)
@@ -721,6 +749,9 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Navigation and travel
 
+- [Peer gate and cloak history](protocol/navigation.md#peer-gate-and-cloak-history)
+- [Peer movement history](protocol/navigation.md#peer-movement-history)
+- [Peer warp and target locks](protocol/navigation.md#peer-warp-and-target-locks)
 - [Distant warping ships](protocol/navigation.md#distant-warping-ships-in-the-overview-november-17-2026)
 - [Gate-arrival cloak](protocol/navigation.md#gate-arrival-cloak-november-17-2026)
 - [observer grid updates](protocol/navigation.md#observing-a-loss-and-a-warp-in-the-same-update--november-17-2026)
@@ -730,6 +761,9 @@ scope tested at the time. Add new findings to the owning topic page and link the
 - [Shared bookmark folders and access lists](protocol/navigation.md#shared-bookmark-folders-and-access-lists--november-11-2026)
 - [Dynamic and scan-result bookmarks](protocol/navigation.md#dynamic-and-scan-result-bookmarks--november-11-2026)
 - [Star map statistics](protocol/navigation.md#star-map-statistics-november-20-2026)
+- [Memory reclamation after runtime churn](protocol/performance.md#memory-reclamation-after-runtime-churn)
+- [Compact resident rows and map history](protocol/performance.md#compact-resident-rows-and-map-history)
+- [Resident retention and checkpoint stall on HostCram](protocol/performance.md#resident-retention-and-checkpoint-stall-on-hostcram)
 - [Sustained map activity checkpoints](protocol/performance.md#sustained-map-activity-checkpoints)
 - [Native map navigation support](protocol/navigation.md#native-map-navigation-support-november-9-2026)
 - [Personal map visit history](protocol/navigation.md#personal-map-visit-history)
@@ -777,6 +811,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Personal contracts
 
+- [Bulk personal contract cancellation](protocol/contracts.md#bulk-personal-contract-cancellation)
 - [courier package Show Info volume](protocol/contracts.md#courier-package-show-info-volume--november-9-2026)
 - [Resident contract settlement and search](protocol/contracts.md#resident-contract-settlement-and-search)
 - <a id="contract-search-endpoint-access"></a>[Contract search endpoint access](protocol/contracts.md#contract-search-endpoint-access)
@@ -840,6 +875,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Session performance and resident state
 
+- [Runtime admission and checkpoint recovery](protocol/performance.md#runtime-admission-and-checkpoint-recovery)
 - [SQL-free gameplay and cold market preparation](protocol/performance.md#sql-free-gameplay-and-cold-market-preparation)
 - [Planetary sourcing and tether waits during bot trades](protocol/performance.md#planetary-sourcing-and-tether-waits-during-bot-trades)
 - [Session frames blocked by docked bot trades](protocol/performance.md#session-frames-blocked-by-docked-bot-trades)

@@ -19,6 +19,9 @@ public sealed class WorldCombatAnomaly
     public long? EscalationPilotId { get; set; }
     public int EscalationSourceDungeonId { get; set; }
     public long? EscalationExpiresAt { get; set; }
+    public long? IncursionTaleId { get; set; }
+    public bool IncursionCargoIssued { get; set; }
+    public bool IncursionCargoDelivered { get; set; }
 }
 
 public sealed class WorldAnomalyMember

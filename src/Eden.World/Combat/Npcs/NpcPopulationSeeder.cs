@@ -72,7 +72,8 @@ internal sealed partial class NpcPopulationSeeder(
         }
     }
 
-    public long NextUpdate(WorldAction world, int systemId, long now) => NpcPopulationSchedule.Next(world, systemId, now);
+    public long NextUpdate(WorldAction world, int systemId, long now) =>
+        Math.Min(NpcPopulationSchedule.Next(world, systemId, now), IncursionRoamingPopulation.NextUpdate(world, systemId, now));
 
     private readonly HashSet<string> _diagnostics = [];
 
@@ -92,6 +93,7 @@ internal sealed partial class NpcPopulationSeeder(
 
     public void Seed(WorldAction world, CatalogDbContext catalog, int systemId, long now)
     {
+        RetiredNpcTraffic.Prune(world, systemId, now);
         int rookie = NpcEncounterDefinitions.GuristasRookieType;
         var legacy = NpcPopulationMember
             .InSystem(world, systemId)
@@ -142,6 +144,7 @@ internal sealed partial class NpcPopulationSeeder(
         {
             world.SaveChanges();
         }
+        bool incursion = IncursionRoamingPopulation.Reconcile(world, catalog, systemId, now);
         var system = catalog.FindSystem(systemId);
         if (system is null)
         {
@@ -173,7 +176,7 @@ internal sealed partial class NpcPopulationSeeder(
         {
             mining.Seed(world, catalog, systemId, politics.FactionId, security, now);
         }
-        if (!policy.Pirates)
+        if (!policy.Pirates || incursion)
         {
             return;
         }

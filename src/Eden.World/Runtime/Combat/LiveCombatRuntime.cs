@@ -7,6 +7,7 @@ using Eden.Gameplay.Thermal;
 using Eden.Infrastructure.Diagnostics;
 using Eden.World.Combat;
 using Eden.World.Combat.Npcs;
+using Eden.World.Exploration;
 using Eden.World.Runtime.Economy;
 using Eden.World.Storage;
 using Microsoft.EntityFrameworkCore;
@@ -177,7 +178,19 @@ internal sealed partial class LiveCombatRuntime(
         int count = bank?.Count ?? 1;
         var draws = Enumerable.Range(0, count).Select(index => new TurretDraw(index == 0 ? roll : Draw(), crystalRoll ?? Draw())).ToArray();
         var profiles = overloaded ? OverloadedTurrets(ship, bank ?? [moduleId]) : null;
-        var plan = LiveCombatRules.Fire(ship, target, moduleId, banked, velocity, now, draws, activation, profiles?.Weapons);
+        double incursionDamage = IncursionSystemEffectStore.At(owner, ship.SystemId, now)?.WeaponDamageMultiplier ?? 1;
+        var plan = LiveCombatRules.Fire(
+            ship,
+            target,
+            moduleId,
+            banked,
+            velocity,
+            now,
+            draws,
+            activation,
+            profiles?.Weapons,
+            incursionDamage
+        );
         ShipHeatSnapshot? heat = null;
         if (profiles is not null)
         {
@@ -209,7 +222,6 @@ internal sealed partial class LiveCombatRuntime(
                 _ships.Remove(pilotId);
                 _savedShips.Remove(pilotId);
                 RemoveNpc(targetId);
-                _savedNpcs.Remove(targetId);
                 _aggressions?.Remove(targetId);
                 _dirtyAggressions.Remove(targetId);
                 RefreshAggression();
@@ -459,6 +471,26 @@ internal sealed partial class LiveCombatRuntime(
             _savedShips[pilotId] = ship;
             _staleShips.Remove(pilotId);
         }
+        double multiplier = positioned.Position is null
+            ? 1
+            : IncursionSystemEffectStore.At(owner, positioned.SystemId, now)?.ResonanceMultiplier ?? 1;
+        if (positioned.IncursionResonanceMultiplier != multiplier)
+        {
+            double ratio = multiplier / positioned.IncursionResonanceMultiplier;
+            var defense = positioned.Health.Defense;
+            positioned = positioned with
+            {
+                IncursionResonanceMultiplier = multiplier,
+                Health = positioned.Health with
+                {
+                    Defense = defense with
+                    {
+                        ShieldResonance = defense.ShieldResonance.Scale(ratio),
+                        ArmorResonance = defense.ArmorResonance.Scale(ratio),
+                    },
+                },
+            };
+        }
         owner.TrackShip(positioned.ShipId, positioned.SystemId, pilotId);
         _ships[pilotId] = positioned;
         return positioned;
@@ -473,7 +505,7 @@ internal sealed partial class LiveCombatRuntime(
             {
                 return null;
             }
-            if (npc is not null)
+            if (npc is not null && (npc.Available || _dirtyNpcs.Contains(id)))
             {
                 SetNpc(npc);
                 _savedNpcs[id] = npc;
@@ -481,15 +513,18 @@ internal sealed partial class LiveCombatRuntime(
             else
             {
                 RemoveNpc(id);
-                _savedNpcs.Remove(id);
             }
             _staleNpcs.Remove(id);
         }
-        if (npc is not null)
+        if (npc is not null && now < npc.AvailableUntil)
         {
             var repaired = RepairNpc(npc, now);
             if (repaired != npc)
             {
+                if (!npc.Available)
+                {
+                    _savedNpcs.TryAdd(id, npc);
+                }
                 SetNpc(repaired);
                 _dirtyNpcs.Add(id);
                 owner.ObjectsChanged();
@@ -791,20 +826,50 @@ internal sealed partial class LiveCombatRuntime(
                 case "WorldNpcMiningOperation":
                     ObserveEncounterPopulation(change.Id, change.Table, change.Resident);
                     break;
+                case "WorldMiningSite" when change.System is int miningSystem && IncursionStore.IsPopulationSystem(miningSystem):
+                    InvalidatePopulationDeadline(miningSystem, "Incursion ice field");
+                    break;
                 case "WorldNpcStanding":
                     InvalidatePopulationDeadlines("standings");
                     break;
                 case "WorldNpcMiningMember":
                     ObserveNpcPopulation(change.Id, change.Table, change.Resident);
                     _contactEpoch++;
-                    _staleNpcs.Add(change.Id);
+                    if (_npcs.ContainsKey(change.Id))
+                    {
+                        _staleNpcs.Add(change.Id);
+                    }
                     break;
                 case "WorldNpc":
                     ObserveNpcPopulation(change.Id, change.Table, change.Resident, change.KeepNpcPopulationDeadline);
                     _effectiveNpcs.Remove(change.Id);
                     _acquisitions.Clear();
                     _contactEpoch++;
-                    _staleNpcs.Add(change.Id);
+                    if (change.System is not null)
+                    {
+                        // Incursion retirement discards unfinished NPC damage and aggression from the encounter being removed.
+                        _dirtyNpcs.Remove(change.Id);
+                        _dirtyAggressions.Remove(change.Id);
+                        _aggressions?.Remove(change.Id);
+                        RemoveNpc(change.Id);
+                        break;
+                    }
+                    if (_npcs.ContainsKey(change.Id))
+                    {
+                        if (
+                            owner.HasPersistenceOwnership
+                            && owner.Economy.IsLoaded
+                            && !_dirtyNpcs.Contains(change.Id)
+                            && !owner.Economy.NpcAvailable(change.Id)
+                        )
+                        {
+                            RemoveNpc(change.Id);
+                        }
+                        else
+                        {
+                            _staleNpcs.Add(change.Id);
+                        }
+                    }
                     break;
                 case "WorldNpcAggression":
                     _acquisitions.Clear();

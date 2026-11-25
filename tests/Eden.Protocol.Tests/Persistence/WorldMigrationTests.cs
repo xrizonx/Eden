@@ -1,9 +1,13 @@
+using Eden.Data.World.Combat.Npcs;
+using Eden.Data.World.Corporations;
+using Eden.Data.World.Inventory;
 using Eden.Data.World.Propulsion;
 using Eden.Data.World.Structures;
 using Eden.Gameplay.Docking;
 using Eden.Gameplay.Flight;
 using Eden.Protocol.Tests.Structures;
 using Eden.World.Fittings;
+using Eden.World.Runtime;
 using Eden.World.Storage;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -101,6 +105,117 @@ public sealed class WorldMigrationTests
             Assert.Equal(0, battle.HullCapacity);
             Assert.Equal(WorldMigration.CurrentVersion, world.Database.SqlQueryRaw<int>("PRAGMA user_version").AsEnumerable().Single());
         }
+    }
+
+    [Fact]
+    public void Version226AddsCorporationWarStateAndPreservesTheExistingWorld()
+    {
+        using StructureTests.Fixture fixture = new();
+        var structure = fixture.Online();
+        long ship = fixture.ShipId;
+        long cargo = fixture.Item(34, 29);
+        var database = new WorldDatabase(fixture.Db.Path);
+        using (WorldDbContext world = new(database.Path))
+        {
+            world.Database.ExecuteSqlRaw(
+                """
+                DROP TABLE WorldCorporationWarInvitationSettings;
+                DROP TABLE WorldCorporationWarInvitation;
+                DROP TABLE WorldCorporationWar;
+                PRAGMA user_version=226;
+                """
+            );
+        }
+
+        for (int reopen = 0; reopen < 2; reopen++)
+        {
+            WorldInitialization.Initialize(database, fixture.Clock);
+            using (WorldDbContext world = new(database.Path))
+            {
+                Assert.Equal(WorldMigration.CurrentVersion, world.Database.SqlQueryRaw<int>("PRAGMA user_version").AsEnumerable().Single());
+                var columns = world.Database.SqlQueryRaw<string>("SELECT name AS Value FROM pragma_table_info('WorldCorporationWar')");
+                Assert.Contains("InheritedFromWarId", columns);
+                Assert.Contains("InheritedAt", columns);
+            }
+            using LiveWorld live = new(database, fixture.Clock, _ => { });
+            live.Economy.Inspect(world =>
+            {
+                var pilot = world.Pilots.Find(fixture.PilotId)!;
+                Assert.Equal(fixture.CorporationId, pilot.CorporationId);
+                Assert.Equal(ship, pilot.ActiveShipId);
+                Assert.Equal(fixture.PilotId, world.Set<SavedCorporation>().Find(fixture.CorporationId)!.CeoId);
+                var upwell = world.Set<SavedStructure>().Find(structure.Id)!;
+                Assert.Equal(fixture.CorporationId, upwell.CorporationId);
+                Assert.Equal(structure.State, upwell.State);
+                Assert.Equal(29, world.Set<OwnedItem>().Find(cargo)!.Quantity);
+                Assert.Empty(world.Set<SavedCorporationWar>());
+                Assert.Empty(world.Set<SavedCorporationWarInvitation>());
+                Assert.Empty(world.Set<SavedCorporationWarInvitationSettings>());
+                return true;
+            });
+        }
+    }
+
+    [Fact]
+    public void Version227PreservesExistingWarsAndAddsNegotiationAndReportTables()
+    {
+        TestClock clock = new();
+        using TestWorld fixture = new(clock: clock, freshInitialization: true);
+        var database = new WorldDatabase(fixture.Path);
+        using (WorldDbContext world = new(database.Path))
+        {
+            world.Database.ExecuteSqlRaw(
+                """
+                ALTER TABLE WorldCorporationWar DROP COLUMN OpenForAllies;
+                DROP TABLE WorldCorporationWarNegotiation;
+                DROP TABLE WorldCorporationWarAlly;
+                DROP TABLE WorldCorporationWarKill;
+                PRAGMA user_version=227;
+                """
+            );
+            world.Database.ExecuteSql(
+                $"""
+                INSERT INTO WorldCorporationWar(Id,AttackerId,DefenderId,DeclaredAt,StartsAt,Mutual)
+                VALUES (41,98000000,98000001,{clock.Now - TimeSpan.TicksPerDay},{clock.Now},1);
+                """
+            );
+        }
+
+        for (int reopen = 0; reopen < 2; reopen++)
+        {
+            WorldInitialization.Initialize(database, clock);
+            using LiveWorld live = new(database, clock, _ => { });
+            live.Economy.Inspect(world =>
+            {
+                var war = Assert.Single(world.Set<SavedCorporationWar>());
+                Assert.Equal((41L, 98000000, 98000001, clock.Now), (war.Id, war.AttackerId, war.DefenderId, war.StartsAt));
+                Assert.True(war.Mutual);
+                Assert.False(war.OpenForAllies);
+                Assert.Empty(world.Set<SavedCorporationWarNegotiation>());
+                Assert.Empty(world.Set<SavedCorporationWarAlly>());
+                Assert.Empty(world.Set<SavedCorporationWarKill>());
+                return true;
+            });
+        }
+    }
+
+    [Fact]
+    public void Version225KeepsExistingNpcRowsWhenAddingPatrolExpiry()
+    {
+        using Eden.Protocol.Tests.Combat.NpcCombatTests.Fixture fixture = new(useTestClock: true);
+        long npcId = fixture.Npc.Id;
+        var database = new WorldDatabase(fixture.Db.Path);
+        using (WorldDbContext world = new(database.Path))
+        {
+            world.Database.ExecuteSqlRaw("ALTER TABLE WorldNpc DROP COLUMN ExpiresAt; PRAGMA user_version=225;");
+        }
+        WorldInitialization.Initialize(database);
+        using LiveWorld live = new(database, fixture.Clock, _ => { });
+        var npc = live.Economy.Inspect(world => world.Set<WorldNpc>().Find(npcId)!);
+        Assert.Null(npc.ExpiresAt);
+        Assert.Equal(fixture.Npc.TypeId, npc.TypeId);
+        Assert.Equal(fixture.Npc.SystemId, npc.SystemId);
+        Assert.Equal(fixture.Npc.Position, new SpacePosition(npc.X, npc.Y, npc.Z));
     }
 
     [Fact]

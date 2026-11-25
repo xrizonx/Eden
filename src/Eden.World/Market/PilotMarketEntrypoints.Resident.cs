@@ -31,13 +31,14 @@ internal sealed partial class PilotMarketStore
         long pilotId,
         int stationId,
         IReadOnlyList<MarketPurchase> items,
-        int days
+        int days,
+        int minimumVolume
     )
     {
         Expire();
         using var world = live.Economy.Begin();
         using CatalogDbContext catalog = new(database.CatalogPath);
-        var result = ExecuteBuy(world, catalog, pilotId, stationId, items, days);
+        var result = ExecuteBuy(world, catalog, pilotId, stationId, items, days, minimumVolume: minimumVolume);
         world.Commit();
         signal.Changed();
         return result;
@@ -217,11 +218,7 @@ internal sealed partial class PilotMarketStore
 
     private MarketSummary? ChangedRegionAsks(LiveWorld live, long pilot, long catalog, long now, long active)
     {
-        const int maximumIncrementalTypes = 8;
-        if (
-            live.MarketSummaries.ReadDirtyRegion(pilot, catalog, database.Settings, now, active) is not { } changed
-            || changed.Types.Count > maximumIncrementalTypes
-        )
+        if (live.MarketSummaries.ReadDirtyRegion(pilot, catalog, database.Settings, now, active) is not { } changed)
         {
             return null;
         }

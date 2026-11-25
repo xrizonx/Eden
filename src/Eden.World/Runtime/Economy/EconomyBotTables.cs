@@ -914,7 +914,8 @@ internal sealed partial class ResidentEconomy
                         row.VelocityZ,
                         row.X,
                         row.Y,
-                        row.Z
+                        row.Z,
+                        row.ExpiresAt
                     ),
                 state => new Eden.Data.World.Combat.Npcs.WorldNpc
                 {
@@ -950,12 +951,13 @@ internal sealed partial class ResidentEconomy
                     X = state.X,
                     Y = state.Y,
                     Z = state.Z,
+                    ExpiresAt = state.ExpiresAt,
                 },
                 ProjectWorldNpc,
                 "Id,AcquisitionRange,AnchorKind,ArmorDamage,ArmorRepairAt,BeltId,CorporationId,DestroyedAt,"
                     + "EncounterId,FactionId,HomeX,HomeY,HomeZ,MotionAt,Name,Navigation,RepairRevision,RetiredAt,Role,"
                     + "ShieldCharge,ShieldRepairAt,SpawnSlot,StructureDamage,SystemId,TypeId,UpdatedAt,VelocityX,VelocityY,"
-                    + "VelocityZ,X,Y,Z",
+                    + "VelocityZ,X,Y,Z,ExpiresAt",
                 reader =>
                     new(
                         reader.GetInt64(1),
@@ -989,22 +991,23 @@ internal sealed partial class ResidentEconomy
                         reader.GetDouble(29),
                         reader.GetDouble(30),
                         reader.GetDouble(31),
-                        reader.GetDouble(32)
+                        reader.GetDouble(32),
+                        reader.IsDBNull(33) ? null : reader.GetInt64(33)
                     ),
                 state => new(state.Id),
                 indexes:
                 [
-                    new("Id", row => row.Id),
-                    new("AnchorKind", row => row.AnchorKind),
-                    new("BeltId", row => row.BeltId),
-                    new("CorporationId", row => row.CorporationId),
-                    new("EncounterId", row => row.EncounterId),
-                    new("FactionId", row => row.FactionId),
-                    new("SpawnSlot", row => row.SpawnSlot),
-                    new("SystemId", row => row.SystemId),
-                    new("TypeId", row => row.TypeId),
+                    new("AnchorKind", row => row.AnchorKind, member: EconomyIndexMember.RowId),
+                    new("BeltId", row => row.BeltId, member: EconomyIndexMember.RowId),
+                    new("CorporationId", row => row.CorporationId, member: EconomyIndexMember.RowId),
+                    new("EncounterId", row => row.EncounterId, member: EconomyIndexMember.RowId),
+                    new("FactionId", row => row.FactionId, member: EconomyIndexMember.RowId),
+                    new("SpawnSlot", row => row.SpawnSlot, member: EconomyIndexMember.RowId),
+                    new("SystemId", row => row.SystemId, member: EconomyIndexMember.RowId),
+                    new("TypeId", row => row.TypeId, member: EconomyIndexMember.RowId),
                 ],
-                primaryColumn: "Id"
+                primaryColumn: "Id",
+                rowIdIsKey: true
             )
         );
         Register(
@@ -1641,22 +1644,22 @@ internal sealed partial class ResidentEconomy
                 changed: MissileChanged,
                 indexes:
                 [
-                    new("Id", row => row.Id),
-                    new("ChargeTypeId", row => row.ChargeTypeId),
-                    new("CorporationId", row => row.CorporationId),
-                    new("GroupId", row => row.GroupId),
-                    new("LauncherTypeId", row => row.LauncherTypeId),
-                    new("ModuleId", row => row.ModuleId),
-                    new("PilotId", row => row.PilotId),
-                    new("SourceKind", row => row.SourceKind),
-                    new("SourceShipId", row => row.SourceShipId),
-                    new("SourceTypeId", row => row.SourceTypeId),
-                    new("Status", row => row.Status),
-                    new("SystemId", row => row.SystemId),
-                    new("TargetId", row => row.TargetId),
-                    new("TargetKind", row => row.TargetKind),
+                    new("ChargeTypeId", row => row.ChargeTypeId, member: EconomyIndexMember.RowId),
+                    new("CorporationId", row => row.CorporationId, member: EconomyIndexMember.RowId),
+                    new("GroupId", row => row.GroupId, member: EconomyIndexMember.RowId),
+                    new("LauncherTypeId", row => row.LauncherTypeId, member: EconomyIndexMember.RowId),
+                    new("ModuleId", row => row.ModuleId, member: EconomyIndexMember.RowId),
+                    new("PilotId", row => row.PilotId, member: EconomyIndexMember.RowId),
+                    new("SourceKind", row => row.SourceKind, member: EconomyIndexMember.RowId),
+                    new("SourceShipId", row => row.SourceShipId, member: EconomyIndexMember.RowId),
+                    new("SourceTypeId", row => row.SourceTypeId, member: EconomyIndexMember.RowId),
+                    new("Status", row => row.Status, member: EconomyIndexMember.RowId),
+                    new("SystemId", row => row.SystemId, member: EconomyIndexMember.RowId),
+                    new("TargetId", row => row.TargetId, member: EconomyIndexMember.RowId),
+                    new("TargetKind", row => row.TargetKind, member: EconomyIndexMember.RowId),
                 ],
-                primaryColumn: "Id"
+                primaryColumn: "Id",
+                rowIdIsKey: true
             )
         );
         Register(
@@ -2184,7 +2187,10 @@ internal sealed partial class ResidentEconomy
                         row.DedVisitedRooms,
                         row.EscalationPilotId,
                         row.EscalationSourceDungeonId,
-                        row.EscalationExpiresAt
+                        row.EscalationExpiresAt,
+                        row.IncursionTaleId,
+                        row.IncursionCargoIssued,
+                        row.IncursionCargoDelivered
                     ),
                 state => new Eden.Data.World.Exploration.WorldCombatAnomaly
                 {
@@ -2205,10 +2211,14 @@ internal sealed partial class ResidentEconomy
                     EscalationPilotId = state.EscalationPilotId,
                     EscalationSourceDungeonId = state.EscalationSourceDungeonId,
                     EscalationExpiresAt = state.EscalationExpiresAt,
+                    IncursionTaleId = state.IncursionTaleId,
+                    IncursionCargoIssued = state.IncursionCargoIssued,
+                    IncursionCargoDelivered = state.IncursionCargoDelivered,
                 },
                 ProjectWorldCombatAnomaly,
                 "Id,CompletedAt,DefinitionVersion,DungeonId,IsSignature,NextWaveAt,ReplaceAt,Slot,SystemId,Wave,X,Y,Z,"
-                    + "DedVisitedRooms,EscalationPilotId,EscalationSourceDungeonId,EscalationExpiresAt",
+                    + "DedVisitedRooms,EscalationPilotId,EscalationSourceDungeonId,EscalationExpiresAt,IncursionTaleId,"
+                    + "IncursionCargoIssued,IncursionCargoDelivered",
                 reader =>
                     new(
                         reader.GetInt64(1),
@@ -2227,7 +2237,10 @@ internal sealed partial class ResidentEconomy
                         reader.GetInt64(14),
                         reader.IsDBNull(15) ? null : reader.GetInt64(15),
                         reader.GetInt32(16),
-                        reader.IsDBNull(17) ? null : reader.GetInt64(17)
+                        reader.IsDBNull(17) ? null : reader.GetInt64(17),
+                        reader.IsDBNull(18) ? null : reader.GetInt64(18),
+                        reader.GetBoolean(19),
+                        reader.GetBoolean(20)
                     ),
                 state => new(state.Id),
                 indexes:
@@ -2236,6 +2249,7 @@ internal sealed partial class ResidentEconomy
                     new("DungeonId", row => row.DungeonId),
                     new("SystemId", row => row.SystemId),
                     new("EscalationPilotId", row => row.EscalationPilotId),
+                    new("IncursionTaleId", row => row.IncursionTaleId),
                 ],
                 primaryColumn: "Id"
             )

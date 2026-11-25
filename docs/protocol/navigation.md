@@ -8,6 +8,9 @@ These records preserve milestone evidence and historical observations. Dates, sc
 
 ## Contents
 
+- [Peer gate and cloak history](#peer-gate-and-cloak-history)
+- [Peer movement history](#peer-movement-history)
+- [Peer warp and target locks](#peer-warp-and-target-locks)
 - [Focused interdiction at NPC stargates](#focused-interdiction-at-npc-stargates)
 - [Personal map visit history](#personal-map-visit-history)
 - [Subcapital Micro Jump Field Generator](#subcapital-micro-jump-field-generator)
@@ -50,6 +53,48 @@ These records preserve milestone evidence and historical observations. Dates, sc
 - [Stargate travel, November 2, 2026](#stargate-travel-november-2-2026)
 - [Native player Orbit and moving navigation targets](#native-player-orbit-and-moving-navigation-targets)
 - [Shared ship motion and collision correction](#shared-ship-motion-and-collision-correction)
+
+## Peer gate and cloak history
+
+An observer now drops gate arrival and departure history after the existing presentation windows close. An arrival
+expires after eight seconds. A departure remains eligible at the exact three-second deadline. The observer keeps
+recent history across a hull's brief absence and uses its latest observed time to prevent expired effects from
+replaying after the wall clock moves backwards.
+
+A cloak marker stays available while the hull remains published in the observer's system, including when the hull
+uncloaks outside the grid. A visible return consumes the marker after adding the ball. A refresh or snapshot releases
+markers for hulls that have left the published system scene. The server continues to use the pinned build 3662168
+gate and cloak commands. The prior retention reproduced on `0f02b85a`.
+
+**Automated validation.** All seven exact cases passed in 14.64 seconds. The churn tests retired 256 hulls with
+gate events and 128 cloaked hulls. Tests also covered the gate deadlines, hidden arrival deduplication, an off-grid
+uncloak, and a wall-clock rollback after expiry. Four retention checks failed on the unchanged coordinator in
+8.87 seconds, and its three presentation checks passed. The affected flight selection passed 79 cases in 54.03 seconds.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** None.
+
+## Peer movement history
+
+The shared flight coordinator discards a hull's movement orders when the hull leaves. The latest sequence is now
+derived from the retained orders, replacing a separate entry that survived for every departed hull.
+An order now carries its preceding sequence for the same hull. The observer reads one immutable batch of orders
+and can distinguish trimmed history from sequence numbers used by other ships. The movement history window remains
+32 ticks. When a previously observed hull reappears between frames with a stale cursor, the observer restores the
+current position and course and can still receive eligible new visual effects from the retained batch.
+
+This changes Eden's internal observer bookkeeping on baseline `3059cadf` and preserves the pinned build 3662168
+Destiny command shapes.
+
+**Automated validation.** The exact `MotionHistoryReleasesDepartedCursorsAndDetectsTrimmedOrdersForTheSameShip` and
+`SameHullReturningBetweenFramesReconcilesItsPoseAndOnlyReplaysFreshVisuals` checks passed all three cases in 17.98 seconds.
+The affected flight selection passed 67 cases in 57.66 seconds, including gate transitions, collision observers,
+movement command stamps, Micro Jump Field effects and repeated translocations.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** None.
 
 ## Focused interdiction at NPC stargates
 
@@ -235,6 +280,49 @@ Added documentation links/anchors and `git diff --check` passed. The full .NET s
 
 **Optional maintainer checks.** Jump through a gate and wait for expiry; repeat and move immediately.
 From another pilot, verify the receiving gate flashes while the arriving ship stays hidden.
+
+## Peer warp and target locks
+
+The reported overview showed a locked Monitor at 54.73 AU alongside a damage message. The observer replay reproduced a
+server-side path to this state. The server streamed a remote ship's `WarpTo` command during alignment. Destiny could
+then start the remote warp locally while Eden still placed the ship within lock range.
+
+Observers now receive subwarp movement while a peer aligns. When the simulation commits warp entry, the observer
+receives the existing `AddBalls` update with the authoritative warp start stamp if the ship is still on grid. The
+normal `RemoveBalls` update takes it off the overview as it leaves range. Pilot targeting also checks resident bot
+travel state and position when the published scene is stale. Entering warp or leaving targeting range clears the
+lock and stops repeating weapons before another damage event.
+
+Inert inspection of the original build-3662168 `code.ccp`
+(SHA-256 `37FB2AF4FA0EC5C8FA320F34CD28C8B7DBF4917418336B38CBA20A7860DB0368`) confirmed the existing client
+`OnActivatingWarp`, `AddBalls`, `RemoveBalls` and `OnTargetLost` handlers. The older local EVE.js
+`server/src/space/runtime/scene/targeting.js` (SHA-256
+`94CA0673881896A6845EFD48A03522DE7E8788AD1F9A518E1F59C3981F36E672`) revalidates lock range and active warp against
+simulation entities. Carbon's `EvolveWarp` shows that an aligning ball can transition into warp as Destiny advances.
+[Carbon Destiny revision 27ee40b](https://github.com/carbonengine/destiny/blob/27ee40b38a563d29054b32f64c3ebc87fabaec1f/src/Ballpark.cpp)
+· [EVE University targeting](https://wiki.eveuniversity.org/Targeting)
+
+**Automated validation.** The initial exact filter
+`FullyQualifiedName=Eden.Protocol.Tests.Flight.GateActivityProtocolTests.PeerAlignmentStaysOnGridUntilTheServerPublishesWarpEntry`
+failed on the unexpected remote `WarpTo` (40.54 s build, 9.38 s tests). The corrected exact-method run added
+`FullyQualifiedName=Eden.Protocol.Tests.Combat.PilotTurretTests.ResidentBotWarpOrDistanceClearsLocksAndStopsRepeatWithStaleScene`
+and passed all three cases (6.37 s build, 9.39 s tests). The resident replay covers both warp entry and an AU-scale
+position change with the last published contact still on grid.
+
+The solution restored and built in 2.09 s with zero warnings or errors. The affected-class run passed 173/173
+cases in 94.79 s with this filter:
+
+```text
+FullyQualifiedName~.GateActivityProtocolTests.|FullyQualifiedName~.FlightSessionTests.|FullyQualifiedName~.TargetingTests.|FullyQualifiedName~.TargetLockSessionTests.|FullyQualifiedName~.PilotTurretTests.|FullyQualifiedName~.CapsuleerDefenseTests.|FullyQualifiedName~.MissileCombatTests.|FullyQualifiedName~.CapsuleerTrafficNavigationTests.|FullyQualifiedName~.CommandBurstTests.|FullyQualifiedName~.CapsuleerPresentationTests.
+```
+
+Both Python policy suites and the .NET style check passed. The default CSharpier scan flagged generated files in the
+local `.artifacts` recovery directory. CSharpier and the line-width check passed in 9.27 s with that directory excluded.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** With a turret repeating against a locked pilot, observe that alignment preserves
+the lock and confirmed warp entry drops the lock before the next cycle.
 
 ## Distant warping ships in the overview, November 17, 2026
 

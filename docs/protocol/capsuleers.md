@@ -1172,6 +1172,54 @@ Not performed. Agent client testing is disabled.
 
 None.
 
+## Trade hub replacement trips
+
+A docked capsuleer can leave an unstocked refuge when local replacement shopping and any pending corporate bid window
+have run their course. Eden checks the pinned trade hub stations in gate-distance order and chooses a reachable station
+that has a complete fit within the applicable budget. The pilot checks the orders again upon docking. It can buy a simpler
+fit for its role if a saved fit is unavailable. The market fills, fitting, and boarding share a resident transaction.
+The refit setting determines whether the server pays. Otherwise an eligible employer or the independent pilot pays.
+
+The capsule uses the ordinary gate and docking path. The journey survives a checkpoint and restart. A miner takes the
+replacement back to the station it set out from. The population work policy controls which hubs are eligible. If the
+offers disappear during the trip, the pilot can look for another stocked hub or retry at the current station.
+
+The five trade hub IDs come from the build 3662168 station catalog and the EVE University trade hub list. The EVE.js 261108.1
+reference uses station IDs when placing market orders in `server/src/services/market/marketProxyService.js` (SHA-256
+`F457CB1B181CEB570A5FA346C718D71A7CE7B84B8734C88CEE7F2546A8CE175B`). Eden uses the existing resident market and gate
+transfer operations. Routes share one catalog path search per hub. [Trade hubs](https://wiki.eveuniversity.org/Trade_Hubs)
+
+### Automated validation
+
+`StrandedBotTravelsToJitaAndBuysAnOnlineFitAcrossRestart` restores saved waiting states at an unstocked station.
+It verifies that a funded hauler and an independent miner paying from its wallet cross the gate after a restart,
+buy two parts at Jita, and board with an online module. It also verifies the miner's return to its original station.
+The two exact cases passed in 10.62 seconds. The combined `CapsuleerAmmunitionSupplyTests`, `CapsuleerHaulerTests`,
+`CapsuleerMinerTests`, and `CapsuleerCheckpointEncodingTests` filter passed 66 tests in 87.01 seconds. The solution
+built with zero warnings or errors. Catalog setup, formatting policy, style, CSharpier, and line-width checks passed.
+The CSharpier check excluded the local `.artifacts` recovery directory.
+
+## Replacement after pod loss and market affordability
+
+Ship replacement follows the chain of destroyed capsules back to the lost work hull. This lets a hauling bot use its
+industrial fit or the Badger fallback when its home clone wakes after a pod loss. The lookup uses the resident loss
+index scoped to the pilot.
+
+A complete replacement quote prices immediate purchases against the settlement rules. It sums the resting price of
+each NPC fill and the submitted offer for units filled by player orders. A pilot or corporation with enough ISK for the
+complete fit can purchase it even when the last NPC ask has a higher unit price. The station and funding policies come
+from the existing replacement path. The local EVE.js 261108.1 comparison checked `finishDurablePodDeath` in
+`shipDestruction.js` and fill valuation in `marketProxyService.js`.
+[UniWiki trading](https://wiki.eveuniversity.org/Trading) ·
+[CCP market order matching](https://support.eveonline.com/hc/en-us/articles/203218932-Buy-and-Sell-Orders)
+
+### Automated validation
+
+The `StrandedBotTravelsToJitaAndBuysAnOnlineFitAcrossRestart` filter includes a wallet-funded hauler with two pod
+losses. It travels, restarts, buys the industrial hull and module, and boards with the module online.
+`UnfundedBotBuysReplacementAtCombinedNpcAskPrice` passed in 12.88 seconds using a Standard market snapshot.
+It verifies both resting fill prices, the exact wallet debit, and two online modules on the replacement.
+
 ## Dynamic paid ship replacement
 
 After a loss, a miner or traffic pilot in a bot-led corporation uses the loss manifest to plan its replacement at the

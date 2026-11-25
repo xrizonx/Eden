@@ -9,6 +9,7 @@ using Eden.Data.World.Information;
 using Eden.Data.World.Inventory;
 using Eden.Data.World.Loot;
 using Eden.Data.World.Mining;
+using Eden.Data.World.Structures;
 using Eden.Gameplay.Agents;
 using Eden.Gameplay.Combat;
 using Eden.Gameplay.Dogma;
@@ -17,6 +18,7 @@ using Eden.Gameplay.Flight;
 using Eden.Gameplay.Information;
 using Eden.Gameplay.Inventory;
 using Eden.Gameplay.Loot;
+using Eden.Gameplay.Structures;
 using Eden.Infrastructure.Registration;
 using Eden.World.Agents;
 using Eden.World.Catalog;
@@ -29,12 +31,17 @@ using Eden.World.Runtime;
 using Eden.World.Runtime.Economy;
 using Eden.World.Skills;
 using Eden.World.Storage;
+using Eden.World.Structures;
 using Eden.World.Thermal;
 
 namespace Eden.World.Information;
 
 [Injectable]
-internal sealed partial class PilotInformationStore(WorldDatabase database, ICooperativeFleets? fleets = null) : IPilotInformation
+internal sealed partial class PilotInformationStore(
+    WorldDatabase database,
+    ICooperativeFleets? fleets = null,
+    Random? shipScanRandom = null
+) : IPilotInformation
 {
     private readonly NpcProfileCatalog _npcs = new();
 
@@ -49,7 +56,11 @@ internal sealed partial class PilotInformationStore(WorldDatabase database, ICoo
 
     public InformationActivation Begin(long pilotId, long moduleId, DogmaEffect effect, long targetId, IReadOnlySet<long> locks, long now)
     {
-        using WorldActionScope transaction = new(database, Participants(pilotId, targetId));
+        using WorldActionScope transaction = new(
+            database,
+            Participants(pilotId, targetId),
+            select: effect == DogmaEffect.ShipScan ? world => Participants(pilotId, targetId, world.Structure(targetId)?.SystemId) : null
+        );
         using CatalogDbContext catalog = new(database.CatalogPath);
         var result = Begin(transaction.World, catalog, pilotId, moduleId, effect, targetId, locks, now);
         transaction.Commit();
@@ -158,10 +169,11 @@ internal sealed partial class PilotInformationStore(WorldDatabase database, ICoo
         return new(cycle, capacitor);
     }
 
-    private static TransactionParticipants Participants(long pilotId, long targetId) =>
+    private static TransactionParticipants Participants(long pilotId, long targetId, int? structureSystem = null) =>
         targetId == 0
             ? new(pilots: [pilotId])
             : new(
+                systems: structureSystem is int system ? [system] : [],
                 pilots: [pilotId],
                 ships: [targetId],
                 resources: [new(SharedSimulationResource.Npc, targetId), new(SharedSimulationResource.Wreck, targetId)]
@@ -170,11 +182,21 @@ internal sealed partial class PilotInformationStore(WorldDatabase database, ICoo
     private bool CanTractor(WorldAction world, Pilot pilot, WorldWreck wreck, long now) =>
         SpaceLootRights.CanTake(world, pilot, wreck.SystemId, new(wreck.OwnerId, wreck.CorporationId, wreck.Abandoned), now, fleets);
 
-    private void CheckTarget(WorldAction world, CatalogDbContext catalog, Pilot pilot, long targetId, InformationModule module, long now)
+    private (double Accuracy, SavedStructure? Structure) CheckTarget(
+        WorldAction world,
+        CatalogDbContext catalog,
+        Pilot pilot,
+        long targetId,
+        InformationModule module,
+        long now
+    )
     {
         int system = System(catalog, pilot);
         SpacePosition targetPosition;
         double radius;
+        Pilot? scannedPilot = null;
+        int? scannedNpcType = null;
+        SavedStructure? scannedStructure = null;
         if (module.Effect is DogmaEffect.TractorBeam or DogmaEffect.Salvaging)
         {
             var wreck = world.Set<WorldWreck>().Find(targetId);
@@ -223,6 +245,7 @@ internal sealed partial class PilotInformationStore(WorldDatabase database, ICoo
             }
             targetPosition = new(position.X, position.Y, position.Z);
             radius = catalog.FittingType(target.ActiveShip.TypeId)!.Radius ?? 0;
+            scannedPilot = target;
         }
         else if (
             module.Effect == DogmaEffect.CargoScan
@@ -242,27 +265,61 @@ internal sealed partial class PilotInformationStore(WorldDatabase database, ICoo
         {
             targetPosition = NpcMotion.Position(npc);
             radius = catalog.FittingType(npc.TypeId)!.Radius ?? 0;
+            scannedNpcType = npc.TypeId;
+        }
+        else if (
+            module.Effect == DogmaEffect.ShipScan
+            && StructureCombatTargets.Find(world, targetId) is { } structure
+            && structure.SystemId == system
+            && StructureCombatRules.Vulnerable(structure.State)
+            && StructureCatalog.Read(catalog, structure.TypeId) is { CategoryId: StructureRules.CategoryId } profile
+        )
+        {
+            targetPosition = StructureCombatTargets.Position(structure);
+            radius = profile.Radius;
+            scannedStructure = structure;
         }
         else
         {
-            throw new InvalidDataException("Scan a live pilot ship or a cargo container in the same system.");
+            throw new InvalidDataException("Scan an eligible target in the same system.");
         }
         double distance = Math.Max(
             0,
             Position(pilot).DistanceTo(targetPosition) - (catalog.FittingType(pilot.ActiveShip.TypeId)!.Radius ?? 0) - radius
         );
-        // No undocumented falloff sampling is substituted for the ship scanner.
-        if (distance > module.Range)
+        double accuracy =
+            module.Effect == DogmaEffect.ShipScan ? InformationRules.ShipScanAccuracy(distance, module.Range, module.Falloff)
+            : distance <= module.Range ? 1
+            : 0;
+        if (accuracy <= 0)
         {
             throw new InvalidDataException("The target is outside this module's verified range.");
         }
+        if (module.Effect == DogmaEffect.CargoScan)
+        {
+            var attributes =
+                scannedPilot is not null ? PilotFittingStore.ShipAttributes(world, catalog, scannedPilot, includeIncursion: false)
+                : scannedNpcType is int type ? catalog.FittingAttributes(type)
+                : null;
+            if (InformationRules.CargoScanImmune(attributes))
+            {
+                throw new InvalidDataException("The target ship is immune to cargo scanning.");
+            }
+        }
+        return (accuracy, scannedStructure);
     }
 
     public InformationCompletion Complete(long pilotId, long moduleId, long expectedReadyAt, long now)
     {
         using WorldActionScope transaction = new(
             database,
-            select: world => Participants(pilotId, world.Set<SavedInformationCycle>().Find(moduleId)?.TargetId ?? 0)
+            select: world =>
+            {
+                var saved = world.Set<SavedInformationCycle>().Find(moduleId);
+                long target = saved?.TargetId ?? 0;
+                int? structureSystem = saved?.Effect == DogmaEffect.ShipScan ? world.Structure(target)?.SystemId : null;
+                return Participants(pilotId, target, structureSystem);
+            }
         );
         using CatalogDbContext catalog = new(database.CatalogPath);
         var result = Complete(transaction.World, catalog, pilotId, moduleId, expectedReadyAt, now);
@@ -307,7 +364,7 @@ internal sealed partial class PilotInformationStore(WorldDatabase database, ICoo
         InformationCompletion result = new();
         if (saved.Effect is DogmaEffect.CargoScan or DogmaEffect.ShipScan)
         {
-            CheckTarget(world, catalog, pilot, saved.TargetId, module, now);
+            var (accuracy, structure) = CheckTarget(world, catalog, pilot, saved.TargetId, module, now);
             if (saved.Effect == DogmaEffect.CargoScan)
             {
                 var cargo = world
@@ -315,7 +372,6 @@ internal sealed partial class PilotInformationStore(WorldDatabase database, ICoo
                     .AsEnumerable()
                     .Where(i => ShipHoldRules.Definition(i.FlagId) is not null)
                     .OrderBy(i => i.Id)
-                    .Select(i => new ScanItem(i.TypeId, i.Quantity))
                     .ToArray();
                 var npcCargo = world
                     .Filter<WorldNpcMiningCargo>(c => c.NpcId == saved.TargetId && c.Quantity > 0)
@@ -327,7 +383,12 @@ internal sealed partial class PilotInformationStore(WorldDatabase database, ICoo
                     .OrderBy(s => s.Id)
                     .Select(s => new ScanItem(s.TypeId, 1))
                     .ToArray();
-                result = new(Cargo: new(saved.TargetId, cargo.Concat(npcCargo).Concat(storedShips).ToArray()));
+                var rows = cargo.SelectMany(item => CargoScanRows(world, catalog, item));
+                result = new(Cargo: new(saved.TargetId, rows.Concat(npcCargo).Concat(storedShips).ToArray()));
+            }
+            else if (structure is not null)
+            {
+                result = new(Ship: ReadStructureScan(world, catalog, structure, now));
             }
             else
             {
@@ -335,11 +396,11 @@ internal sealed partial class PilotInformationStore(WorldDatabase database, ICoo
                 {
                     var values = PilotFittingStore.ShipAttributes(world, catalog, target);
                     var hardware = world
-                        .Filter<OwnedItem>(i => i.LocationId == saved.TargetId)
-                        .AsEnumerable()
-                        .Where(i => InventoryDefinitions.IsFittedSlot(i.FlagId))
+                        .FittedItems(target.Id, saved.TargetId)
                         .OrderBy(i => i.FlagId)
-                        .Select(i => new ScanItem(i.TypeId, i.Quantity))
+                        .Where(i => accuracy >= 1 || (shipScanRandom ?? Random.Shared).NextDouble() < accuracy)
+                        .GroupBy(i => i.TypeId)
+                        .Select(group => new ScanItem(group.Key, group.Sum(item => item.Quantity)))
                         .ToArray();
                     result = new(
                         new(
@@ -371,6 +432,33 @@ internal sealed partial class PilotInformationStore(WorldDatabase database, ICoo
         world.Remove(saved);
         RemoveMarker(world, moduleId, saved.ShipId);
         return result;
+    }
+
+    private static IEnumerable<ScanItem> CargoScanRows(WorldAction world, CatalogDbContext catalog, OwnedItem item)
+    {
+        if (!CargoContainerAssemblyRules.IsContainer(item.TypeId, catalog.FittingType(item.TypeId)?.GroupId ?? 0))
+        {
+            return [new(item.TypeId, item.Quantity)];
+        }
+        return world
+            .Filter<OwnedItem>(child => child.LocationId == item.Id && child.OwnerId == item.OwnerId)
+            .AsEnumerable()
+            .Where(child => child.FlagId is (int)InventoryFlag.None or (int)InventoryFlag.Locked or (int)InventoryFlag.Unlocked)
+            .OrderBy(child => child.Id)
+            .Select(child => new ScanItem(child.TypeId, child.Quantity));
+    }
+
+    private static ShipScan ReadStructureScan(WorldAction world, CatalogDbContext catalog, SavedStructure structure, long now)
+    {
+        var equipment = StructureEquipmentPersistence.Equipment(world, catalog, structure);
+        var fitting = StructureEquipmentPersistence.Read(world, catalog, structure, equipment);
+        var energy = StructureEnergy.Read(world, structure.Id, fitting.Attributes, now);
+        var hardware = equipment
+            .OrderBy(item => item.FlagId)
+            .GroupBy(item => item.Profile.TypeId)
+            .Select(group => new ScanItem(group.Key, group.Count()))
+            .ToArray();
+        return new(structure.Id, energy.Charge, energy.Capacity, hardware);
     }
 
     public void Stop(long pilotId, long moduleId, long expectedReadyAt)

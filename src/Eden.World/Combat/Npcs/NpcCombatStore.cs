@@ -17,6 +17,7 @@ using Eden.World.Characters;
 using Eden.World.Combat.Weapons;
 using Eden.World.Docking;
 using Eden.World.Drones;
+using Eden.World.Exploration;
 using Eden.World.Fittings;
 using Eden.World.Propulsion;
 using Eden.World.Runtime;
@@ -112,6 +113,7 @@ internal sealed partial class NpcCombatStore(
                 && n.Role == NpcRole.Pirate
                 && n.DestroyedAt == null
                 && n.RetiredAt == null
+                && (n.ExpiresAt == null || n.ExpiresAt > now)
                 && n.Navigation == NpcNavigationState.Idle
                 && !Enumerable.Contains(occupied, n.Id)
             )
@@ -270,7 +272,11 @@ internal sealed partial class NpcCombatStore(
         }
         var pilot = world.Pilots.Single(p => p.Id == pilotId);
         var npc = world.Set<WorldNpc>().Find(npcId);
-        if (npc?.Navigation == NpcNavigationState.Warping)
+        if (
+            npc?.Navigation == NpcNavigationState.Warping
+            || npc?.ExpiresAt <= now
+            || npc is { AnchorKind: NpcAnchorKind.Incursion } && !CombatAnomalyStore.IncursionNpcActive(world, npc, now)
+        )
         {
             return null;
         }
@@ -375,7 +381,7 @@ internal sealed partial class NpcCombatStore(
         {
             throw new InvalidDataException("Invalid NPC weapon cycle attributes.");
         }
-        var target = PilotFittingStore.ShipAttributes(world, catalog, pilotId);
+        var target = PilotFittingStore.ShipAttributes(world, catalog, pilotId, incursionTime: now);
         var defense = ShipHealth.DefenseFrom(target);
         DamageVector damage = new(
             attributes.GetValueOrDefault(DogmaAttributeId.EmDamage),
@@ -399,7 +405,7 @@ internal sealed partial class NpcCombatStore(
             attributes.GetValueOrDefault(DogmaAttributeId.WeaponSignatureResolution)
         );
         double quality = CombatDamage.ShotQuality(chance, roll);
-        var result = PilotHealthStore.Apply(world, shipId, defense, damage.Scale(quality), now);
+        var result = ApplyPlayerDamage(world, catalog, npc, pilot, defense, damage.Scale(quality), now);
         aggression.LastShotAt = now;
         aggression.LastTargetId = shipId;
         Eden.World.Drones.DroneCombatPersistence.Incoming(world, shipId, npcId, now);
@@ -416,5 +422,25 @@ internal sealed partial class NpcCombatStore(
         var capsule = result.Remaining.Destroyed ? lookup.FindPilot(world, pilot.AccountId, pilotId) : null;
         transaction.Commit();
         return new(npc.Id, npc.TypeId, weapon, damage, result.Applied, quality, new(shipId, defense, result.Remaining), capsule, insurance);
+    }
+
+    internal static DamageResult ApplyPlayerDamage(
+        WorldAction world,
+        CatalogDbContext catalog,
+        WorldNpc npc,
+        Pilot pilot,
+        HullDefense defense,
+        DamageVector damage,
+        long now
+    )
+    {
+        long shipId = pilot.ActiveShipId;
+        var before = npc.AnchorKind == NpcAnchorKind.Incursion ? PilotHealthStore.Read(world, shipId, defense, now) : null;
+        var result = PilotHealthStore.Apply(world, shipId, defense, damage, now);
+        if (before is not null && result.Applied > 0 && !result.Remaining.Destroyed)
+        {
+            IncursionStore.RecordIncomingDamage(world, catalog, npc, pilot, before, result.Remaining, now);
+        }
+        return result;
     }
 }

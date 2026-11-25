@@ -39,6 +39,8 @@ internal sealed partial class CooperativeFleetHandler(
             return;
         }
         var pilot = context.Pilot;
+        bool inTransit = IsInTransit(context);
+        long? docked = pilot.Position is null && !inTransit ? pilot.DockedLocationId : null;
         _pilot = pilot.PilotId;
         if (
             _presence is not { } last
@@ -49,7 +51,8 @@ internal sealed partial class CooperativeFleetHandler(
             || last.ShipTypeId != pilot.ShipTypeId
             || last.SystemId != pilot.SystemId
             || last.Position != pilot.Position
-            || last.InTransit != IsInTransit(context)
+            || last.InTransit != inTransit
+            || last.DockedLocationId != docked
         )
         {
             _presence = new(
@@ -59,8 +62,9 @@ internal sealed partial class CooperativeFleetHandler(
                 pilot.ShipTypeId,
                 pilot.SystemId,
                 pilot.Position,
-                IsInTransit(context),
-                pilot.Identity.AllianceId
+                inTransit,
+                pilot.Identity.AllianceId,
+                DockedLocationId: docked
             );
             fleets.Update(_session, _presence);
         }
@@ -105,15 +109,31 @@ internal sealed partial class CooperativeFleetHandler(
                         new FleetMemberNotification(identity.FleetId, changed.Before, changed.After, changed.OnlyMember)
                     );
                     break;
+                case FleetEvent.MembersMoved moved:
+                    foreach (var change in moved.Changes)
+                    {
+                        context.Notifications.Add(
+                            new FleetMemberNotification(delivery.FleetId, change.Before, change.After, change.OnlyMember)
+                        );
+                    }
+                    break;
+                case FleetEvent.MoveFailed failed:
+                    context.Notifications.Add(new FleetMoveFailedNotification(failed.PilotId));
+                    break;
                 case FleetEvent.Hierarchy hierarchy when identity is not null:
                     context.Notifications.Add(new FleetHierarchyNotification(hierarchy));
                     break;
                 case FleetEvent.Options options when identity is not null:
-                    context.Notifications.Add(new FleetOptionsNotification(options.Before, options.After, options.Registered));
+                    context.Notifications.Add(new FleetOptionsNotification(options.Before, options.After));
                     break;
                 case FleetEvent.Registration registration:
                     context.Notifications.Add(
-                        new FleetRegistrationNotification(registration.Before, registration.After, registration.FreeMove)
+                        new FleetRegistrationNotification(
+                            registration.Before,
+                            registration.After,
+                            registration.FreeMove,
+                            registration.AutoJoinSquadId
+                        )
                     );
                     break;
                 case FleetEvent.JoinRequest request:
@@ -134,6 +154,12 @@ internal sealed partial class CooperativeFleetHandler(
                                 ? new FlightCommand.WarpToPoint(order.TargetId, point, order.Range)
                                 : new FlightCommand.WarpTo(order.TargetId, order.Range)
                         );
+                    }
+                    break;
+                case FleetEvent.Regroup regroup:
+                    if (context.Flight.CanTarget && fleets.CanExecuteRegroup(pilot.PilotId, regroup.Order))
+                    {
+                        context.Flight.Execute(new FlightCommand.Follow(regroup.Order.CommanderShipId, 0, false));
                     }
                     break;
                 case FleetEvent.StandingChanged standing:
@@ -278,7 +304,7 @@ internal sealed partial class CooperativeFleetHandler(
         _tagFleet = null;
     }
 
-    public void CancelWarpOrders(long actor) => fleets.CancelWarpOrders(actor);
+    public void CancelMovementOrders(long actor) => fleets.CancelMovementOrders(actor);
 
     public FlightCommand MemberWarp(PilotCallContext context, FlightCommand.WarpToFleetMember request)
     {
@@ -309,6 +335,29 @@ internal sealed partial class CooperativeFleetHandler(
                     .Members.Where(m => m.Pilot.SystemId == context.Pilot.SystemId && m.Pilot.Position is not null)
                     .ToArray()
             );
+        }
+        catch (InvalidDataException error)
+        {
+            return new PilotCallResult.Failure(error.Message);
+        }
+    }
+
+    private PilotCallResult Regroup(PilotCallContext context, object?[] args, Dictionary<string, object?>? keywords)
+    {
+        if (args.Length != 0 || keywords is { Count: > 0 } || !context.Flight.CanTarget)
+        {
+            return new PilotCallResult.Failure("Issue fleet regroup in space without arguments.");
+        }
+        Advance(context);
+        long actor = context.Pilot.PilotId;
+        if (fleets.Identity(actor) is not { } identity)
+        {
+            return new PilotCallResult.Failure("Join a fleet before commanding fleet regroup.");
+        }
+        try
+        {
+            fleets.Regroup(actor, identity.FleetId);
+            return PilotCallResult.None;
         }
         catch (InvalidDataException error)
         {
@@ -379,6 +428,10 @@ internal sealed partial class CooperativeFleetHandler(
         if (service == "beyonce" && method == "CmdFleetTagTarget")
         {
             return TagTarget(context, args, keywords);
+        }
+        if (service == "beyonce" && method == "CmdFleetRegroup")
+        {
+            return Regroup(context, args, keywords);
         }
         bool bound = service.StartsWith(Prefix, StringComparison.Ordinal);
         if (!bound && service is not ("fleetObjectHandler" or "fleetMgr" or "fleetProxy"))
@@ -521,8 +574,19 @@ internal sealed partial class CooperativeFleetHandler(
                     return new FleetWingsReply(fleet.Wings);
                 case ("GetMembers", []):
                     return new BlueMap<long, FleetMemberReply>(fleet.Members.ToDictionary(m => m.Pilot.Id, m => new FleetMemberReply(m)));
+                case ("GetFleetComposition", []):
+                    return new BlueList<FleetCompositionReply>(
+                        fleets.Composition(actor, id).Select(row => new FleetCompositionReply(row)).ToArray()
+                    );
                 case ("GetOptions", []):
-                    return new FleetOptionsReply(fleet.FreeMove, fleet.Registered);
+                    return new FleetOptionsReply(fleet.Options);
+                case ("GetFleetMaxSize", []):
+                    return fleet.MaximumSize;
+                case ("SetFleetMaxSize", [long size]) when size is >= 1 and <= FleetRules.MaximumMembers:
+                    return fleets.SetMaximumSize(actor, id, (int)size);
+                case ("SetAutoJoinSquadID", [null or long]):
+                    fleets.SetAutoJoinSquad(actor, id, args[0] as long?);
+                    return true;
                 case ("GetJoinRequests", []):
                     return new BlueMap<long, FleetApplicantReply>(
                         fleets.JoinRequests(actor, id).ToDictionary(p => p.Id, p => new FleetApplicantReply(p))
@@ -545,6 +609,9 @@ internal sealed partial class CooperativeFleetHandler(
                 case ("MoveMember", [long target, var wing, var squad, long role]):
                     fleets.Move(actor, id, target, Placement(wing, squad, role));
                     return false;
+                case ("MassMoveMembers", [List<object?> targets, var wing, var squad, long role])
+                    when targets.Count <= FleetRules.MaximumMembers:
+                    return new BlueList<long>(fleets.MoveMany(actor, id, BlueRead.PositiveIds(targets), Placement(wing, squad, role)));
                 case ("MakeLeader", [long target]):
                     fleets.MakeBoss(actor, id, target);
                     return PilotCallResult.None;
@@ -572,7 +639,7 @@ internal sealed partial class CooperativeFleetHandler(
                     if (
                         fields.Keys.Any(k => k is not ("isFreeMove" or "isRegistered" or "autoJoinSquadID"))
                         || fields.GetValueOrDefault("isRegistered") is { } registered && !Equals(registered, fleet.Registered)
-                        || fields.GetValueOrDefault("autoJoinSquadID") is not null
+                        || fields.TryGetValue("autoJoinSquadID", out var autoJoin) && !Equals(autoJoin, fleet.AutoJoinSquadId)
                         || fields.GetValueOrDefault("isFreeMove") is not bool enabled
                     )
                     {
@@ -588,6 +655,9 @@ internal sealed partial class CooperativeFleetHandler(
                     return PilotCallResult.None;
                 case ("SetAcceptsConduitJumpsValue", [bool acceptsConduit]):
                     fleets.SetAcceptsConduitJumps(actor, id, acceptsConduit);
+                    return PilotCallResult.None;
+                case ("SetAcceptsRegroupValue", [bool acceptsRegroup]):
+                    fleets.SetAcceptsRegroup(actor, id, acceptsRegroup);
                     return PilotCallResult.None;
                 case ("SendBroadcast", _):
                     SendBroadcast(actor, id, args, FleetBroadcastRange.Universe);

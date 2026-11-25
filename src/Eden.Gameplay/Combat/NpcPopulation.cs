@@ -33,6 +33,9 @@ public enum NpcAnchorKind
     MilitiaComplex,
     MilitiaHub,
     MilitiaObjective,
+    Incursion,
+    IncursionBelt,
+    IncursionCamp,
 }
 
 public static class NpcPopulationRules
@@ -48,6 +51,8 @@ public static class NpcPopulationRules
             + attributes.GetValueOrDefault(DogmaAttributeId.KineticDamage)
             + attributes.GetValueOrDefault(DogmaAttributeId.ThermalDamage)
         ) > 0;
+
+    public static bool IsIncursionPatrol(NpcAnchorKind kind) => kind is NpcAnchorKind.IncursionBelt or NpcAnchorKind.IncursionCamp;
 
     public static bool DetectsPilots(NpcRole role) => role == NpcRole.Pirate;
 

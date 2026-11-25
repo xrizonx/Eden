@@ -8,6 +8,7 @@ using Eden.Gameplay.Dogma;
 using Eden.Gameplay.Drones;
 using Eden.Gameplay.Flight;
 using Eden.World.Catalog;
+using Eden.World.Characters;
 using Eden.World.Combat;
 using Eden.World.Combat.Npcs;
 using Eden.World.FactionWarfare;
@@ -197,7 +198,7 @@ internal sealed partial class PilotDroneStore
         }
         if (StructureCombatTargets.Find(world, target) is { } structure && structure.SystemId == system)
         {
-            StructureCombatTargets.Check(world, catalog, structure, now);
+            StructureCombatTargets.Check(world, catalog, structure, now, pilot.Id);
             return new(
                 target,
                 StructureCombatTargets.Position(structure),
@@ -210,7 +211,7 @@ internal sealed partial class PilotDroneStore
         if (FindVictim(world, catalog, pilot, target, system, now) is { } victim && FindContact(world, victim, system, now) is { } contact)
         {
             var decision = CrimewatchPersistence.CheckPlayer(world, catalog, pilot, victim, system, now);
-            var attributes = PilotFittingStore.ShipAttributes(world, catalog, victim);
+            var attributes = PilotFittingStore.ShipAttributes(world, catalog, victim, incursionTime: now);
             return new(
                 target,
                 contact.Position,
@@ -292,6 +293,7 @@ internal sealed partial class PilotDroneStore
             return hit.Health.Remaining.Destroyed;
         }
         StructureCombatTargets.Aggress(world, pilot.Id, target.Structure!.Id, system, now, end);
-        return StructureCombatTargets.Apply(world, catalog, target.Structure!, damage, now).Health.Remaining.Destroyed;
+        var attacker = PilotInteractionHistoryStore.Player(world, pilot, pilot.ActiveShipId, contact.Profile.TypeId);
+        return StructureCombatTargets.Apply(world, catalog, target.Structure!, damage, now, attacker).Health.Remaining.Destroyed;
     }
 }

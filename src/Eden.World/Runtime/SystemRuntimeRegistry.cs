@@ -8,7 +8,7 @@ namespace Eden.World.Runtime;
 // lifetime of the live world, including while transactions wait for their owners.
 internal sealed class SystemRuntimeRegistry<T>(Func<int, T> create, Func<bool>? canCreate = null)
 {
-    private readonly ConcurrentDictionary<int, Lazy<Entry>> _systems = new();
+    private readonly ConcurrentDictionary<int, Entry> _systems = new();
     private readonly object _admission = new();
 
     internal sealed class Entry(int id, T state)
@@ -21,24 +21,25 @@ internal sealed class SystemRuntimeRegistry<T>(Func<int, T> create, Func<bool>? 
 
         internal IDisposable Enter(string operation)
         {
-            bool nested = Ownership.IsEntered;
-            var lease = Ownership.Enter(operation, Id);
-            return new Lease(this, lease, nested);
+            var lease = new Lease(this, Ownership.IsEntered);
+            lease.Ownership = Ownership.Enter(operation, Id);
+            return lease;
         }
 
         internal IDisposable? TryEnter(string operation)
         {
-            bool nested = Ownership.IsEntered;
-            return Ownership.TryEnter(operation, Id) is { } lease ? new Lease(this, lease, nested) : null;
+            var lease = new Lease(this, Ownership.IsEntered);
+            lease.Ownership = Ownership.TryEnter(operation, Id);
+            return lease.Ownership is null ? null : lease;
         }
 
-        private sealed class Lease(Entry entry, IDisposable ownership, bool nested) : IDisposable
+        private sealed class Lease(Entry entry, bool nested) : IDisposable
         {
-            private IDisposable? _ownership = ownership;
+            internal IDisposable? Ownership;
 
             public void Dispose()
             {
-                if (Interlocked.Exchange(ref _ownership, null) is { } held)
+                if (Interlocked.Exchange(ref Ownership, null) is { } held)
                 {
                     if (!nested)
                     {
@@ -51,18 +52,13 @@ internal sealed class SystemRuntimeRegistry<T>(Func<int, T> create, Func<bool>? 
     }
 
     internal IReadOnlyList<Entry> Existing(IEnumerable<int> systems) =>
-        systems
-            .Distinct()
-            .Order()
-            .Select(id => _systems.TryGetValue(id, out var entry) && entry.IsValueCreated ? entry.Value : null)
-            .OfType<Entry>()
-            .ToArray();
+        systems.Distinct().Order().Select(id => _systems.GetValueOrDefault(id)).OfType<Entry>().ToArray();
 
     internal Entry Get(int system)
     {
         if (_systems.TryGetValue(system, out var existing))
         {
-            return existing.Value;
+            return existing;
         }
         if (canCreate?.Invoke() == false)
         {
@@ -70,14 +66,16 @@ internal sealed class SystemRuntimeRegistry<T>(Func<int, T> create, Func<bool>? 
         }
         lock (_admission)
         {
-            return _systems.GetOrAdd(system, id => new(() => new Entry(id, create(id)))).Value;
+            // Publish only completed runtimes so a failed admission can be retried.
+            return _systems.GetOrAdd(system, id => new Entry(id, create(id)));
         }
     }
 
     internal IDisposable FreezeAdmissions()
     {
+        var lease = new AdmissionLease(_admission);
         Monitor.Enter(_admission);
-        return new AdmissionLease(_admission);
+        return lease;
     }
 
     private sealed class AdmissionLease(object gate) : IDisposable
@@ -85,41 +83,51 @@ internal sealed class SystemRuntimeRegistry<T>(Func<int, T> create, Func<bool>? 
         public void Dispose() => Monitor.Exit(gate);
     }
 
-    internal IReadOnlyList<Entry> Snapshot() =>
-        _systems.Values.Where(value => value.IsValueCreated).Select(value => value.Value).OrderBy(entry => entry.Id).ToArray();
+    internal IReadOnlyList<Entry> Snapshot() => _systems.Values.OrderBy(entry => entry.Id).ToArray();
 
     internal IDisposable Enter(IEnumerable<int> systems, string operation)
     {
         var entries = systems.Distinct().Order().Select(Get).ToArray();
-        List<IDisposable> leases = [];
+        List<IDisposable> leases = new(entries.Length);
+        var group = new GroupLease(leases);
         try
         {
             foreach (var entry in entries)
             {
                 leases.Add(entry.Enter(operation));
             }
-            return new GroupLease(leases);
+            return group;
         }
         catch
         {
-            new GroupLease(leases).Dispose();
+            group.Dispose();
             throw;
         }
     }
 
     internal IDisposable? TryEnter(IEnumerable<int> systems, string operation)
     {
-        List<IDisposable> leases = [];
-        foreach (var entry in systems.Distinct().Order().Select(Get))
+        var ordered = systems.Distinct().Order().ToArray();
+        List<IDisposable> leases = new(ordered.Length);
+        var group = new GroupLease(leases);
+        try
         {
-            if (entry.TryEnter(operation) is not { } lease)
+            foreach (int system in ordered)
             {
-                new GroupLease(leases).Dispose();
-                return null;
+                if (Get(system).TryEnter(operation) is not { } lease)
+                {
+                    group.Dispose();
+                    return null;
+                }
+                leases.Add(lease);
             }
-            leases.Add(lease);
+            return group;
         }
-        return new GroupLease(leases);
+        catch
+        {
+            group.Dispose();
+            throw;
+        }
     }
 
     private sealed class GroupLease(List<IDisposable> leases) : IDisposable

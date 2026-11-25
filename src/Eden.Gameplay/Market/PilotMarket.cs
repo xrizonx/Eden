@@ -19,7 +19,10 @@ public sealed record MarketOrder(
     int Range = MarketDefinitions.StationRange,
     int MinimumVolume = 1,
     bool IsCorporation = false
-);
+)
+{
+    public bool IsNpc { get; init; }
+}
 
 public sealed record MarketSale(long ItemId, int StationId, int TypeId, long LimitPriceCents, int Quantity);
 
@@ -136,10 +139,15 @@ public enum WalletEntryType
 
     // Build 3662168 appConst.refAllianceRegistrationFee and refAllianceMaintainanceFee.
     AllianceRegistration = 48,
+    WarFee = 49,
     AllianceMaintenance = 50,
 
     // Build 3662168 appConst.refCorporationAdvertisementFee.
     CorporationAdvertisementFee = 86,
+
+    // Build 3662168 appConst.refMedalCreation and refMedalIssuing.
+    MedalCreation = 87,
+    MedalIssuing = 88,
 
     // Build 3662168 appConst.refCorporationDividendPayment.
     CorporationDividendPayment = 38,
@@ -178,6 +186,10 @@ public enum WalletEntryType
     ContractRewardAdded = 83,
     JumpCloneActivation = 128,
     BountyPrizes = 85,
+
+    // Build 3662168 accountingentrytypes: Corporate Reward Payout and Tax.
+    CorporateRewardPayout = 99,
+    CorporateRewardTax = 103,
 
     // Build 3662168 accountingentrytypes / appConst.refRedeemedISKToken.
     RedeemedIskToken = 147,
