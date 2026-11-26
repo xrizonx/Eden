@@ -2,6 +2,40 @@
 
 [Protocol index](../protocol.md) Â· [Documentation index](../README.md)
 
+## Corporation default reinforcement hour
+
+The CEO and Directors can set their corporation's default UTC reinforcement hour in Structure Browser.
+The deployment window preselects that hour. The pilot can choose another hour before anchoring, and the
+structure saves the choice sent with the deployment. Changing the default affects future deployment
+windows. Each deployed structure keeps its saved hour.
+
+Inert inspection of build **3662168**, archive SHA-256
+`37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`, confirms that
+`CorpStructureSettingsCont._ApplyReinforceChanges` forwards the selected hour to
+`corpRegistry.SetStructureReinforceDefault(hour)`. The native getter returns `(255, hour)`.
+`deploymentCont.BuildUI` initializes the picker with that pair. `structureDeployment.ConfirmDeployment`
+sends the picker values with `Anchor`, including an hour the pilot changed. EVE.js **261108.1** uses
+the equivalent getter, writer and CEO/Director authorization in `corpRegistryRuntime.js`
+(SHA-256 `41d691387ff45dce3cf4680da40291557b868f0b3f589234d0eb244b77c4e35c`).
+[EVE University structure anchoring](https://wiki.eveuniversity.org/Anchoring_structures)
+
+Schema **240** adds one resident, checkpointed preference per corporation. The initial picker value
+is **18:00 UTC** for a corporation with no saved setting.
+
+**Automated validation.** On `eab07a5c` plus the change, the three exact methods
+`NativeFirstBoundReinforcementDefaultsRoundTripIntoResidentDeploymentAndCheckpoint`,
+`NativeCorporationReinforcementDefaultsUseCurrentDirectorAuthority` and
+`Version239AddsTheCorporationDefaultWithoutChangingDeployedStructureTiming` in `StructureDeploymentDefaultsTests`
+passed in 6.99 seconds of combined case time (9.44 seconds for the runner). They cover native bound reads and
+writes, role revocation, malformed settings, deployment, checkpoint projection and migration. The affected
+selection for structure deployment and rules, corporation roles and world migrations passed all 89 cases
+in 42.36 seconds of runner time.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Change the default and open a new anchoring window to confirm the
+hour is preset. Before anchoring, choose a different hour and verify it in the new structure's settings.
+
 ## Warp disruption and Upwell docking
 
 A ship under targeted warp disruption cannot dock at an Upwell structure while the active strength exceeds its warp
@@ -167,20 +201,20 @@ Historical foundation limitations below describe their original milestones; this
 | Asset safety | Personal/corporate collection, timed delivery, paid recovery, native inventory and public loot | Implemented; validation below |
 | Incoming combat and loss | Paid weapons against structures, legal targeting, destruction settlement and automatic custody transitions | Implemented; validation below |
 | Tethering | Resident protection, native effects, access and timer checks, saved repair settlement | Implemented; validation below |
-| Defense | Combat fitting/control, supported defensive weapons and target updates | In progress; resident control, fitting, targeting, ammunition, defensive missiles, energy neutralizers, targeted stasis webifiers and focused warp tackle implemented. Other EWAR and area defenses remain |
+| Defense | Combat fitting/control, supported defensive weapons and target updates | In progress. Resident control, fitting, targeting, ammunition, defensive missiles, energy neutralizers, ECM, target painters, sensor dampeners, weapon disruption, stasis webifiers and focused warp tackle are implemented. Area defenses remain |
 | Service completion | Remaining native structure profiles/access, economic/clone services, ownership and specialized structure consumers | Planned |
 
 ### Structures gap audit
 
 The defense branch covers resident gunner leases, fitting, target locks, ammunition, defensive missiles against ships and
-drones, capacitor warfare and targeted webs. The integration uses that lease for Standup fighter assignment and automatic
+drones, capacitor warfare, targeted ECM, painters, dampeners, weapon disruption and webs. The integration uses that lease for Standup fighter assignment and automatic
 recall. Ship locks on the structure survive a change of gunner. Controlled flight snapshots use the structure as the
 ballpark ego while the pilot's personal ship stays docked. Schema 214 adds structure tackle source support to main's
 schema 213 and also accepts the earlier structure-branch format.
 
 | Area | Existing coverage and remaining gaps |
 | --- | --- |
-| Defense | Launch and recall of Standup fighters, guided missiles, webs, neutralizers and scripted warp tackle work. Other targeted EWAR, point defense, area and superweapon modules, and fighter attack commands need dedicated gameplay and protocol coverage. |
+| Defense | Launch, recall and mobility abilities for Standup fighters work alongside guided missiles, point defense, ECM, painters, dampeners, weapon disruptors, webs, neutralizers and scripted warp tackle. Other area and superweapon modules and fighter attack commands need dedicated gameplay and protocol coverage. |
 | Dockable services | Tether, repair, manual moon extraction, compression and supported industry are implemented. Player market orders, jump clones, corporation offices and native structure deliveries remain open. |
 | Access and ownership | A corporation-default profile and per-structure access overrides exist. Native editing, per-service ACLs and fees, and ownership transfer remain open. |
 | Specialized structures | Pharolux, Tenebrex, reciprocal Ansiblex links, sovereignty hubs and Skyhook resource production already have gameplay authority. Metenox harvesting and Skyhook combat, theft and transfer remain open. |
@@ -213,6 +247,241 @@ Not performed; agent client testing is disabled.
 
 Take control of an Astrahus, lock a nearby ship, launch fighters and release control. Verify the fighters return and
 the other ship retains its lock on the Astrahus.
+
+### Standup Fighter Mobility
+
+An Upwell gunner can activate and deactivate slot **1** on controlled Standup fighter squadrons through
+`fighterMgr.CmdActivateAbilitySlots(ids, 1)` and `CmdDeactivateAbilitySlots(ids, 1)`. Micro jumps take a third
+argument with the destination coordinates. Selection and the live gunner lease are validated together before
+any squadron starts a cycle. The ability reply and fighter start/end notifications use the existing carrier
+wire shapes. The structure pilot's own ship and skills do not supply fighter attributes.
+
+Build **3662168** lists 41 Standup slot-1 profiles in `client/fighterabilitiesbytype`. Each uses the same
+effect attributes and cooldown rules as the corresponding carrier ability. Representative profiles are below.
+
+| Standup squadron | Ability | Cycle | Cooldown after cycle | Effect |
+| --- | --- | --- | --- | --- |
+| Templar I (47035) | Microwarpdrive (4) | 20 seconds | 60 seconds | 6× speed and signature |
+| Gram I (47036) | Evasive Maneuvers (13) | 10 seconds | 60 seconds | 3× speed, 0.2× signature, 0.5× shield resonance |
+| Siren I (47037) | Afterburner (9) | 20 seconds | 60 seconds | 3× speed |
+| Gungnir I (47039) | Micro Jump Drive (5) | 10 seconds | 90 seconds | Up to 100 km directed displacement, 2.5× signature during spool |
+
+Mobility bonuses are resolved from the resident fighter contact at the current timestamp. The Standup maintenance
+pass completes due jumps once, checks tackle again at the deadline and keeps the original cooldown after cancellation.
+Recall or loss of the gunner lease cancels a spooling jump. Assignment under a new lease also clears a pending jump
+left by a previous host. Movement, cycle deadlines and cooldown reuse the fighter's existing checkpoint work fields.
+
+Catalog evidence comes from read-only `sde/_sde`, `client/fighterabilitiesbytype` and the fighter type attributes
+exported in [CapitalTravelCatalog.json](../../tests/Eden.Protocol.Tests/Fixtures/CapitalTravelCatalog.json).
+The fixture's SHA-256 is `4510DBC6D42C4F2C87007109DE3D41C053D3E73D729AD3731266FCDA58B2D9D7`.
+[EVE University fighter abilities](https://wiki.eveuniversity.org/Fighters)
+
+Local EVE.js 261108.1 has the same fighter ability RPCs and the four mobility modes in
+`services/fighter/fighterMgrService.js` `EA4D094490B32117BB8A353BFCDD2958D63513B3305A8D013991E97CE75490D5`
+and `services/fighter/fighterRuntime.js` `7E3048354260F2EFCA1DD998AA529954581EBA3B00A394DE31247B7FB4692644`.
+
+**Automated validation**
+
+The integrated build passed with zero warnings or errors in 12.39 seconds. The exact filters
+`FullyQualifiedName=Eden.Protocol.Tests.Structures.StandupFighterTests.GunnerActivatesNativeStandupFighterMobilityUntilExpiryOrStop`
+and
+`FullyQualifiedName=Eden.Protocol.Tests.Structures.StandupFighterTests.StandupFighterMicroJumpCompletesOnceAndReleaseCancelsPendingJump`
+passed all four Standup cases in the 15.74-second combined test run. They cover physical modifiers, exact expiry
+and cooldown boundaries, manual stop, jump distance and completion, the Destiny position update and stale lease
+rejection. The pinned fixture reproduced byte-for-byte.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+**Optional maintainer checks**
+
+Activate a Standup fighter's microwarpdrive and check the display. Jump a heavy squadron from a Keepstar and verify
+its on-grid destination and cooldown.
+
+### Standup Point Defense Batteries
+
+A gunner can pulse Standup Point Defense Battery I or II on an eligible large or extra-large Upwell hull through
+`dogmaIM.Activate(moduleID, "pointDefense", None, repeat)`. Build 3662168 assigns both batteries to group 1330 and
+uses effect **6443**, `effects.PointDefense`. The existing fitting graph applies the one-per-group restriction,
+eligible hull list, point-defense rig bonuses and Structure Engineering Systems capacitor discount.
+
+| Module | Type | Base radius | Base capacitor | Damage per channel | Magazine capacity |
+| --- | --- | --- | --- | --- | --- |
+| Standup Point Defense Battery I | 35926 | 2,500 m | 1,500 GJ | 250 HP | 600 |
+| Standup Point Defense Battery II | 47327 | 3,000 m | 1,800 GJ | 312.5 HP | 1,000 |
+
+A paid cycle spends 200 Standup Flak Round I charges (type 63195) and fires one pulse. Cycles last 12 seconds and
+the magazine takes 180 seconds to reload. Targets use the nearest surfaces of the structure and contact in the
+local system. The pulse can damage pilot ships, NPCs, drones, vulnerable structures, bombs and interdiction probes.
+The pilot target selection uses nearby spatial candidates and unexpired same-system logoff contacts. Structure
+green safety omits illegal targets. Tethered, gate-cloaked and warping ships keep their existing protection.
+
+Damage, ammunition, capacitor and cycle deadline commit together in the resident world. A paid pulse can hit no
+targets. Duplicate activation during a paid cycle does not consume more charges. Repeats attempt one payment per
+observed boundary and stop if payment fails or control ends. A missed boundary never replays multiple pulses.
+Observers receive a source-only point-defense graphic with `candidateTypeListId`, `hitRange` and `trackTargets`.
+
+The pinned [StructureCatalog.json](../../tests/Eden.Protocol.Tests/Fixtures/StructureCatalog.json) contains the
+complete module, charge and fit attributes. CCP identifies 200 charges as the firing cost and 250 HP per damage
+channel as the base damage per cycle. [CCP balance announcement](https://forums.eveonline.com/t/road-to-fanfest-structure-updates/354743)
+· [CCP patch notes](https://www.eveonline.com/news/view/patch-notes-version-20-04)
+· [EVE University Upwell fitting](https://wiki.eveuniversity.org/Fitting_upwell_structures#Structure_equipment)
+
+Local EVE.js 261108.1 was consulted for no-target cycles, green safety and graphic shape. Source fingerprints are
+`space/modules/pointDefenseRuntime.js` `633FA344A4B020941C346593C8E2251C6814836A396D8832208663FB8808B2AF`,
+`space/runtime/moduleRuntimeCallbacks.js` `60ED639A267DFCF617535A69F464CB03E324C7331250EB17C4394EC24D300C2E` and
+`space/runtime/moduleSpecialFx.js` `C122251CBDAA8A11C9F5F5DE26B273156DC288BFD5962B3AD16509A056B68FB9`.
+Eden uses its structure surface distance and CCP's published per-cycle damage.
+
+**Automated validation**
+
+An isolated build of `b47b1de6` plus this change passed with zero warnings or errors in 12.99 seconds. Exact filters
+`FullyQualifiedName=Eden.Protocol.Tests.Structures.StructurePointDefenseTests.NativePointDefensePaysFlakAndCapacitorAndHitsOnlyLegalNearbyContacts`
+and
+`FullyQualifiedName=Eden.Protocol.Tests.Structures.StructurePointDefenseTests.PointDefenseProfilesMatchPinnedCyclesAndFitting`
+passed all three cases in 16.27 seconds. Coverage includes both pinned profiles, native untargeted activation,
+reload rejection, idempotent activation, exact pulse and spatial boundaries, low-sec legal filtering, clip
+exhaustion and the targetless active-effect notification. The first integrated test caught an invalid optional
+catalog fixture insertion. The corrected fixture follows existing large-hull deployment setup.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+**Optional maintainer checks**
+
+Fire a loaded battery from a low-security Fortizar to check the area graphic, magazine decrement and ship damage.
+
+### Standup Weapon Disruptors
+
+The Standup Weapon Disruptor I and II apply tracking and missile guidance disruption together on a locked ship or NPC.
+They use structure green safety and pay capacitor at the start of each five-second cycle. Target resistance and stacking
+penalties use the shared weapon-disruption calculation. Falloff scales both sets of modifiers continuously to half at
+one falloff, the inclusive activation limit. A gunner release, target loss or cycle expiry clears both effects.
+
+| Module | Type | Cost | Optimal | Falloff | Turret optimal, falloff and tracking | Missile velocity / flight time | Explosion velocity / radius |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Standup Weapon Disruptor I | 35945 | 400 GJ | 150 km | 75 km | −60% each | −37% / −30% | −50% / +50% |
+| Standup Weapon Disruptor II | 47364 | 480 GJ | 180 km | 90 km | −66% each | −41% / −33% | −55% / +55% |
+
+Build 3662168 uses group 1719, native effect 6686 (`structureModuleEffectWeaponDisruption`), `effects.Laser` and
+weapon disruption resistance 2113. Both profiles run without scripts. The victim receives the `ewTrackingDisrupt`
+notification used for the combined module. EVE.js 261108.1 maps the native effect to its tracking-disruption
+profile and applies that profile's turret and loaded-missile modifiers in `space/modules/hostileModuleRuntime.js`,
+SHA-256 `DB747AA99975012526F576E6042BA2C1C6D7D664C58CC50E0DC31FC5E550D93F`.
+[EVE University Upwell fitting](https://wiki.eveuniversity.org/Fitting_upwell_structures)
+
+**Automated validation**
+
+An isolated build of `31456b54` plus this change passed without warnings or errors in 39.27 seconds.
+The exact filters
+`FullyQualifiedName=Eden.Protocol.Tests.Structures.StructureWeaponDisruptionTests.StandupDisruptorsUsePinnedTurretAndMissileStrengthAtFalloff`
+and
+`FullyQualifiedName=Eden.Protocol.Tests.Structures.StructureWeaponDisruptionTests.NativeStandupDisruptorChangesFittedTurretAndLoadedMissileTogether`
+passed all three cases in 10.30 seconds. The tests cover all seven modifiers on the two NPC-facing profiles and on
+a pilot ship through native activation, including green safety, the victim notification and restoration on release.
+The selection covering `StructureWeaponDisruptionTests`, `StructureTargetEffectsTests`, `StructureEcmTests`, and
+`PlayerEwarTests.TrackingAndGuidanceDisruptionChangeOnlyMatchingWeaponsAndLoadedMissiles` passed all 15 cases in
+14.29 seconds. `AreaWeaponTests.ProjectorFamiliesApplyTheirActualEffectAndPersistMultipleRecipients` passed
+six cases in 11.12 seconds.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+**Optional maintainer checks**
+
+Apply the disruptor to a target with a turret and a loaded missile launcher and compare both sets of weapon attributes.
+
+### Standup Target Painters and Sensor Dampeners
+
+A gunner can use Standup Target Painters and Standup Remote Sensor Dampeners on locked ships and NPCs. Painters
+increase signature radius. Dampeners reduce maximum targeting range and scan resolution together. Both use
+structure green safety, pay capacitor at activation and apply a new paid cycle on repeat. Target resistance and
+stacking penalties use the existing electronic warfare calculation. Falloff scales strength continuously to half
+at one falloff, the inclusive activation limit. Releasing the gunner lease or losing the target ends the effect.
+Checkpointed capacitor and cooldowns survive restart.
+
+| Module | Type | Cost | Cycle | Optimal | Falloff | Base effect |
+| --- | --- | --- | --- | --- | --- | --- |
+| Standup Target Painter I | 35947 | 1,000 GJ | 10 s | 75 km | 150 km | +65% signature |
+| Standup Target Painter II | 47366 | 1,200 GJ | 10 s | 90 km | 180 km | +72% signature |
+| Standup Remote Sensor Dampener I | 35941 | 400 GJ | 5 s | 75 km | 150 km | −55% range and resolution |
+| Standup Remote Sensor Dampener II | 47368 | 480 GJ | 5 s | 90 km | 180 km | −61% range and resolution |
+
+Build 3662168 gives these modules group 1719 and the default effects 6683
+(`structureModuleEffectTargetPainter`) and 6684 (`structureModuleEffectRemoteSensorDampener`). Both use
+`effects.Laser`. Painter resistance is attribute 2114 and dampener resistance is 2112. Structure Electronic
+Systems effect 6400 targets groups 1332, 1441 and 1442. These two module families use their listed base capacitor
+costs. Their build-specific profiles have no script slots. EVE.js 261108.1 maps both effects into its hostile
+module runtime and applies the same falloff and resistance paths. Its local `space/modules/hostileModuleRuntime.js`
+SHA-256 is `DB747AA99975012526F576E6042BA2C1C6D7D664C58CC50E0DC31FC5E550D93F`.
+The regenerated structure catalog fixture includes the target's default resistance metadata.
+Its LF SHA-256 is `E9AC3C34B8372D24E8FA500711193AB8A0DC628F48C5D645C9B9EE73AE50DF39`.
+[EVE University Upwell fitting](https://wiki.eveuniversity.org/Fitting_upwell_structures)
+
+**Automated validation**
+
+The shared exact selection passed 13 cases in 16.09 seconds, including all six `StructureTargetEffectsTests` cases.
+The exact filters were
+`FullyQualifiedName=Eden.Protocol.Tests.Structures.StructureTargetEffectsTests.StandupPainterAndDampenerUsePinnedRangeCostAndFalloff`
+and
+`FullyQualifiedName=Eden.Protocol.Tests.Structures.StructureTargetEffectsTests.StandupPainterAndDampenerPublishNativeVictimEffectsAndClearOnRelease`.
+The tests cover all four catalog profiles, range rejection, falloff and resistance, capacitor and cycle deadlines,
+green safety, native victim notifications and effect removal on expiry or on release of the gunner lease.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+**Optional maintainer checks**
+
+Apply each effect from a gunner seat and check the victim's icon and affected ship attributes through release.
+
+### Standup Variable Spectrum ECM
+
+A gunner can use all three Standup Variable Spectrum ECM variants against locked ships and NPCs. Structure green safety
+applies. Each 20-second attempt pays structure capacitor when it starts, including misses. Repeats pay and roll again at the
+next cycle boundary. The target can keep or acquire a lock on the jamming structure while jammed. The effects and lock
+restrictions use the existing resident electronic warfare contacts. The system tick expires paid jams, and release of
+the structure control lease or departure of the structure clears them early. A checkpoint retains capacitor and the
+paid cooldown. Restart clears live jams.
+
+| Variant | Type | Base cost | Base strength per sensor | Base optimal and falloff |
+| --- | --- | --- | --- | --- |
+| Standup Variable Spectrum ECM I | 35940 | 3,000 GJ | 30 | 75 km each |
+| Standup Variable Spectrum ECM II | 47338 | 3,600 GJ | 36 | 90 km each |
+| Dread Guristas Standup Variable Spectrum ECM | 46577 | 3,000 GJ | 39 | 97.5 km each |
+
+Build 3662168 assigns group 1332 and the default effect 6685, `structureModuleEffectECM`, with the `effects.Laser` GUID.
+Structure Electronic Systems reduces capacitor cost by 3% per level. Script effects 6322–6325 double the selected racial
+strength and halve the other three. The loaded script stays in the magazine. In falloff, chance scales with surface
+distance and the target's ECM resistance (attribute 2253). The effect uses the target's strongest racial sensor and the
+structure's strength against that sensor. Its activation range ends at optimal plus one falloff, following the EVE.js
+reference. EVE.js 261108.1 was checked in local `space/modules/jammerModuleRuntime.js`, SHA-256
+`4F88C0DABC3859E97F0E9F3A1E425F5B7256C4831C2E4BE195814F36B5D7F531`.
+[CCP targeting change](https://www.eveonline.com/news/view/patch-notes-for-october-2018-release) ·
+[EVE University Upwell fitting](https://wiki.eveuniversity.org/Fitting_upwell_structures) ·
+[EVE University ECM scripts](https://wiki.eveuniversity.org/Scripts#Standup_Variable_Spectrum_ECM)
+
+**Automated validation**
+
+The affected selection passed all 319 cases in 143.37 seconds, including all five `StructureEcmTests` cases. Those cases
+cover the three catalog variants, script strength and custody, one capacitor payment per cycle, repeat and expiry,
+release, green safety, native victim notifications, jammer lock permission and chance at the falloff boundary. The exact
+development filter was
+`FullyQualifiedName=Eden.Protocol.Tests.Structures.StructureEcmTests.EcmFalloffUsesRacialStrengthAndResistanceBeforeClampingChance`.
+Three exact unanchoring and evacuation regressions passed in 9.13 seconds after adding departure cleanup.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+**Optional maintainer checks**
+
+Apply a racial ECM script, activate the module against a hostile ship and verify the victim's jam indicator, allowed
+lock on the structure and timer removal on release.
 
 ### Standup Focused Warp Disruptors
 
@@ -461,7 +730,7 @@ triples are present on structure slim items for native hardpoint/missile present
 invalidates only contact views containing the changed structure; ordinary cargo quantity changes do not invalidate them.
 The structure safety view does not overwrite the operator's saved ship safety preference.
 
-Remaining defense work includes capacitor-backed EWAR/tackle, guided bombs, point defenses, doomsdays, drone targets,
+Remaining defense work includes capacitor-backed EWAR/tackle, guided bombs, doomsdays, drone targets,
 and NPC retaliation against structures. Ordinary NPC aggression currently requires a real ship target; defensive launches
 and impacts intentionally do not create an invalid ship reference or a fake ship. Structure-targeting NPC AI needs its own
 authority. Fighter/capital systems and war declarations remain separate dependencies. This missile milestone does not

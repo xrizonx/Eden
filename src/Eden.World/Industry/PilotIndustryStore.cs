@@ -8,6 +8,7 @@ using Eden.Data.World.Structures;
 using Eden.Gameplay.Characters;
 using Eden.Gameplay.Configuration;
 using Eden.Gameplay.Corporations;
+using Eden.Gameplay.Docking;
 using Eden.Gameplay.Dogma;
 using Eden.Gameplay.Economy;
 using Eden.Gameplay.Industry;
@@ -163,6 +164,79 @@ internal sealed partial class PilotIndustryStore(WorldDatabase database, TimePro
         return Station(world, catalog, stationId, service);
     }
 
+    private static int ShipSystem(WorldAction world, CatalogDbContext catalog, Ship ship) =>
+        ship.Position?.SystemId
+        ?? (ship.StructureId is long structure ? world.StructureSystemId(structure) : catalog.RequireStation(ship.StationId).SolarSystemId);
+
+    private static bool WithinJobRange(CatalogDbContext catalog, int source, int target, int skillLevel) =>
+        source == target
+        || skillLevel > 0
+            && catalog.Definitions.StargateDistance(source, target) is int jumps
+            && jumps <= IndustryDefinitions.FacilityJumpRange(skillLevel);
+
+    private static IndustryStation JobStation(
+        WorldAction world,
+        CatalogDbContext catalog,
+        long pilotId,
+        long stationId,
+        IndustryActivity? activity = null
+    )
+    {
+        StationService? service = activity switch
+        {
+            IndustryActivity.Manufacturing => StationService.Manufacturing,
+            IndustryActivity.ResearchMaterial or IndustryActivity.ResearchTime or IndustryActivity.Copying or IndustryActivity.Invention =>
+                StationService.Laboratory,
+            null or IndustryActivity.Reaction => null,
+            _ => throw new InvalidDataException("Choose a recognized industry activity."),
+        };
+        if (stationId >= StructureRules.FirstStructureId && activity is null or IndustryActivity.Reaction)
+        {
+            return ReactionStation(world, catalog, pilotId, stationId, requireOnlineReactor: true);
+        }
+        if (world is not EconomyTransaction || stationId >= StructureRules.FirstStructureId || activity == IndustryActivity.Reaction)
+        {
+            return CurrentStation(world, catalog, pilotId, stationId, service);
+        }
+        var pilot = Pilot(world, pilotId);
+        var ship = pilot.ActiveShip;
+        var station = NpcStation(catalog, stationId, service);
+        if (ship.Position is null && ship.DockedLocationId == stationId)
+        {
+            return station;
+        }
+        int system = ShipSystem(world, catalog, ship);
+        if (system != station.SolarSystemId)
+        {
+            // The pinned Alpha skill lists omit both NPC industry range skills.
+            int rangeSkill = 0;
+            if (world.Set<Account>().Find(pilot.AccountId)?.CloneGrade == AccountCloneGrade.Omega)
+            {
+                int manufacturing =
+                    service == StationService.Manufacturing || service is null && HasService(catalog, station)
+                        ? Level(world, catalog, pilotId, (int)IndustrySkill.SupplyChainManagement)
+                        : 0;
+                int science =
+                    service == StationService.Laboratory || service is null && HasService(catalog, station, StationService.Laboratory)
+                        ? Level(world, catalog, pilotId, (int)IndustrySkill.ScientificNetworking)
+                        : 0;
+                rangeSkill = Math.Max(manufacturing, science);
+            }
+            if (!WithinJobRange(catalog, system, station.SolarSystemId, rangeSkill))
+            {
+                throw new InvalidDataException(
+                    service switch
+                    {
+                        StationService.Manufacturing => "Your Supply Chain Management skill does not reach this manufacturing facility.",
+                        StationService.Laboratory => "Your Scientific Networking skill does not reach this laboratory.",
+                        _ => "Your Supply Chain Management or Scientific Networking skill does not reach this facility.",
+                    }
+                );
+            }
+        }
+        return station;
+    }
+
     public void CheckStation(long pilotId, long stationId)
     {
         using CatalogDbContext catalog = new(database.CatalogPath);
@@ -199,13 +273,7 @@ internal sealed partial class PilotIndustryStore(WorldDatabase database, TimePro
             {
                 var ship = Pilot(world, pilotId).ActiveShip;
                 // Browsing depends on the pilot's location, even at a station without industry services.
-                int systemId =
-                    ship.Position?.SystemId
-                    ?? (
-                        ship.StructureId is long structure
-                            ? world.StructureSystemId(structure)
-                            : catalog.RequireStation(ship.StationId).SolarSystemId
-                    );
+                int systemId = ShipSystem(world, catalog, ship);
                 int regionId = catalog.RequireSystem(systemId).RegionId;
                 return catalog
                     .Definitions.Stations.Values.Where(s => catalog.Definitions.Systems[s.SolarSystemId].RegionId == regionId)
@@ -424,14 +492,19 @@ internal sealed partial class PilotIndustryStore(WorldDatabase database, TimePro
         );
     }
 
-    public IReadOnlyDictionary<int, long> Materials(long pilotId, long stationId, IndustryStorage? input = null)
+    public IReadOnlyDictionary<int, long> Materials(
+        long pilotId,
+        long stationId,
+        IndustryStorage? input = null,
+        IndustryActivity? activity = null
+    )
     {
         using CatalogDbContext catalog = new(database.CatalogPath);
         return WorldActionScope.Inspect(
             database,
             world =>
             {
-                _ = CurrentStation(world, catalog, pilotId, stationId, null);
+                _ = JobStation(world, catalog, pilotId, stationId, activity);
                 var storage = Storage(world, catalog, pilotId, stationId, input);
                 return world
                     .Filter<OwnedItem>(i => i.OwnerId == pilotId && i.LocationId == storage.Id && !i.Singleton)
@@ -649,7 +722,9 @@ internal sealed partial class PilotIndustryStore(WorldDatabase database, TimePro
     )
     {
         AdvanceFacility(world, catalog, request.FacilityId, Now);
-        var station = CurrentStation(world, catalog, pilotId, request.FacilityId);
+        var station = supplyCorporation.HasValue
+            ? CurrentStation(world, catalog, pilotId, request.FacilityId)
+            : JobStation(world, catalog, pilotId, request.FacilityId, IndustryActivity.Manufacturing);
         var item =
             world.Filter<OwnedItem>(i => i.Id == request.BlueprintId && i.OwnerId == pilotId).SingleOrDefault()
             ?? throw new InvalidDataException("The blueprint is unavailable or belongs to another pilot.");
@@ -790,7 +865,14 @@ internal sealed partial class PilotIndustryStore(WorldDatabase database, TimePro
 
     private IndustryResult Finish(long pilotId, long jobId, int systemId, bool cancel)
     {
-        using var scope = new WorldActionScope(database, new(pilots: [pilotId]));
+        using var scope = new WorldActionScope(
+            database,
+            select: world =>
+                new(
+                    pilots: [pilotId],
+                    systems: world.Structure(OwnedJob(world, pilotId, jobId).StationId) is { } structure ? [structure.SystemId] : []
+                )
+        );
         var world = scope.World;
         using CatalogDbContext catalog = new(database.CatalogPath);
         var result = Finish(world, catalog, pilotId, jobId, systemId, cancel);
@@ -805,7 +887,16 @@ internal sealed partial class PilotIndustryStore(WorldDatabase database, TimePro
         {
             return Array.Empty<IndustryResult>();
         }
-        using var scope = new WorldActionScope(database, new(pilots: [pilotId]));
+        using var scope = new WorldActionScope(
+            database,
+            select: world =>
+                new(
+                    pilots: [pilotId],
+                    systems: deliveries
+                        .Select(delivery => world.Structure(OwnedJob(world, pilotId, delivery.JobId).StationId)?.SystemId)
+                        .OfType<int>()
+                )
+        );
         var world = scope.World;
         using CatalogDbContext catalog = new(database.CatalogPath);
         List<IndustryResult> results = [];
@@ -821,7 +912,11 @@ internal sealed partial class PilotIndustryStore(WorldDatabase database, TimePro
     {
         var job = OwnedJob(world, pilotId, jobId);
         AdvanceFacility(world, catalog, job.StationId, Now);
-        var station = CurrentStation(world, catalog, pilotId, job.StationId, null);
+        var station =
+            job.Activity == IndustryActivity.Reaction && job.OutputCorporationId is null
+                ? ReactionStation(world, catalog, pilotId, job.StationId, requireOnlineReactor: false)
+            : world is EconomyTransaction && job.StationId < StructureRules.FirstStructureId ? NpcStation(catalog, job.StationId, null)
+            : CurrentStation(world, catalog, pilotId, job.StationId, null);
         if (station.SolarSystemId != systemId)
         {
             throw new InvalidDataException("The job belongs to a different solar system.");

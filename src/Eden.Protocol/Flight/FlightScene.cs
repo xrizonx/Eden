@@ -55,6 +55,7 @@ internal sealed class FlightScene(
     private StaticSpaceObject[] _visibleAsteroids = [];
     private IReadOnlyList<StaticSpaceObject>? _asteroidSource;
     private IReadOnlyList<StaticSpaceObject> _objects = objects;
+    private (long Id, StaticSpaceObject? Target) _lastGlobalNavigationTarget;
     private IReadOnlyList<StaticSpaceObject> _anomalies = [];
     private IReadOnlyList<StaticSpaceObject> _structures = [];
     private WreckContact[] _wrecks = [];
@@ -73,6 +74,7 @@ internal sealed class FlightScene(
         {
             _objects = value;
             _asteroidSource = null;
+            _lastGlobalNavigationTarget = default;
         }
     }
     internal IReadOnlyList<NpcContact> VisibleNpcs => Npcs.Contacts;
@@ -123,7 +125,7 @@ internal sealed class FlightScene(
 
     internal void ForgetMissiles()
     {
-        foreach (var missile in _missiles.Where(m => !m.Flight.Orphaned))
+        foreach (var missile in _missiles.Where(m => !m.Cosmetic && !m.Flight.Orphaned))
         {
             update(new DestinyCommand.AttackIndicator(missile.SourceShipId, missile.Id, missile.TargetId, false));
         }
@@ -204,14 +206,15 @@ internal sealed class FlightScene(
             ? new(id, ship.Velocity)
             : null;
 
-    private static bool IsPublicAsteroid(StaticSpaceObject item) =>
-        MiningDefinitions.IsResource(item.CategoryId, item.GroupId) && !MissionMiningRules.IsDeposit(item.Id);
+    private static bool IsPublicFieldObject(StaticSpaceObject item) =>
+        item.TypeId == MiningPollutionRules.TypeId
+        || MiningDefinitions.IsResource(item.CategoryId, item.GroupId) && !MissionMiningRules.IsDeposit(item.Id);
 
     private StaticSpaceObject[] VisibleObjects(FlightSceneContext context) =>
         Objects
             .AsValueEnumerable()
             .Where(o =>
-                !MiningDefinitions.IsResource(o.CategoryId, o.GroupId)
+                !(MiningDefinitions.IsResource(o.CategoryId, o.GroupId) || o.TypeId == MiningPollutionRules.TypeId)
                 || (context.Position is { } position && position.DistanceTo(o.Position) <= AsteroidDefinitions.VisibilityRange)
             )
             .ToArray();
@@ -232,14 +235,17 @@ internal sealed class FlightScene(
         var current = ReadMissiles(context);
         foreach (var departed in _missiles.ExceptBy(current.Select(m => m.Id), m => m.Id))
         {
-            update(new DestinyCommand.AttackIndicator(departed.SourceShipId, departed.Id, departed.TargetId, false));
+            if (!departed.Cosmetic)
+            {
+                update(new DestinyCommand.AttackIndicator(departed.SourceShipId, departed.Id, departed.TargetId, false));
+            }
             update(new DestinyCommand.RemoveBall(departed.Id, missiles?.Impacted(departed.Id) == true));
         }
         var added = current.ExceptBy(_missiles.Select(m => m.Id), m => m.Id).ToArray();
         if (added.Length > 0)
         {
             update(new DestinyCommand.AddBalls(Ballpark.AddMissiles(added, space.Stamp(clock))));
-            foreach (var missile in added.Where(m => !m.Flight.Orphaned))
+            foreach (var missile in added.Where(m => !m.Cosmetic && !m.Flight.Orphaned))
             {
                 update(new DestinyCommand.AttackIndicator(missile.SourceShipId, missile.Id, missile.TargetId, true));
             }
@@ -256,12 +262,28 @@ internal sealed class FlightScene(
             }
             if (previous is not null && missile.Flight.Orphaned && !previous.Flight.Orphaned)
             {
-                update(new DestinyCommand.AttackIndicator(missile.SourceShipId, missile.Id, missile.TargetId, false));
+                if (!missile.Cosmetic)
+                {
+                    update(new DestinyCommand.AttackIndicator(missile.SourceShipId, missile.Id, missile.TargetId, false));
+                }
                 var point = missile.Flight.Goto;
                 update(new DestinyCommand.GotoPoint(missile.Id, point.X, point.Y, point.Z));
             }
         }
         _missiles = current;
+    }
+
+    internal StaticSpaceObject? GlobalNavigationTarget(long id)
+    {
+        if (id is <= 0 or > int.MaxValue)
+        {
+            return null;
+        }
+        if (_lastGlobalNavigationTarget.Id != id)
+        {
+            _lastGlobalNavigationTarget = (id, Objects.FirstOrDefault(body => body.Id == id && body.IsGlobal));
+        }
+        return _lastGlobalNavigationTarget.Target;
     }
 
     internal StaticSpaceObject? NavigationTarget(FlightSceneContext context, long id)
@@ -271,7 +293,7 @@ internal sealed class FlightScene(
             return null;
         }
         var target =
-            VisibleObjects(context).FirstOrDefault(o => o.Id == id)
+            VisibleObjects(context).FirstOrDefault(o => o.Id == id && o.TypeId != MiningPollutionRules.TypeId)
             ?? (
                 space
                     .Peers(context.Pilot)
@@ -418,7 +440,7 @@ internal sealed class FlightScene(
         // Resident fields publish immutable lists; scene replacement clears the cached source.
         if (!ReferenceEquals(_asteroidSource, asteroids))
         {
-            Objects = Objects.Where(o => !IsPublicAsteroid(o)).Concat(asteroids).ToArray();
+            Objects = Objects.Where(o => !IsPublicFieldObject(o)).Concat(asteroids).ToArray();
             _asteroidSource = asteroids;
         }
         // Movement can cross visibility boundaries even when the field is unchanged.
@@ -646,7 +668,7 @@ internal sealed class FlightScene(
         var current = Objects
             .AsValueEnumerable()
             .Where(o =>
-                IsPublicAsteroid(o)
+                IsPublicFieldObject(o)
                 && context.Position is { } position
                 && position.DistanceTo(o.Position) <= AsteroidDefinitions.VisibilityRange
             )
@@ -691,6 +713,10 @@ internal sealed class FlightScene(
             {
                 Send(new DestinyCommand.Follow(ship.FollowMode, id, ship.FollowTargetId, range));
             }
+            else if (ship.DestinationPoint is { } point)
+            {
+                Send(new DestinyCommand.GotoPoint(id, point.X, point.Y, point.Z));
+            }
             else
             {
                 Send(new DestinyCommand.GotoDirection(id, ship.Heading.X, ship.Heading.Y, ship.Heading.Z));
@@ -719,7 +745,7 @@ internal sealed class FlightScene(
         _wrecks = ReadWrecks(context);
         _missiles = ReadMissiles(context);
         Drones.Capture(context);
-        _visibleAsteroids = visible.Where(IsPublicAsteroid).ToArray();
+        _visibleAsteroids = visible.Where(IsPublicFieldObject).ToArray();
         var snapshot = own is null
             ? Ballpark.StructureSnapshot(
                 context.EntityId,
@@ -739,7 +765,7 @@ internal sealed class FlightScene(
         send(new(stamp, new DestinyCommand.SetState(snapshot)));
         Drones.ReplayActivities();
         Npcs.Replay();
-        foreach (var missile in _missiles.Where(m => !m.Flight.Orphaned))
+        foreach (var missile in _missiles.Where(m => !m.Cosmetic && !m.Flight.Orphaned))
         {
             update(new DestinyCommand.AttackIndicator(missile.SourceShipId, missile.Id, missile.TargetId, true));
         }

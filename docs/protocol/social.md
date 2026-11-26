@@ -23,12 +23,15 @@ These records preserve milestone evidence and historical observations. Dates, sc
 - [Chat certificate manifest correction (November 5, 2026)](#chat-certificate-manifest-correction-november-5-2026)
 - [Native chat and multi-pilot Local (November 5, 2026)](#native-chat-and-multi-pilot-local-november-5-2026)
 - [Personal contacts and online status](#personal-contacts-and-online-status)
+- [Personal calendar invitation CSPA](#personal-calendar-invitation-cspa)
 - [Persistent personal calendar](#persistent-personal-calendar)
+- [Contact notification CSPA](#contact-notification-cspa)
 - [Persistent notification inbox and contact messages](#persistent-notification-inbox-and-contact-messages)
 - [Persistent mailing lists](#persistent-mailing-lists)
 - [Mailing-list organization access](#mailing-list-organization-access)
 - [Mail arrival notification arity](#mail-arrival-notification-arity)
 - [Mail compose optional source defaults](#mail-compose-optional-source-defaults)
+- [Personal mail CSPA](#personal-mail-cspa)
 - [Persistent personal EVE Mail](#persistent-personal-eve-mail)
 - [Station guests, November 4, 2026](#station-guests-november-4-2026)
 
@@ -546,6 +549,36 @@ References: unchanged pinned `code.ccp` hash and Carbon Blue revision **fcbf0c2e
 
 **Optional maintainer checks.** Add another local pilot with Send Notification cleared, assign a label and reconnect; verify the contact and label remain. With both pilots connected, check watchlist indicators through logoff/reconnect. Native rendering and interaction remain unverified.
 
+## Personal calendar invitation CSPA
+
+Personal event invitations follow the recipient's **Mail & Communications Settings**. The owner sees a charge
+confirmation when creating an event with paid invitees or adding paid invitees to an existing event. Same-corporation
+members and the recipient's contacts are exempt. An explicit block still rejects the invitation. The amount is
+recomputed from the actual additions on approval. Existing invitees, removals, event edits and organization events
+have no fee. An unchanged retry of an already applied participant update has no fee.
+
+The event, participant changes and notification feed commit with the wallet debit and CSPA journal. A rejected
+or outdated approval leaves the current roster and event details intact. The existing contact-policy table and
+wallet ledger carry the durable state.
+
+Pinned build **3662168**, archive SHA-256 `37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`,
+calls `CSPAChargedAction('CSPACalendarCheck', ...)` around `CreatePersonalEvent` with invitees and
+`UpdateEventParticipants` with additions in `eveCalendarsvc.pyj`. Removal-only requests call the manager directly.
+The approval uses the same `ContactCostNotApproved` and `approvedCost` contract as personal mail. EVE.js
+**261108.1**'s `calendarMgrService.js`, SHA-256 `8a1f814f2efd9cbda7a259056bc78162bd3c1e92a5bab1a2c58b491fff01c807`,
+confirms the creation and participant update shapes and the audience notifications.
+[EVE University Calendar](https://wiki.eveuniversity.org/Neocom#Calendar) · [EVE University CSPA](https://wiki.eveuniversity.org/EVE_Mail#CONCORD_Spam_Prevention_Act)
+
+**Automated validation.** `NativeCalendarInvitationChargesCommitWithTheEventAndSurviveReopen` and
+`NativeParticipantUpdatesChargeOnlyNewInviteesAndKeepRejectedRemovals` passed in 1.07 seconds of combined
+case time. They exercise the native quote and approval, insufficient funds, stale fees, an intervening edit,
+an idempotent participant retry, removal without charge and checkpoint reopen.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Create an event for a pilot who has set a CSPA fee, approve the dialog and
+check the resulting invitation and journal. Add or remove invitees on the saved event.
+
 ## Persistent personal calendar
 
 Replaced the always-empty `calendarProxy.GetEventList(month, year)` with saved personal events visible only to their creator and invited local pilots. The native result is a **list of result groups**, each containing native `blue.DBRow` records; a flat event list is incorrect. Event rows preserve `eventID`, `ownerID`, `eventDateTime`, nullable `eventDuration`, Unicode `eventTitle`, `importance`, `isDeleted` and `dateModified`. `GetEventDetails(eventID, ownerID)` returns `creatorID` and Unicode `eventText`. The owner argument is checked against saved ownership and never grants access. Cancelled events remain marked as cancelled in history; they do not become upcoming live events.
@@ -554,7 +587,7 @@ Pinned build **3662168** inert inspection covered `eve/client/script/ui/services
 
 `GetResponsesForCharacter()` returns `eventID`/`status` rows, including the creator's implicit accepted status. `GetResponsesToEvent(eventID, ownerID)` returns invitee `characterID`/`status` rows after the same visibility check. Pinned statuses are **Uninvited 0**, **Deleted 1**, **Declined 2**, **Undecided 3**, **Accepted 4**, **Maybe 5**. New invitees start undecided. Only invitees can submit accepted, declined or tentative replies. Moving an event resets accepted and tentative replies to undecided while preserving declined replies, matching the native `OnEditCalendarEvent` branch; changing text alone preserves replies. Removing a guest revokes event, details, attendee and reply access; re-invitation starts with a new undecided reply. Replies are saved immediately. Native response calls update their own cache; reopening the uncached attendee query reads current replies rather than forcibly closing other event windows.
 
-The server enforces the pinned **40-character title**, **500-character description**, **50 other invitees**, and **12 calendar months ahead** limits. Duration is None or the native selector's **1–24 whole hours**, stored as minutes. Month queries use UTC month boundaries and preserve history from the client's calendar start year **2003**. New/edited events cannot be moved into the past; the current minute is allowed because the native editor uses minute precision. Unknown, duplicate, self and blocked invitations, unauthorized changes, malformed fields, stale dates and invalid response statuses fail without partial writes. Personal invitations currently have **no configured CSPA charge**. The native CSPA wrapper first tries the ordinary create/update call; it does not require a separate fee query. Only an optional zero `approvedCost` is accepted. Paid communication settings, corporation/alliance event permissions, official CCP events and automated structure events are separate future work.
+The server enforces the pinned **40-character title**, **500-character description**, **50 other invitees**, and **12 calendar months ahead** limits. Duration is None or the native selector's **1–24 whole hours**, stored as minutes. Month queries use UTC month boundaries and preserve history from the client's calendar start year **2003**. New/edited events cannot be moved into the past; the current minute is allowed because the native editor uses minute precision. Unknown, duplicate, self and blocked invitations, unauthorized changes, malformed fields, stale dates and invalid response statuses fail without partial writes. This milestone accepted zero `approvedCost` for personal invitations. Paid approvals are covered by [personal calendar invitation CSPA](#personal-calendar-invitation-cspa). Corporation/alliance event permissions, official CCP events and automated structure events were outside this milestone.
 
 Create, edit, cancellation and invitation membership changes commit together with a private, ordered change feed. Connected recipients receive native `OnNewCalendarEvent`, `OnEditCalendarEvent` and `OnRemoveCalendarEvent` argument shapes, including the prior date for a move and the cancelled-versus-uninvited removal flag. A connection starts at its current feed cursor; reconnects fetch saved event state without replaying old notifications. Tick delivery drains at most **256 changes** at a time and continues when a batch remains even if no new write occurs. A process-local revision signal avoids SQLite polling on unchanged idle ticks, and publishes only after commit. Pilot logoff resets the observer. No email, chat message or external calendar is sent.
 
@@ -566,6 +599,38 @@ World version **48** adds `WorldCalendarEvent`, `WorldCalendarParticipant` and `
 
 **Optional maintainer checks.** Create and open a personal event, invite another pilot, and inspect the participant response after reopening. Observe rescheduling, cancellation and removal in a second client, then reconnect. Native calendar rendering, editor interaction and notification presentation remain unverified.
 
+## Contact notification CSPA
+
+The personal address book respects the recipient's CSPA setting when **Send Notification** is selected on an add
+or edit. Quiet changes remain free. Same-corporation senders and the recipient's contacts are exempt from the
+fee and the block-unknown setting. An explicit block on either side prevents notification delivery.
+
+Eden checks the current amount and wallet on approval. An updated fee requires fresh approval. The contact, task
+progress, notification, wallet debit and CONCORD journal entry commit together. Rejecting a send leaves the latest
+standing and watchlist as saved. An add to an existing contact rejects before it can send or charge again.
+
+Pinned build **3662168**, archive SHA-256 `37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`,
+uses `CSPAChargedAction('CSPAContactNotifyCheck', ...)` for personal `AddContact` and `EditContact` in
+`addressbookService.pyj`. The agent and organization contact branches use separate calls. The approval uses the
+existing `ContactCostNotApproved` and `approvedCost` wire contract. EVE.js **261108.1**'s `charMgrService.js`,
+SHA-256 `82731fcebb67a53a6723f95464a7ffa838bc98c57344fa6c64b0e3a7a90858f1`, confirms the five contact arguments
+and notification types **89** and **90**. [EVE University Contacts](https://wiki.eveuniversity.org/Contacts#Adding_Contacts) ·
+[EVE University CSPA](https://wiki.eveuniversity.org/EVE_Mail#CONCORD_Spam_Prevention_Act)
+
+**Automated validation.** Both exact resident-world cases passed against `31456b54` with this change applied.
+`NativePaidContactAddCommitsNotificationWalletAndProgressOnceAcrossReopen` and
+`NativeContactEditRequotesAndPreservesTheLatestStandingOnRejection` took 13.49 seconds of test command time.
+They exercise the native quote, insufficient funds, an intervening edit, blocks and exemptions, duplicate-add
+rejection, and checkpoint reopen of the fee, contact, task and notification. The build took 42.23 seconds with
+zero warnings or errors. The affected `ContactsServiceTests`, `PilotContactsTests`, `InboxServiceTests`,
+`Persistence.InboxTests`, `MailContactPolicyTests` and `CalendarContactPolicyTests` passed all 25 cases in
+15.73 seconds of test command time.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Add a contact with **Send Notification** enabled, approve a configured CSPA charge,
+then inspect the recipient's notification and sender's journal.
+
 ## Persistent notification inbox and contact messages
 
 Replaced the always-empty `notificationMgr.GetAllNotifications` route with a private saved inbox. Native history calls use **`GetAllNotifications(fromID=...)`**: pinned `NotificationUIService._NotificationProvider` supplies `lastClearedNotificationId`, so this is an **exclusive newer-than cutoff**, not a request for older pages. None and zero fetch all visible history. Other reads are `GetUnprocessed()` and `GetByGroupID(groupID)`. Replies are lists of explicit KeyVal DTOs with `notificationID`, `typeID`, `senderID`, `receiverID`, Boolean `processed`, FILETIME `created` and typed `data`.
@@ -574,7 +639,7 @@ The native write calls `MarkAsProcessed([ids])`, `MarkAllAsProcessed()`, `MarkGr
 
 The first server producers are the contact form's optional **Send Notification** add/edit actions. `notificationTypeContactAdd` is **89** and `notificationTypeContactEdit` is **90**. Inert inspection of `contactManagementWindow.pyj` establishes the **120-character** single-line message limit. `contactFormatters.pyj` consumes the known `level` and `message` payload. Both history DTOs and live events carry an explicit dictionary with the standing snapshot and Unicode message. Pinned `TryUnYamlNotificationData` only parses string payloads and accepts an already-decoded mapping, so no YAML parser or executable serializer is introduced. Empty messages are valid. Silent add/edit calls still create no notification. NPC agent bookmarks do not emit personal-player notifications.
 
-Contact changes, the contact-added task event and the recipient's notification commit together. A blocked sender/recipient pair, invalid text, failed inbox write, unknown pilot or rejected contact operation leaves all three unchanged. Both existing standing and watchlist flags are retained on a failed edit. The contact remains private to its owner; sending a notification does not add a reciprocal contact. The message is a saved snapshot, so subsequent rating changes do not rewrite earlier notifications. Paid CSPA settings are not configured or implemented, and these sends do not charge ISK.
+Contact changes, the contact-added task event and the recipient's notification commit together. A blocked sender/recipient pair, invalid text, failed inbox write, unknown pilot or rejected contact operation leaves all three unchanged. Both existing standing and watchlist flags are retained on a failed edit. The contact remains private to its owner; sending a notification does not add a reciprocal contact. The message is a saved snapshot, so subsequent rating changes do not rewrite earlier notifications. Paid sends are covered by [contact notification CSPA](#contact-notification-cspa).
 
 Connected recipients receive `OnNotificationReceived(notificationID, typeID, senderID, created, data)`. A per-connection observer starts at the current durable ID on pilot selection, resets at logoff and drains at most **256 rows** per tick. Tombstones and already-read rows advance that cursor without being reannounced as unread. A history/unread/group fetch that wins the race with delivery records only its returned IDs, preventing a duplicate push without dropping notifications outside the fetched group. Remaining batches drain without requiring another publication. A process-local revision signal publishes only after a successful contact/notification commit and avoids SQLite polling on unchanged idle ticks. The native read/delete methods update their own client caches, so the server does not send duplicate deletion events. Offline recipients fetch saved history after reconnecting.
 
@@ -660,6 +725,40 @@ Reference: pinned archive SHA-256 **37FB2AF4FA0EC5C8FA320F34CD28C8B7DBF491741833
 **Live acceptance.** Not performed; agent client testing is disabled.
 
 **Optional maintainer checks.** Load the rebuilt server and retry a new message from pilot 1 to pilot 2; inspect delivery, then reply. The screenshot establishes the original live failure, not acceptance of the corrected build.
+
+## Personal mail CSPA
+
+The native **Mail & Communications Settings** panel can charge unknown senders up to **1,000,000 ISK** per message or
+accept mail only from known pilots. The default fee is zero. A recipient's own corporation and their personal
+contacts are exempt. An explicit block still rejects the message. The policy applies to explicitly addressed
+characters, including those listed alongside a group address. Personal calendar invitations and contact notifications
+use the same policy. Mailing list and organization audiences, fleet invitations and conversations use their existing rules.
+
+The first send that requires payment returns a native confirmation dialog. Eden recalculates the total and checks
+the sender's current wallet on the approved send. A changed fee requires a fresh approval. Delivery, sender wallet
+and the CSPA journal entries commit together. One journal entry per charged recipient records the debit to CONCORD.
+The policy is character-owned and persists through the resident checkpoint. World schema **231** adds its policy
+table, with zero cost for existing characters until they choose a setting.
+
+Inert inspection of build **3662168**, archive SHA-256
+`37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`, identifies `account.GetDefaultContactCost()`
+and `account.SetContactCost(cost)` in `accountsvc.pyj`. The client writes and reads Python None for its block-unknown
+setting. `mailSvc.SendMail` passes the request through `eveMisc.CSPAChargedAction`, which consumes the
+`ContactCostNotApproved` error values `totalCost` and `totalCostISK` and resends with `approvedCost` when confirmed.
+`appConst.refCSPA` identifies journal type **35**. Local EVE.js **261108.1** leaves the contact-cost RPCs as stubs
+in `accountService.js`, SHA-256 `f427b0968885c250a05b3c4b0aacf6025c6cf246cf474ce718cbfa13db9d464a`, and confirms
+the journal type in `accountingEntryTypes.json`.
+[EVE University EVE Mail](https://wiki.eveuniversity.org/EVE_Mail#CONCORD_Spam_Prevention_Act)
+
+**Automated validation.** `NativePaidMailRequotesAndCommitsDeliveryWithTheWalletCharge` and
+`BlockUnknownMailExemptsCorporationAndRecipientContactsWhileExplicitBlocksWin` passed in 5.19 seconds of combined
+case time. They cover live settings changes between sends, a changed balance between quote and approval, native
+mail and journal replies, recipient exemptions and explicit blocks, and checkpoint reopen.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Set a charge on one pilot and send from a pilot outside their corporation and
+contact list. Approve the native dialog and inspect the sender's journal and recipient's inbox.
 
 ## Persistent personal EVE Mail
 

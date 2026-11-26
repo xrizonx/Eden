@@ -4,6 +4,7 @@ using Eden.Data.Catalog;
 using Eden.Data.World.Characters;
 using Eden.Data.World.Inventory;
 using Eden.Data.World.Market;
+using Eden.Gameplay.Docking;
 using Eden.Gameplay.Inventory;
 using Eden.Gameplay.Market;
 using Eden.Infrastructure.Registration;
@@ -26,6 +27,50 @@ internal sealed partial class PilotMarketStore
     private static int MarketSystem(WorldAction world, CatalogDbContext catalog, Ship ship) =>
         ship.Position?.SystemId
         ?? (ship.StructureId is long structure ? world.StructureSystemId(structure) : Station(catalog, ship.StationId).SolarSystemId);
+
+    private static bool DockedAt(Pilot pilot, int stationId) =>
+        pilot.ActiveShip.Position is null && pilot.ActiveShip.DockedLocationId == stationId;
+
+    private static void RequireRemoteTradeRange(
+        WorldAction world,
+        CatalogDbContext catalog,
+        Pilot pilot,
+        CatalogStationDefinition station,
+        MarketSkill skill
+    )
+    {
+        if (!HasMarket(catalog, station))
+        {
+            throw new InvalidDataException("This station does not provide a market.");
+        }
+        if (DockedAt(pilot, station.Id))
+        {
+            return;
+        }
+        int system = MarketSystem(world, catalog, pilot.ActiveShip);
+        if (catalog.RequireSystem(system).RegionId != station.RegionId)
+        {
+            throw new InvalidDataException("Trade from the station's current market region.");
+        }
+        // All four build 3662168 clone-grade profiles cap Marketing at II and omit Procurement and Daytrading.
+        const int alphaMarketingLevel = 2;
+        int level = PilotSkillReader.Level(world, catalog, pilot.Id, (int)skill);
+        if (world.Set<Account>().Find(pilot.AccountId)?.CloneGrade != AccountCloneGrade.Omega)
+        {
+            level = skill == MarketSkill.Marketing ? Math.Min(level, alphaMarketingLevel) : 0;
+        }
+        int range = PersonalMarketRules.RemoteTradeRange(level);
+        int? jumps = range switch
+        {
+            0 when system == station.SolarSystemId => 0,
+            > 0 and < StandardMarketRules.RegionRange => catalog.Definitions.StargateDistance(system, station.SolarSystemId),
+            _ => null,
+        };
+        if (!StandardMarketRules.Reaches(range, false, jumps))
+        {
+            throw new InvalidDataException($"Your {skill} skill does not reach that market station.");
+        }
+    }
 
     private static CatalogStationDefinition PurchaseStation(WorldAction world, CatalogDbContext catalog, Pilot pilot, int stationId)
     {
@@ -257,7 +302,7 @@ internal sealed partial class PilotMarketStore
         long from = period?.From ?? 0;
         long until = period?.Until ?? long.MaxValue;
         return world
-            .Filter<MarketExecution>(t => t.PilotId == pilotId && t.Time >= from && t.Time < until)
+            .Filter<MarketExecution>(t => t.PilotId == pilotId && !t.CorporationId.HasValue && t.Time >= from && t.Time < until)
             .OrderByDescending(t => t.Id)
             .Take(limit ?? int.MaxValue)
             .AsEnumerable()

@@ -228,17 +228,7 @@ internal sealed class SmartbombStore(
         bool intercepted = DamageMissiles(world, catalog, candidates.Missiles, system, now, module, Near);
         intercepted |= AreaWeaponStore.DamageProjectiles(world, system, module.Damage, now, Near);
         world.SaveChanges();
-        foreach (
-            var probe in world.Filter<Eden.Data.World.Propulsion.SavedInterdictionField>(row =>
-                row.SystemId == system && row.Kind == InterdictionKind.Probe && row.ExpiresAt > now && row.HitPoints > 0
-            )
-        )
-        {
-            if (Near(new(probe.X, probe.Y, probe.Z), catalog.RequireItem(probe.TypeId).Radius ?? 0))
-            {
-                probe.HitPoints = Math.Max(0, probe.HitPoints - module.Damage.Total);
-            }
-        }
+        DamageInterdictionProbes(world, catalog, system, module.Damage, now, Near);
         transaction.Commit();
         transaction.Dispose();
         if (heat is not null)
@@ -335,6 +325,28 @@ internal sealed class SmartbombStore(
         return new(new(row.ItemId, defense, result.Remaining), result.Applied);
     }
 
+    internal static void DamageInterdictionProbes(
+        WorldAction world,
+        CatalogDbContext catalog,
+        int system,
+        DamageVector damage,
+        long now,
+        Func<SpacePosition, double, bool> near
+    )
+    {
+        foreach (
+            var probe in world.Filter<Eden.Data.World.Propulsion.SavedInterdictionField>(row =>
+                row.SystemId == system && row.Kind == InterdictionKind.Probe && row.ExpiresAt > now && row.HitPoints > 0
+            )
+        )
+        {
+            if (near(new(probe.X, probe.Y, probe.Z), catalog.RequireItem(probe.TypeId).Radius ?? 0))
+            {
+                probe.HitPoints = Math.Max(0, probe.HitPoints - damage.Total);
+            }
+        }
+    }
+
     private static bool DamageMissiles(
         WorldAction world,
         CatalogDbContext catalog,
@@ -348,7 +360,11 @@ internal sealed class SmartbombStore(
         bool intercepted = false;
         foreach (long id in candidates.Distinct().Order())
         {
-            if (world.Set<WorldMissile>().Find(id) is not { Status: MissileFlightStatus.Flying } row || row.SystemId != system)
+            if (
+                world.Set<WorldMissile>().Find(id) is not { Status: MissileFlightStatus.Flying } row
+                || row.SystemId != system
+                || row.GroupId == (int)MissileChargeGroup.Festival
+            )
             {
                 continue;
             }

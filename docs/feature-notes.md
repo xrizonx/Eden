@@ -4,8 +4,10 @@
 
 ## Gameplay overview
 
-- **Flight and combat.** Fit a ship, join a fleet, take agent missions, and fight NPCs or other pilots.
-  [Fitting and modules](#fitting-weapons-and-modules) · [Supported missions](missions.md) · [Sansha Incursions](protocol/incursions.md)
+- **Flight and combat.** Fit a ship, join a fleet, take agent missions, and fight NPCs or other pilots. The Incursion journal
+  shows stored, paid and forfeited loyalty points.
+  [Fitting and modules](#fitting-weapons-and-modules) · [Supported missions](missions.md) ·
+  [Sansha Incursion LP journal](protocol/incursions.md#incursion-loyalty-point-journal)
 - **Exploration.** Scan and hack data and relic sites, explore wormholes with mass and lifetime limits, and run Abyssal pockets.
   [Scanning and hacking](protocol/information.md) · [Wormholes](protocol/wormholes.md) · [Abyssal Deadspace](protocol/abyssal.md)
 - **Industry and trade.** Mine resources, operate planetary colonies and moon refineries, run blueprint and production jobs,
@@ -14,7 +16,9 @@
   [Fleets](#cooperative-fleets) · [Corporations](corporations.md) · [Structures](protocol/structures.md) · [Sovereignty](protocol/sovereignty.md)
 - **Faction Warfare.** Enlist a pilot, corporation or alliance. Run militia missions, earn ranks and LP, capture complexes and
   battlefields, and contest infrastructure hubs in both warzones. Optional militia bots select reachable Frontlines and
-  contest shared complexes. [Faction Warfare](protocol/faction-warfare.md#dynamic-faction-warfare-patrols)
+  contest shared complexes. The map shows recent militia ship losses.
+  [Faction Warfare](protocol/faction-warfare.md#dynamic-faction-warfare-patrols) ·
+  [Faction Warfare map kills](protocol/navigation.md#faction-warfare-map-kills)
 - **Simulated capsuleers.** Encounter pilots that mine, haul, fight, explore and salvage. On established worlds, eligible
   bots buy and fit separate PvP ships. The server funds bot refits by default. Corporate pilots can take paid production work,
   replace lost ships and fund first sovereignty claims. Stranded pilots can travel to a stocked trade hub for a replacement
@@ -25,6 +29,7 @@
   scanning. Loaded freight can turn back after a fresh warning about the next gate.
   [Trade hub refits](protocol/capsuleers.md#trade-hub-replacement-trips) ·
   [Replacement after pod loss](protocol/capsuleers.md#replacement-after-pod-loss-and-market-affordability) ·
+  [Earned replacements on the Standard market](protocol/capsuleers.md#earned-replacements-on-the-standard-market) ·
   [Nullsec scouting](protocol/capsuleers.md#nullsec-scouting-and-freight-warnings) · [Activity-funded PvP](protocol/capsuleers.md#activity-funded-pvp-ships) ·
   [Independent nullsec expeditions](capsuleer-population.md#independent-nullsec-expeditions) ·
   [Capsuleer encounters](capsuleer-population.md) · [Population settings](world-configuration.md#autonomous-population) ·
@@ -87,7 +92,12 @@ The station Agents tab checks Event agents against the pilot's current mission a
 [Nine epic arcs](missions.md#epic-arcs) offer branching progression, cross-agent handoffs and a 90-day replay interval.
 [Supported missions](missions.md) · [Agent and research records](protocol/agents.md)
 
-Home stations now persist independently of ship travel. Select the current NPC station or your school corporation’s headquarters for **100,000 ISK**. A docked capsule away from home can use **Self-Destruct** in the home-station panel to return there in a replacement capsule; other ships, wallet and skills stay in place. New pilots retain their starting station as home. Player-corporation remote offices remain pending. See the [home-station notes](protocol/characters.md#persistent-home-stations-and-docked-clone-transfer).
+Home stations persist independently of ship travel. Select the current NPC station or your school corporation’s headquarters
+for **100,000 ISK**. Eligible pilots can also select an active corporation office at a remote NPC station every 365 days.
+A docked capsule away from home can use **Self-Destruct** in the home-station panel to return there in a replacement capsule.
+Other ships, wallet and skills stay in place. New pilots retain their starting station as home.
+[Home stations](protocol/characters.md#persistent-home-stations-and-docked-clone-transfer) ·
+[Remote corporation offices](protocol/characters.md#remote-home-station-selection-at-corporation-offices)
 
 Task tracking now retains per-pilot client counters and catalog task completions across restarts. Supported server gameplay records its own progress, and the first-warp camera query reflects actual warp entry. Build 3662168 disables its legacy achievement UI; these routes do not enable that interface. See the [task tracking notes](protocol/characters.md#persistent-task-tracking).
 
@@ -128,14 +138,26 @@ Mail-arrival events now match the stock client's eight-argument callback. An ext
 
 New personal mail now accepts the stock compose window's `False` defaults for unused reply/forward IDs. This fixes the reported **Expected a mail identifier or None** rejection when sending to another pilot. See the [compose-default correction](protocol/social.md#mail-compose-optional-source-defaults); live confirmation of the fix remains pending.
 
-Personal EVE Mail now supports local-pilot sending, inbox/sent state, replies/forwards, compressed bodies, read/unread actions, trash/restoration/deletion and private labels. Mail and change notifications persist across restarts, with recipient ownership, blocking and rate limits enforced atomically. Native presentation remains unverified. Corporation/alliance broadcasts now snapshot their member recipients; paid CSPA remains pending. Mailing lists are implemented above. See the [personal mail notes](protocol/social.md#persistent-personal-eve-mail).
+Personal EVE Mail supports direct messages, inbox and sent mail, replies and forwards, private labels, and trash recovery.
+Pilots can charge for direct mail from unknown senders or block it. Personal contacts and corporation members are exempt from
+the charge. The wallet debit and mail delivery commit together. Corporation and alliance broadcasts snapshot their recipients.
+[Personal mail](protocol/social.md#persistent-personal-eve-mail) · [Direct mail CSPA](protocol/social.md#personal-mail-cspa)
 
 Corporation directors can restrict corporation-wide mail to Communications Officers and directors.
 [Corporation mail restrictions](protocol/corporations.md#corporation-mail-restrictions)
 
-The notification inbox now saves contact-add and contact-edit notifications, including the contact form's **Send Notification** message. Recipients can fetch history/unread groups, mark items read and delete selected items, groups or all history. Connected pilots receive native notifications; offline recipients retain them across restarts. Blocked messages fail together with the contact edit. Other gameplay notification families and paid CSPA communication remain pending; native inbox presentation is unverified. See the [notification inbox notes](protocol/social.md#persistent-notification-inbox-and-contact-messages).
+The notification inbox saves contact-add and contact-edit notifications, including the contact form's **Send Notification**
+message. Changes that send a notification apply the recipient's contact policy. The contact change, approved charge and inbox
+notification commit together. Recipients can read, mark and delete history. Offline recipients retain notifications across restarts.
+[Notification inbox](protocol/social.md#persistent-notification-inbox-and-contact-messages) ·
+[Contact notification CSPA](protocol/social.md#contact-notification-cspa)
 
-Personal calendar events now support saved invitations, details, replies, edits, rescheduling and cancellation. Creators can invite up to **50 local Eden pilots**; connected invitees receive ordered calendar updates, and offline invitees see their events after reconnecting. Removing an invitee revokes access. Alliance calendars are implemented with current-member access and executor administration. Corporation members can see and respond to corporation events. Communications Officers, directors and CEOs can schedule, reschedule and cancel them. See [corporation calendar events](protocol/social.md#corporation-calendar-events). Official events and paid CSPA invitations remain pending. Native calendar presentation is unverified; see the [calendar notes](protocol/social.md#persistent-personal-calendar).
+Personal calendar events support up to **50 local invitees**, saved replies, editing, rescheduling and cancellation.
+The creator confirms any CSPA fees when adding new invitees. Alliance calendars use current membership and executor
+administration. Corporation Communications Officers, directors and CEOs can manage corporation events.
+[Personal calendar](protocol/social.md#persistent-personal-calendar) ·
+[Calendar invitation CSPA](protocol/social.md#personal-calendar-invitation-cspa) ·
+[Corporation events](protocol/social.md#corporation-calendar-events)
 
 Personal contacts support add/edit/delete, standings, blocking and labels for local Eden pilots, including offline pilots. Values survive restarts. Watchlists show online state and receive login/logoff updates without docking flicker. NPC agents can be saved through their native address-book action. Optional add/edit messages reach the recipient's saved notification inbox. Corporation and alliance shared contact books are implemented. Personal standings and labels also accept local player corporation and alliance owners; watchlists, blocking and notification messages remain character-only. Native contact-window presentation is unverified; see the [personal contact implementation notes](protocol/social.md#personal-contacts-and-online-status).
 
@@ -148,6 +170,11 @@ objects, bookmarks and same-system pilots. Commanders can regroup their eligible
 fleet warp and regroup independently. Fleets support eligible mission reward and bounty sharing, on-grid loot access, watchlist
 damage and Command Bursts. [Fleet regroup](protocol/fleets.md#native-fleet-regroup) ·
 [Cooperative fleet records](protocol/fleets.md)
+
+Fleet commanders can invite multiple pilots to a selected wing or squad in one action. The client reports recipients who
+couldn’t be invited and prompts for applicable contact charges. [Fleet group invitations](protocol/fleets.md#fleet-group-invitations)
+Individual invitations also honor contact fees and communications blocks.
+[Individual fleet invitation CSPA](protocol/fleets.md#individual-fleet-invitation-cspa)
 
 Fleet Composition shows hulls, docking status and leadership skills for pilots in the viewer's command scope.
 Fleet members can see the fleet's system locations through the map's **My Fleet** filter.
@@ -170,6 +197,9 @@ Player corporations support persistent membership, delegated roles and titles, w
 recruitment, shares, dividends, voting and CEO succession. Alliance members can make qualifying EverMark donations to the
 executor, and the executor can transfer EverMarks to member corporations.
 [Corporation features](corporations.md) · [Alliance EverMark eligibility](protocol/alliances.md#alliance-membership-age-and-evermark-donations)
+
+Accountants and Junior Accountants can search corporation office assets by category, group, type, and minimum stack
+quantity, then open the matching station's inventory. [Corporation office asset search](protocol/corporations.md#corporation-office-asset-search)
 
 Player corporations and alliances can declare wars from the native Corporation window. Standard wars require structure
 ownership on both sides, an eligible high-security War HQ, and 500 million ISK per week. Mutual wars use invitations and
@@ -208,7 +238,12 @@ read the world's sovereignty claims. [Map startup](protocol/navigation.md#native
 
 Undocking now uses each NPC station model's catalogued exit lane and launches with the pinned client's initial velocity. Static collisions retain thrust and tangential movement instead of cancelling the course. All 44 NPC station models have automated coverage, including Amsen VI - AIR Laboratories. Launches remain outside Eden's spherical station collision boundary, so exact placement at the visible hangar mouth remains approximate. See the [undocking correction](protocol/navigation.md#station-exit-lanes-and-collision-response).
 
-Personal Locations now saves private folders, subfolders and bookmarks across reconnects and restarts. Save stations or map destinations, or save your authoritative position in space and warp back within that solar system. Edit, move, copy, delete, activate/forget folders, and use automatic expiry. Personal warps accept the native `fleet=False` flag, fixing **Unexpected bookmark warp arguments**; see the [compatibility fix](protocol/navigation.md#bookmark-warp-personal-fleet-flag). Shared access-group folders and scan-result bookmarks remain pending. Native bookmark-window presentation remains unverified; see the [personal bookmark notes](protocol/navigation.md#personal-bookmarks-and-saved-location-warp).
+Personal Locations saves private and shared folders and bookmarks across reconnects and restarts. Save stations, map
+destinations, scan results or your current position in space. Same-system locations support warp, and **Approach Location**
+brings the ship toward a saved point or a visible object within 10,000 km. Pilots can manage folders, entries and automatic
+expiry. [Personal bookmarks](protocol/navigation.md#personal-bookmarks-and-saved-location-warp) ·
+[Shared folders and access lists](protocol/navigation.md#shared-bookmark-folders-and-access-lists--november-11-2026) ·
+[Bookmark approach](protocol/navigation.md#bookmark-approach)
 
 The station directory returns every catalog station for remote station lookup and map consumers, with catalog names, locations, owners and service masks. The pinned client assigns mask bits by sorted service IDs. Native map/window presentation remains unverified; see the [station directory notes](protocol/navigation.md#catalog-station-directory).
 
@@ -219,6 +254,9 @@ Player and NPC ships share one authoritative movement step per system tick. Ship
 Use **Orbit** or **Keep at Range** on a nearby ship, NPC, asteroid or wreck to control positioning. Orbits account for the two objects' radii and the ship's speed, mass and agility; tight or boosted orbits can settle wider than the requested range. Both controls track moving targets. Stop, a new heading, warp and docking cancel the course. When the target leaves, an orbiting ship continues on its current heading while a Keep at Range follower coasts to a stop. Restart retains position and returns the ship to rest.
 
 ## Player Upwell structures
+
+Corporation directors can save a preferred Upwell reinforcement hour. The deployment picker starts with that hour and
+accepts a different hour for an individual deployment. [Corporation reinforcement default](protocol/structures.md#corporation-default-reinforcement-hour)
 
 Ordinary targeted warp disruption prevents Upwell docking while its active strength exceeds the ship's warp core strength.
 Pilots can retry when the effect expires or their stabilizer ties the incoming strength.
@@ -237,11 +275,22 @@ hangar. The recipient's items and inbox notification persist across restarts.
 [Personal Deliveries at Upwell structures](protocol/structures.md#personal-deliveries-at-upwell-structures)
 
 Gunners can fit Standup defenses, load ammunition and scripts, lock from the structure's own sensors, fire defensive
-missiles, neutralize capacitor, slow ships and disrupt warp. Loading the Standup scrambling script also blocks
+missiles, neutralize capacitor, slow ships, jam sensors and disrupt warp. Target painters increase the target's signature
+radius, remote sensor dampeners reduce lock range and scan resolution, and weapon disruptors impair turrets and missiles at once.
+Loading the Standup scrambling script also blocks
 microwarpdrives and micro jump drives. Standup fighters can launch and recall, including after the gunner
 releases control. The structure audit tracks the remaining defensive effects, service-specific access and fees,
 player markets, clone bays, corporation offices, and specialized hull behavior.
+[Standup ECM](protocol/structures.md#standup-variable-spectrum-ecm) ·
+[Painters and dampeners](protocol/structures.md#standup-target-painters-and-sensor-dampeners) ·
+[Standup Weapon Disruptors](protocol/structures.md#standup-weapon-disruptors) ·
+[Standup Point Defense Batteries](protocol/structures.md#standup-point-defense-batteries) ·
+[Standup fighter mobility](protocol/structures.md#standup-fighter-mobility) ·
 [Structure gameplay and gap audit](protocol/structures.md#structures-gap-audit)
+
+Standup Point Defense Batteries fire an untargeted flak pulse around eligible large or extra-large Upwell structures.
+Each cycle consumes capacitor and 200 rounds and applies local safety and range checks.
+Standup fighter gunners can activate the squadron's microwarpdrive, afterburner, evasive maneuver, or micro jump ability.
 
 High GMs can force all native Upwell operating states, set operating and deployment timers, start or cancel unanchoring,
 and change an eligible structure's abandonment deadline. [Structure GM commands](protocol/structures.md#structure-gm-commands)
@@ -299,9 +348,17 @@ Personal item-exchange contracts support public offers and assignments to local 
 
 ## Mining, industry and economy
 
+Deep-core mining of Mercoxit can release a temporary pollution cloud. Nearby ships and deployed drones take periodic
+damage, and Deep Core Mining reduces the chance of a cloud forming.
+[Mercoxit mining pollution clouds](protocol/industry.md#mercoxit-mining-pollution-clouds)
+
 ISK and EverMarks redeem rewards now credit their wallets. ISK tokens previously fell through to inventory delivery. ISK gains have native journal entries and balance updates; personal LP reads return saved issuer balances, including Paragon EverMarks. Claims survive restarts, reject duplicates/overflow, and work before pilot selection or in space. Native wallet rendering remains unverified. Corporation donations are implemented; Paragon missions remain pending. See the [currency and loyalty-wallet notes](protocol/industry.md#currency-redemption-and-loyalty-wallets).
 
-NPC loyalty point stores support native station access, offer browsing, personal purchases, CEO/Director corporate purchases from the selected ISK division, and personal CONCORD LP conversion at pinned catalog rates. Required items come from the purchasing pilot's station Item Hangar; LP/ISK, item consumption, delivery and purchase receipts commit together. A dated offline CCP offer snapshot is checked against the pinned catalog, exposing supported physical rewards. Cosmetic licenses, Analysis Kredit offers and event-specific access remain open. Supported missions award LP. Eligible NPC loyalty stores also offer [earned blueprint copies](protocol/industry.md#earned-lp-blueprint-copies). See [LP-store scope and validation](protocol/industry.md#loyalty-point-stores-november-8-2026).
+NPC loyalty point stores support personal and eligible corporate purchases and personal CONCORD LP conversion. LP, ISK,
+required items and the reward settle together. Offers include earned blueprint copies and published physical ship SKIN licenses.
+Analysis Kredit offers and event-specific access remain open. [LP stores](protocol/industry.md#loyalty-point-stores-november-8-2026) ·
+[Earned blueprint copies](protocol/industry.md#earned-lp-blueprint-copies) ·
+[Ship SKIN licenses](protocol/industry.md#ship-skin-licenses-from-npc-loyalty-stores)
 
 Mine ordinary ore, ice, gas or Mercoxit with equipment admitted for the resource and hull. Modulated ore lasers use compatible
 crystals with saved wear. At stations with reprocessing, preview and refine eligible materials using the station, recipe, and
@@ -317,6 +374,39 @@ materials or blueprints follow their own eligibility rules.
 Originals support ME/TE research and copying at laboratory stations. Copies inherit research and retain limited manufacturing runs; invention consumes copy runs, datacores and optional generic decryptors. Ancient relic stacks now support their catalog Tech III invention choices and consume one relic per attempt. Outcomes are saved at installation, and delivery/cancellation cannot reroll them. Separate manufacturing/laboratory slots, fees, ownership checks, installation reservations, restart persistence and exactly-once delivery remain authoritative. Missing price references reject priced jobs rather than silently waiving component costs. See [catalog-wide production](protocol/industry.md#catalog-wide-station-production-november-9-2026), its reproducible [recipe audit](production-catalog.json), and the earlier [science implementation](protocol/industry.md#science-jobs-november-8-2026).
 
 Eden's default testing market sells all **19,727 published market types** in the pinned client catalog for **1 ISK per unit**. Each station with a market service is populated when a docked pilot accesses it, with **1,000,000 units per type** and replenishing supply. Existing and new pilots receive **1,000,000 ISK once**, recorded as a GM Cash Transfer in their wallet journal; restarting never repeats the grant. Ships, modules, ammunition, skillbooks, blueprint originals and other published market items can be purchased into Item Hangar. Purchasing an item does not implement its missing gameplay: the assembly, fitting, activation and industry limits described below still apply. NPC buyback orders for Veldspar, Scordite, Tritanium and Pyerite retain their finite demand, original prices and sales tax. The native Regional Market browser displays stock and history from actual regional trades. Personal immediate trades require docking at the selling station. Personal station-local buy/sell listings now reserve goods and fully funded ISK escrow, match partial fills across orders, charge broker/relist fees and sales tax, and support modification, cancellation and expiry while the owner is offline. Orders, payments, delivery and notifications survive save/reopen. Personal station-buy listings can set a minimum quantity. A seller can fill the entire remainder once the order drops below the original minimum. [Buy order minimum volume](protocol/industry.md#personal-buy-order-minimum-volume). New worlds can explicitly disable testing supply and grants; see [personal market orders](protocol/industry.md#persistent-personal-market-orders-november-6-2026).
+
+Daytrading extends the range for repricing personal orders within your current region. You can cancel your own order
+from another region. Remaining sell inventory returns to the original station, and buy escrow returns to your wallet.
+Procurement enables remote station buy orders, and Marketing enables sales from remote station hangars.
+Buy orders can accept fulfillment within a selected range. Visibility governs the available range when placing them remotely.
+[Remote personal order management](protocol/industry.md#remote-personal-order-management) ·
+[Procurement and Marketing](protocol/industry.md#procurement-and-marketing-at-remote-stations) ·
+[Ranged buy orders](protocol/industry.md#ranged-personal-buy-orders)
+
+Immediate NPC-station purchases and Multibuy can use a corporation wallet. Traders with withdrawal access pay from the
+selected division, with goods collected from the seller station's Market Deliveries and each fill recorded in the
+division's transaction history. [Immediate corporation market purchases](protocol/industry.md#immediate-corporation-market-purchases)
+
+Immediate corporation sales can fill NPC-station buy orders from a personal Item Hangar or an authorized corporation
+office division. The chosen corporation wallet receives the proceeds and records transaction tax.
+[Immediate corporation market sales](protocol/industry.md#immediate-corporation-market-sales)
+
+The account PLEX Vault supports transfers between owned physical stacks and the shared vault balance, plus PLEX listings and
+repricing through the regional market at NPC stations. The Wallet shows transaction history and categorized totals for the
+account's pilots. [PLEX Vault and market sale](protocol/industry.md#account-plex-vault-and-market-sale) ·
+[PLEX Vault transaction history](protocol/industry.md#plex-vault-transaction-history)
+Pilots can include vault PLEX with items and ISK in a direct trade. Both vault journals record the trade when it settles.
+[PLEX Vault offers in direct trades](protocol/inventory.md#plex-vault-offers-in-direct-trades)
+
+Personal NPC-station industry jobs can be delivered or cancelled while the pilot is docked elsewhere or in space.
+Results and released assets stay at the job's saved location.
+[Remote industry settlement](protocol/industry.md#remote-settlement-of-personal-npc-station-industry-jobs)
+Pilots can also install personal NPC-station manufacturing jobs from space or another station within their Supply Chain
+Management range. [Remote manufacturing installation](protocol/industry.md#remote-manufacturing-installation-at-npc-stations)
+Personal research, copying and invention use Scientific Networking for remote installation at NPC laboratories. Inputs
+and outputs remain at the installation station. [Remote science installation](protocol/industry.md#remote-science-installation-at-npc-laboratories)
+Remote Reactions extends the range for starting, delivering, and cancelling personal jobs at eligible Upwell refineries.
+Materials, fuel and outputs remain at the refinery. [Remote refinery reaction jobs](protocol/industry.md#remote-personal-refinery-reaction-jobs)
 
 Economy worlds supply catalog-offered original blueprints and skillbooks at their NPC corporation's stations, using the pinned base price. Institutional stock defaults to 1,000 replenishing units per order and is saved independently of development stock; change it in the [first-start configuration draft](world-configuration.md#first-start). Finished ships, modules, ammunition and minerals are not institutionally supplied. The first supported production fits are a three-gun Merlin, a two-laser Venture and a Badger with expanded cargo. Their recipes, suppliers and all seven mineral sources are recorded in the [starter production audit](starter-production.json); see [milestone evidence](protocol/industry.md#tech-i-starter-production-chain-november-6-2026).
 
@@ -357,8 +447,16 @@ insurance. The hull must be undamaged and free of cargo and rigs.
 - Docked pilots can insure eligible ships and repair at NPC station facilities or the native Upwell repair shop where
   available. Eligible Upwell structures also provide tether repair and asset safety.
   [NPC station repair](protocol/combat.md#native-station-repair-november-2-2026) · [Upwell repair](protocol/structures.md#native-upwell-repair-shop)
+- Pilots with negative security status can exchange Clone Soldier tags and pay the processing fee at low-security CONCORD
+  and DED stations. Rare Clone Soldiers in lowsec asteroid belts always drop a tag for their tier. The wallet debit and
+  security history persist with the exchange's inventory changes.
+  [Security Office tag exchanges](protocol/combat.md#security-office-tag-exchanges) ·
+  [Clone Soldier belt encounters](protocol/combat.md#clone-soldier-belt-encounters)
 
 ## Fitting, weapons and modules
+
+Festival and Display Launchers fire cosmetic fireworks and snowballs. Those launches consume ammunition and leave the
+target's ship and combat state intact. [Festival and Display Launchers](protocol/combat.md#festival-and-display-launchers)
 
 - **Fitting.** Swap and rearrange modules, group weapons, load charges and save personal, corporation or alliance fittings.
   Apply supported fits with Multifit. Administrators can scale CPU, power grid, calibration and drone bandwidth.
@@ -386,15 +484,18 @@ insurance. The hull must be undamaged and free of cargo and rigs.
   assist and guard fleetmates. Scanners, probes, salvagers and tractors use their own eligibility and range rules.
   Ship scanners can reveal partial ship fittings in falloff and complete fittings on targetable Upwell structures.
   Cargo scanners respect full cargo-scan immunity when they start and when the paid cycle finishes.
-  A successful cargo scan can inspect the first layer of a container.
+  A successful cargo scan can inspect the first layer of a container or a sealed courier package.
   [Drones](protocol/drones.md) · [Information modules](protocol/information.md) ·
   [Ship-scanner falloff](protocol/information.md#ship-scanner-falloff) ·
   [Upwell ship scans](protocol/information.md#ship-scanning-upwell-structures) ·
   [Cargo scans through containers](protocol/information.md#cargo-scans-through-containers) ·
+  [Cargo scanning courier packages](protocol/information.md#cargo-scanning-courier-packages) ·
   [Cargo scan immunity](protocol/information.md#cargo-scan-immunity)
 - **Capital and Upwell roles.** Supported capitals have ship-specific jump, fighter, fleet hangar, maintenance, refitting and clone
-  services. Upwell gunners can lock targets and launch and recall Standup fighter squadrons.
-  [Capital logistics](protocol/capital-logistics.md) · [Upwell structures](protocol/structures.md)
+  services. Capital Flex Armor and Shield Hardeners support all nine published variants and their resistance scripts.
+  Upwell gunners can lock targets and launch and recall Standup fighter squadrons.
+  [Capital logistics](protocol/capital-logistics.md) · [Capital Flex hardeners](protocol/fitting.md#capital-flex-armor-and-shield-hardeners) ·
+  [Upwell structures](protocol/structures.md)
 
 ### Ship and module completion program
 

@@ -147,6 +147,7 @@ public sealed partial class WorldDbContext(string path) : DbContext
         Eden.World.Planetary.PlanetarySchema.Configure(model);
         JetcanSchema.Configure(model);
         Eden.World.Structures.StructureSchema.Configure(model);
+        Eden.World.Structures.StructureReinforcementDefaultsSchema.Configure(model);
         Eden.World.Agents.MissionSchema.Configure(model);
         Eden.World.Capsuleers.TrafficSchema.Configure(model);
         Eden.World.Information.InformationSchema.Configure(model);
@@ -320,6 +321,8 @@ public sealed partial class WorldDbContext(string path) : DbContext
         model.Entity<SavedMail>().ToTable("WorldMail").HasKey(mail => mail.Id);
         model.Entity<SavedMail>().HasIndex(mail => new { mail.SenderId, mail.SentAt });
         model.Entity<SavedMail>().HasIndex(mail => mail.ListId);
+        model.Entity<SavedMailContactPolicy>().ToTable(MailContactPolicySchema.Table).HasKey(policy => policy.PilotId);
+        model.Entity<SavedMailContactPolicy>().HasOne<Pilot>().WithMany().HasForeignKey(policy => policy.PilotId);
         model.Entity<SavedMailEntry>().ToTable("WorldMailEntry").HasOne<Pilot>().WithMany().HasForeignKey(entry => entry.PilotId);
         model.Entity<SavedMailEntry>().HasOne<SavedMail>().WithMany().HasForeignKey(entry => entry.MessageId);
         model.Entity<SavedMailLabel>().ToTable("WorldMailLabel").HasOne<Pilot>().WithMany().HasForeignKey(label => label.PilotId);
@@ -645,6 +648,7 @@ public sealed partial class WorldDbContext(string path) : DbContext
             );
         model.Entity<MarketExecution>().HasOne<Pilot>().WithMany().HasForeignKey(t => t.PilotId);
         model.Entity<MarketExecution>().HasIndex(t => new { t.PilotId, t.Time });
+        model.Entity<MarketExecution>().HasIndex(t => new { t.CorporationId, t.Time });
         model
             .Entity<ShipEnergy>()
             .ToTable("WorldShipEnergy", t => t.HasCheckConstraint("CK_ShipEnergy_Charge", "Charge >= 0"))
@@ -654,6 +658,9 @@ public sealed partial class WorldDbContext(string path) : DbContext
         model.Entity<WorldAsteroid>().Property(a => a.Id).ValueGeneratedNever();
         model.Entity<WorldAsteroid>().HasIndex(a => a.SystemId);
         model.Entity<WorldAsteroid>().HasIndex(a => a.BeltId);
+        model.Entity<SavedMiningPollutionCloud>().Property(cloud => cloud.Id).ValueGeneratedNever();
+        model.Entity<SavedMiningPollutionCloud>().HasIndex(cloud => cloud.AsteroidId).IsUnique();
+        model.Entity<SavedMiningPollutionCloud>().HasIndex(cloud => cloud.SystemId);
         Eden.World.Mining.MiningSiteSchema.Configure(model);
         Eden.World.Mining.MiningLedgerSchema.Configure(model);
         model.Entity<OwnedItem>().ToTable("WorldItem", t => t.HasCheckConstraint("CK_Item_Quantity", "Quantity > 0"));
@@ -668,6 +675,8 @@ public sealed partial class WorldDbContext(string path) : DbContext
         model.Entity<OwnedItem>().HasIndex(i => i.LocationId);
         model.Entity<Account>().ToTable("WorldAccount");
         model.Entity<Account>().Property(a => a.CloneGrade).HasDefaultValue(AccountCloneGrade.Alpha);
+        model.Entity<Account>().Property(a => a.PlexBalance).HasDefaultValue(0L);
+        PlexVaultSchema.Configure(model);
         model.Entity<Pilot>().ToTable("WorldPilot");
         model.Entity<Pilot>().Property(p => p.SafetyLevel).HasDefaultValue(ShipSafetyLevel.Full);
         // Defaults preserve the identities previously returned by character selection.

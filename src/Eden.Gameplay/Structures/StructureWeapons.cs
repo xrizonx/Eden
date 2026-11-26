@@ -1,3 +1,4 @@
+using Eden.Gameplay.Ammunition;
 using Eden.Gameplay.Combat;
 using Eden.Gameplay.Dogma;
 using Eden.Gameplay.Inventory;
@@ -25,8 +26,12 @@ public sealed record StructureWeaponActivation(
     StructureWeaponCycle Cycle,
     MissileLaunch? Launch,
     CapacitorActivation? Neutralization = null,
-    TackleActivation? Tackle = null
+    TackleActivation? Tackle = null,
+    ElectronicWarfareActivation? ElectronicWarfare = null,
+    StructurePointDefensePulse? PointDefense = null
 );
+
+public sealed record StructurePointDefensePulse(Magazine Magazine, double Capacitor, double Range);
 
 public sealed record StructureWeaponFrame(IReadOnlyList<StructureWeaponActivation> Started, IReadOnlyList<StructureWeaponCycle> Stopped);
 
@@ -50,6 +55,9 @@ public static class StructureWeaponRules
     // Build 3662168: Standup anticapital and multirole launchers use the standard useMissiles effect.
     public const int AnticapitalLauncherGroup = 1327;
     public const int MultiroleLauncherGroup = 1562;
+    public const int PointDefenseGroup = 1330;
+    public const int EcmGroup = 1332;
+    public const int ElectronicDefenseGroup = 1719;
     public const int WebifierGroup = 1441;
     public const int WarpDisruptorGroup = 1442;
     public const int ElectronicSystemsSkill = 37798;
@@ -58,7 +66,63 @@ public static class StructureWeaponRules
     public const int MissileSystemsSkill = 37796;
     public const DogmaAttributeId MissileSkillBonus = (DogmaAttributeId)292;
 
-    public static bool UsesElectronicSystems(int group) => group is WebifierGroup or WarpDisruptorGroup;
+    public static bool UsesElectronicSystems(int group) => group is EcmGroup or WebifierGroup or WarpDisruptorGroup;
+
+    public static bool IsElectronicWarfare(DogmaEffect effect) =>
+        effect
+            is DogmaEffect.StructureEcm
+                or DogmaEffect.StructureTargetPainter
+                or DogmaEffect.StructureSensorDampener
+                or DogmaEffect.StructureWeaponDisruption;
+
+    public static bool MatchesElectronicWarfare(int group, DogmaEffect effect) =>
+        group switch
+        {
+            EcmGroup => effect == DogmaEffect.StructureEcm,
+            ElectronicDefenseGroup => effect
+                is DogmaEffect.StructureTargetPainter
+                    or DogmaEffect.StructureSensorDampener
+                    or DogmaEffect.StructureWeaponDisruption,
+            _ => false,
+        };
+
+    public static void CheckElectronicRange(ElectronicWarfareModule module, double distance)
+    {
+        if (!double.IsFinite(distance) || distance < 0 || distance > module.Optimal + module.Falloff)
+        {
+            throw new InvalidDataException("The target is outside the structure module's electronic warfare range.");
+        }
+    }
+
+    public static NpcEwarPower? Jam(
+        ElectronicWarfareModule module,
+        IReadOnlyDictionary<DogmaAttributeId, double> target,
+        double distance,
+        double roll
+    )
+    {
+        CheckElectronicRange(module, distance);
+        if (!double.IsFinite(roll) || roll is < 0 or >= 1 || module.Power.Jamming is not { } jam)
+        {
+            throw new InvalidDataException("Invalid structure ECM attempt.");
+        }
+        var sensor = new (DogmaAttributeId Attribute, double JamStrength)[]
+        {
+            (DogmaAttributeId.GravimetricStrength, jam.Gravimetric),
+            (DogmaAttributeId.LadarStrength, jam.Ladar),
+            (DogmaAttributeId.MagnetometricStrength, jam.Magnetometric),
+            (DogmaAttributeId.RadarStrength, jam.Radar),
+        }.MaxBy(sensor => target.GetValueOrDefault(sensor.Attribute));
+        double strength = target.GetValueOrDefault(sensor.Attribute);
+        if (strength <= 0)
+        {
+            return null;
+        }
+        double falloff = distance <= module.Optimal ? 1 : Math.Pow(0.5, Math.Pow((distance - module.Optimal) / module.Falloff, 2));
+        double resistance = Math.Clamp(target.GetValueOrDefault(DogmaAttributeId.EcmResistance, 1), 0, 1);
+        double chance = Math.Clamp(sensor.JamStrength / strength * falloff * resistance, 0, 1);
+        return roll < chance ? module.Power : null;
+    }
 
     public static bool MissileLauncher(int group) => group is AnticapitalLauncherGroup or MultiroleLauncherGroup;
 

@@ -9,11 +9,103 @@ using Eden.World.Corporations;
 using Eden.World.Inventory;
 using Eden.World.Runtime;
 using Eden.World.Runtime.Economy;
+using Eden.World.Storage;
 
 namespace Eden.World.Market;
 
 internal sealed partial class PilotMarketStore
 {
+    public CorporationMarketPurchase BuyForCorporation(long pilotId, int stationId, IReadOnlyList<MarketPurchase> items)
+    {
+        if (LiveWorld.Find(database.Path) is not { } live)
+        {
+            throw new InvalidDataException("Corporation market purchases require the resident world.");
+        }
+        Expire();
+        using var world = live.Economy.Begin(new(pilots: [pilotId]));
+        var account = CorporationMarketAuthority(world, pilotId);
+        using CatalogDbContext catalog = new(database.CatalogPath);
+        var result = ExecuteBuyCore(
+            world,
+            catalog,
+            pilotId,
+            stationId,
+            items,
+            days: 0,
+            account.Corporation.Id,
+            placedOrders: null,
+            fundedRefit: false,
+            corporationWalletKey: account.Key
+        );
+        world.Commit();
+        signal.Changed();
+        return new(account.Corporation.Id, account.Key, result);
+    }
+
+    public CorporationMarketSale SellForCorporation(long pilotId, IReadOnlyList<MarketSale> items)
+    {
+        if (LiveWorld.Find(database.Path) is not { } live)
+        {
+            throw new InvalidDataException("Corporation market sales require the resident world.");
+        }
+        Expire();
+        using var world = live.Economy.Begin(new(pilots: [pilotId]));
+        var account = CorporationMarketAuthority(world, pilotId);
+        using CatalogDbContext catalog = new(database.CatalogPath);
+        var result = ExecuteSellCore(world, catalog, pilotId, items, days: 0, skipUnmatched: false, account);
+        world.Commit();
+        signal.Changed();
+        return new(account.Corporation.Id, account.Key, result);
+    }
+
+    private sealed record CorporationMarketAccount(SavedCorporation Corporation, CorporationMemberAccess Access, int Key);
+
+    private static CorporationMarketAccount CorporationMarketAuthority(WorldAction world, long pilotId)
+    {
+        var corporation = CorporationRoleStore.Current(world, pilotId);
+        var access = CorporationRoleStore.Effective(world, pilotId, corporation);
+        int divisionKey = CorporationWalletStore.SelectedKey(world, pilotId, corporation);
+        if (!access.Roles.Has(CorporationRole.Trader) || !CorporationWalletRules.CanTake(access.Roles, divisionKey))
+        {
+            throw new InvalidDataException("Corporation trades require the Trader role and withdrawal access to the selected division.");
+        }
+        return new(corporation, access, divisionKey);
+    }
+
+    private static bool IsCorporationSaleSource(WorldAction world, CorporationMarketAccount account, OwnedItem item, int stationId) =>
+        CorporationStorageRules.IsDivision(item.FlagId)
+        && item.OwnerId == account.Corporation.Id
+        && world.Set<SavedCorporationOffice>().Find(item.LocationId) is { } office
+        && office.CorporationId == account.Corporation.Id
+        && office.StationId == stationId
+        && CorporationStorageRules.CanTake(account.Access, stationId, account.Corporation.StationId, item.FlagId);
+
+    public IReadOnlyList<MarketTrade> CorporationTransactions(long pilotId, long? fromDate, int? divisionKey)
+    {
+        return WorldActionScope.Inspect<IReadOnlyList<MarketTrade>>(
+            database,
+            world =>
+            {
+                var corporation = CorporationWalletStore.MarketHistoryOwner(world, pilotId, divisionKey);
+                if (world is not EconomyTransaction)
+                {
+                    return [];
+                }
+                long from = fromDate ?? 0;
+                return world
+                    .Filter<MarketExecution>(trade =>
+                        trade.CorporationId == corporation.Id
+                        && trade.Time >= from
+                        && (!divisionKey.HasValue || divisionKey == trade.WalletDivisionKey)
+                    )
+                    .OrderByDescending(trade => trade.Id)
+                    .AsEnumerable()
+                    .Select(Read)
+                    .ToArray();
+            }
+        );
+    }
+
     public IReadOnlyList<MarketOrder> CorporationOrders(long pilotId)
     {
         if (LiveWorld.Find(database.Path) is not { } live)

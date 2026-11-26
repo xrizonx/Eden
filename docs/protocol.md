@@ -183,6 +183,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 - [First bot career ships](protocol/capsuleers.md#first-bot-career-ships)
 - [Earned bot career training](protocol/capsuleers.md#earned-bot-career-training)
 - [Regional procurement for bot corporations](protocol/capsuleers.md#regional-procurement-for-bot-corporations)
+- [Earned replacements on the Standard market](protocol/capsuleers.md#earned-replacements-on-the-standard-market)
 - [Dynamic paid ship replacement](protocol/capsuleers.md#dynamic-paid-ship-replacement)
 - [Autonomous Miner II production](protocol/capsuleers.md#autonomous-miner-ii-production)
 - [Miner II datacores from R&D agents](protocol/capsuleers.md#miner-ii-datacores-from-rd-agents)
@@ -320,6 +321,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 - <a id="character-settings"></a>[Character settings](protocol/characters.md#character-settings)
 - <a id="persistent-task-tracking"></a>[Persistent task tracking](protocol/characters.md#persistent-task-tracking)
 - <a id="persistent-home-stations-and-docked-clone-transfer"></a>[Persistent home stations and docked clone transfer](protocol/characters.md#persistent-home-stations-and-docked-clone-transfer)
+- [Remote home station selection at corporation offices](protocol/characters.md#remote-home-station-selection-at-corporation-offices)
 - <a id="catalog-agent-directory-and-saved-agents"></a>[Catalog agent directory and saved agents](protocol/characters.md#catalog-agent-directory-and-saved-agents)
 - <a id="persistent-personal-jump-clones"></a>[Persistent personal jump clones](protocol/characters.md#persistent-personal-jump-clones)
 - [Pochven NPC clone bays](protocol/characters.md#pochven-npc-clone-bays)
@@ -345,6 +347,9 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Chat, mail and contacts
 
+- [Contact notification CSPA](protocol/social.md#contact-notification-cspa)
+- [Personal calendar invitation CSPA](protocol/social.md#personal-calendar-invitation-cspa)
+- [Personal mail CSPA](protocol/social.md#personal-mail-cspa)
 - [Mailing-list organization access](protocol/social.md#mailing-list-organization-access)
 - [Corporation calendar events](protocol/social.md#corporation-calendar-events)
 - [Corporation chat MOTD](protocol/social.md#corporation-chat-motd-november-15-2026)
@@ -374,6 +379,8 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Combat and NPC populations
 
+- [Clone Soldier belt encounters](protocol/combat.md#clone-soldier-belt-encounters)
+- [Security Office tag exchanges](protocol/combat.md#security-office-tag-exchanges)
 - [Server killboard](protocol/combat.md#server-killboard)
 - [NPC identities for encounter waves](protocol/combat.md#npc-identities-for-encounter-waves)
 - [Aggression box indicators](protocol/combat.md#aggression-box-indicators--november-15-2026)
@@ -445,6 +452,8 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Cooperative fleets
 
+- [Individual fleet invitation CSPA](protocol/fleets.md#individual-fleet-invitation-cspa)
+- [Fleet group invitations](protocol/fleets.md#fleet-group-invitations)
 - [Fleet group moves](protocol/fleets.md#fleet-group-moves)
 - [Fleet composition and map locations](protocol/fleets.md#fleet-composition-and-map-locations)
 - [Fleet recruitment limits and default squads](protocol/fleets.md#fleet-recruitment-limits-and-default-squads)
@@ -459,6 +468,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Corporations
 
+- [Corporation office asset search](protocol/corporations.md#corporation-office-asset-search)
 - [Corporation mail restrictions](protocol/corporations.md#corporation-mail-restrictions)
 - [Medal award notifications](protocol/corporations.md#medal-award-notifications)
 - [Corporation medals](protocol/corporations.md#corporation-medals)
@@ -537,6 +547,8 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Fitting and module families
 
+- [Festival and Display Launchers](protocol/combat.md#festival-and-display-launchers)
+- [Capital Flex Armor and Shield Hardeners](protocol/fitting.md#capital-flex-armor-and-shield-hardeners)
 - [Dragging loaded charges between fitting slots](protocol/fitting.md#dragging-loaded-charges-between-fitting-slots)
 - [Module online state in space](protocol/fitting.md#module-online-state-in-space)
 - [Trained skills in fitting simulation](protocol/fitting.md#trained-skills-in-fitting-simulation)
@@ -619,6 +631,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Sansha Incursions
 
+- [Incursion loyalty point journal](protocol/incursions.md#incursion-loyalty-point-journal)
 - [Roaming Sansha populations](protocol/incursions.md#roaming-sansha-populations)
 - [Security campaigns and system effects](protocol/incursions.md#security-campaigns-and-system-effects)
 - [High-security Incursion campaign](protocol/incursions.md#high-security-incursion-campaign)
@@ -626,6 +639,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Information modules and salvage
 
+- [Cargo scanning courier packages](protocol/information.md#cargo-scanning-courier-packages)
 - [Cargo scans through containers](protocol/information.md#cargo-scans-through-containers)
 - [Ship scanning Upwell structures](protocol/information.md#ship-scanning-upwell-structures)
 - [Ship-scanner falloff](protocol/information.md#ship-scanner-falloff)
@@ -647,6 +661,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Inventory and ship ownership
 
+- [Corporation Market Deliveries withdrawal](protocol/inventory.md#corporation-market-delivery-withdrawal)
 - [Fitted ship repackaging](protocol/inventory.md#fitted-ship-repackaging)
 - [Inactive ship transfers and move-rule audit](protocol/inventory.md#inactive-ship-transfers-and-move-rule-audit-november-15-2026)
 - [Crystal damage in inventory](protocol/inventory.md#crystal-damage-in-inventory)
@@ -657,6 +672,7 @@ scope tested at the time. Add new findings to the owning topic page and link the
 - [NPC wreck ownership from damage](protocol/inventory.md#npc-wreck-ownership-from-damage)
 - [Loot abandonment and theft](protocol/inventory.md#loot-abandonment-and-theft-november-14-2026)
 - [Direct player trading](protocol/inventory.md#direct-player-trading)
+- [PLEX Vault offers in direct trades](protocol/inventory.md#plex-vault-offers-in-direct-trades)
 - [Targeted stack merging, November 9, 2026](protocol/inventory.md#targeted-stack-merging-november-9-2026)
 - [Trashing personal items and ships, November 8, 2026](protocol/inventory.md#trashing-personal-items-and-ships-november-8-2026)
 - [Cargo jettison, November 13, 2026](protocol/inventory.md#cargo-jettison-november-13-2026)
@@ -678,6 +694,19 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Mining, industry and markets
 
+- [Immediate corporation market sales](protocol/industry.md#immediate-corporation-market-sales)
+- [Remote personal refinery reaction jobs](protocol/industry.md#remote-personal-refinery-reaction-jobs)
+- [Immediate corporation market purchases](protocol/industry.md#immediate-corporation-market-purchases)
+- [Remote science installation at NPC laboratories](protocol/industry.md#remote-science-installation-at-npc-laboratories)
+- [PLEX Vault transaction history](protocol/industry.md#plex-vault-transaction-history)
+- [Account PLEX Vault and market sale](protocol/industry.md#account-plex-vault-and-market-sale)
+- [Remote manufacturing installation at NPC stations](protocol/industry.md#remote-manufacturing-installation-at-npc-stations)
+- [Remote settlement of personal NPC-station industry jobs](protocol/industry.md#remote-settlement-of-personal-npc-station-industry-jobs)
+- [Ranged personal buy orders](protocol/industry.md#ranged-personal-buy-orders)
+- [Ship SKIN licenses from NPC loyalty stores](protocol/industry.md#ship-skin-licenses-from-npc-loyalty-stores)
+- [Mercoxit mining pollution clouds](protocol/industry.md#mercoxit-mining-pollution-clouds)
+- [Procurement and Marketing at remote stations](protocol/industry.md#procurement-and-marketing-at-remote-stations)
+- [Remote personal order management](protocol/industry.md#remote-personal-order-management)
 - [Browsing industry facilities from any station](protocol/industry.md#browsing-industry-facilities-from-any-station)
 - [Regional market location while docked at Upwell structures](protocol/industry.md#regional-market-location-while-docked-at-upwell-structures)
 - [Market preset changes and demand batching](protocol/industry.md#market-preset-changes-and-demand-batching)
@@ -749,6 +778,8 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Navigation and travel
 
+- [Faction Warfare map kills](protocol/navigation.md#faction-warfare-map-kills)
+- [Bookmark approach](protocol/navigation.md#bookmark-approach)
 - [Peer gate and cloak history](protocol/navigation.md#peer-gate-and-cloak-history)
 - [Peer movement history](protocol/navigation.md#peer-movement-history)
 - [Peer warp and target locks](protocol/navigation.md#peer-warp-and-target-locks)
@@ -844,6 +875,12 @@ scope tested at the time. Add new findings to the owning topic page and link the
 
 ### Player Upwell structures
 
+- [Corporation default reinforcement hour](protocol/structures.md#corporation-default-reinforcement-hour)
+- [Standup fighter mobility](protocol/structures.md#standup-fighter-mobility)
+- [Standup Point Defense Batteries](protocol/structures.md#standup-point-defense-batteries)
+- [Standup Weapon Disruptors](protocol/structures.md#standup-weapon-disruptors)
+- [Standup target painters and sensor dampeners](protocol/structures.md#standup-target-painters-and-sensor-dampeners)
+- [Standup ECM](protocol/structures.md#standup-variable-spectrum-ecm)
 - [Warp disruption and Upwell docking](protocol/structures.md#warp-disruption-and-upwell-docking)
 - [Structures gap audit](protocol/structures.md#structures-gap-audit)
 - [Cargo Deposit at dockable Upwell structures](protocol/structures.md#cargo-deposit-at-dockable-upwell-structures)

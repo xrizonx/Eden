@@ -200,7 +200,7 @@ internal sealed class PilotMailStore(WorldDatabase database, TimeProvider clock)
         {
             throw new InvalidDataException("Organization mail requires the resident world.");
         }
-        using var transaction = new WorldActionScope(database, TransactionParticipants.None);
+        using var transaction = new WorldActionScope(database, new(pilots: [pilotId]));
         var world = transaction.World;
         Pilot(world, pilotId);
         if (draft.Recipients.Any(id => !world.PilotExists(id)))
@@ -268,6 +268,7 @@ internal sealed class PilotMailStore(WorldDatabase database, TimeProvider clock)
             var source = Entry(world, pilotId, sourceId.Value);
             source.Status |= draft.ReplyTo.HasValue ? MailStatus.Replied : MailStatus.Forwarded;
         }
+        MailContactPolicyStore.Charge(world, pilotId, draft.Recipients, draft.ApprovedContactCostIsk, now);
         long id = Deliver(
             world,
             new(

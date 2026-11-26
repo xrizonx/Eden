@@ -106,15 +106,7 @@ internal sealed class MailHandler(IPilotMail mail, TimeProvider clock) : ISelect
         try
         {
             Enter(context);
-            if (
-                keywords is { Count: > 0 }
-                && (
-                    method != "SendMail"
-                    || keywords.Count != 1
-                    || !keywords.TryGetValue("approvedCost", out var cost)
-                    || cost is not (null or 0L or 0d)
-                )
-            )
+            if (keywords is { Count: > 0 } && (method != "SendMail" || keywords.Count != 1 || !keywords.ContainsKey("approvedCost")))
             {
                 throw new InvalidDataException("Unexpected mail arguments or stale CSPA approval.");
             }
@@ -134,6 +126,7 @@ internal sealed class MailHandler(IPilotMail mail, TimeProvider clock) : ISelect
                         {
                             ListId = OptionalId(list),
                             OrganizationId = OptionalId(corporation),
+                            ApprovedContactCostIsk = ContactCostWire.Approval(keywords?.GetValueOrDefault("approvedCost")),
                         },
                         _origin
                     );
@@ -183,6 +176,10 @@ internal sealed class MailHandler(IPilotMail mail, TimeProvider clock) : ISelect
                 labels = mask;
                 return new MailSelection.Ids(Ids(ids));
             }
+        }
+        catch (MailContactCostApprovalRequired quote)
+        {
+            return ContactCostWire.Requote(quote.CostIsk);
         }
         catch (InvalidDataException error)
         {

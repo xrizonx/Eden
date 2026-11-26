@@ -1,4 +1,5 @@
 using Eden.World.Catalog;
+using Eden.World.Characters;
 using Eden.World.Combat;
 using Eden.World.Combat.Npcs;
 using Eden.World.Configuration;
@@ -8,8 +9,11 @@ using Eden.World.Fittings;
 using Eden.World.Industry;
 using Eden.World.Inventory;
 using Eden.World.Loot;
+using Eden.World.Market;
+using Eden.World.Mining;
 using Eden.World.Repair;
 using Eden.World.Storage.Migrations;
+using Eden.World.Structures;
 using Eden.World.Thermal;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,7 +21,7 @@ namespace Eden.World.Storage;
 
 internal static class WorldMigration
 {
-    internal const int CurrentVersion = CorporationMedalSchema.Version;
+    internal const int CurrentVersion = StructureReinforcementDefaultsSchema.Version;
 
     public static void Open(
         WorldDbContext world,
@@ -65,6 +69,26 @@ internal static class WorldMigration
         {
             WorldVersions35To49.Apply(world, version);
             WorldVersions50To68.Apply(world, version);
+        }
+        if (version < HomeStationSchema.RemoteOfficeVersion)
+        {
+            HomeStationSchema.UpgradeRemoteOffice(world);
+        }
+        if (version < PlexVaultSchema.BalanceVersion)
+        {
+            PlexVaultSchema.UpgradeBalance(world);
+        }
+        if (version < PlexVaultSchema.HistoryVersion)
+        {
+            PlexVaultSchema.UpgradeHistory(world);
+        }
+        if (version < PlexVaultSchema.DirectTradeVersion)
+        {
+            PlexVaultSchema.UpgradeDirectTrade(world);
+        }
+        if (version < CorporationMarketSchema.Version)
+        {
+            CorporationMarketSchema.Upgrade(world);
         }
         Eden.World.Characters.ShipCloneSchema.Upgrade(world);
         if (version is >= 6 and < ScienceSchema.Version)
@@ -169,6 +193,8 @@ internal static class WorldMigration
         CorporationWarSchema.Upgrade(world);
         WarReportSchema.Upgrade(world);
         CorporationMedalSchema.Upgrade(world);
+        Eden.World.Mail.MailContactPolicySchema.Upgrade(world);
+        MiningPollutionSchema.Upgrade(world);
         Eden.World.Inventory.MutationSchema.Upgrade(world);
         Eden.World.Inventory.CargoContainerSchema.Upgrade(world);
         Eden.World.Exploration.AbyssalSchema.Upgrade(world);
@@ -198,6 +224,10 @@ internal static class WorldMigration
         CorporationRecruitmentSchema.Upgrade(world);
         CorporationVotingSchema.Upgrade(world);
         CorporationRemovalSchema.Upgrade(world);
+        if (version < StructureReinforcementDefaultsSchema.Version)
+        {
+            StructureReinforcementDefaultsSchema.Upgrade(world);
+        }
         Eden.World.Alliances.AllianceSchema.Upgrade(world);
         Eden.World.Alliances.AllianceMembershipSchema.Upgrade(world);
         Eden.World.Alliances.AllianceBillingSchema.Upgrade(world);

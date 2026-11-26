@@ -32,13 +32,14 @@ internal sealed partial class PilotMarketStore
         int stationId,
         IReadOnlyList<MarketPurchase> items,
         int days,
-        int minimumVolume
+        int minimumVolume,
+        int range
     )
     {
         Expire();
         using var world = live.Economy.Begin();
         using CatalogDbContext catalog = new(database.CatalogPath);
-        var result = ExecuteBuy(world, catalog, pilotId, stationId, items, days, minimumVolume: minimumVolume);
+        var result = ExecuteBuy(world, catalog, pilotId, stationId, items, days, minimumVolume: minimumVolume, range: range);
         world.Commit();
         signal.Changed();
         return result;
@@ -60,7 +61,7 @@ internal sealed partial class PilotMarketStore
         Expire();
         using var world = live.Economy.Begin();
         using CatalogDbContext catalog = new(database.CatalogPath);
-        var order = OwnedOrder(world, catalog, pilotId, request.OrderId);
+        var order = OwnedOrder(world, pilotId, request.OrderId);
         if (
             order.PriceCents != request.PreviousPriceCents
             || order.Remaining != request.Remaining
@@ -68,6 +69,8 @@ internal sealed partial class PilotMarketStore
             || order.StationId != request.StationId
             || order.SystemId != request.SystemId
             || order.Bid != request.Bid
+            || order.Range != request.Range
+            || request.ExpectedTypeId.HasValue && order.TypeId != request.ExpectedTypeId
         )
         {
             throw new InvalidDataException("The market order changed. Refresh before modifying it.");
@@ -78,6 +81,7 @@ internal sealed partial class PilotMarketStore
             throw new InvalidDataException("Wait five minutes before modifying this order.");
         }
         var station = Station(catalog, order.StationId);
+        RequireRemoteTradeRange(world, catalog, Pilot(world, pilotId), station, MarketSkill.Daytrading);
         Seed(world, catalog, station, order.TypeId);
         Payment(
             world,
@@ -129,7 +133,7 @@ internal sealed partial class PilotMarketStore
         Expire();
         using var world = live.Economy.Begin();
         using CatalogDbContext catalog = new(database.CatalogPath);
-        var order = OwnedOrder(world, catalog, pilotId, orderId);
+        var order = OwnedOrder(world, pilotId, orderId);
         if (order.RegionId != regionId)
         {
             throw new InvalidDataException("Choose the order's region.");

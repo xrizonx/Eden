@@ -41,7 +41,9 @@ public sealed record MarketTrade(
     long TaxCents,
     long BalanceCents,
     long Time,
-    long? WalletAmountCents = null
+    long? WalletAmountCents = null,
+    int? CorporationId = null,
+    int? WalletDivisionKey = null
 );
 
 public sealed record MarketResult(
@@ -51,6 +53,17 @@ public sealed record MarketResult(
     int SystemId,
     int RegionId
 );
+
+public sealed record CorporationMarketPurchase(int CorporationId, int WalletDivisionKey, MarketResult Result);
+
+public sealed record CorporationMarketSale(int CorporationId, int WalletDivisionKey, MarketResult Result);
+
+public interface ICorporationMarket
+{
+    CorporationMarketPurchase BuyForCorporation(long pilotId, int stationId, IReadOnlyList<MarketPurchase> items);
+    CorporationMarketSale SellForCorporation(long pilotId, IReadOnlyList<MarketSale> items);
+    IReadOnlyList<MarketTrade> CorporationTransactions(long pilotId, long? fromDate, int? divisionKey);
+}
 
 public sealed record WalletEntryDefinition(int Id, long NameId, string Name, string Description);
 
@@ -103,7 +116,11 @@ public enum MarketSkill
     Wholesale = 16596,
     Tycoon = 18580,
     BrokerRelations = 3446,
+    Visibility = 3447,
+    Procurement = 16594,
+    Daytrading = 16595,
     AdvancedBrokerRelations = 16597,
+    Marketing = 16598,
 }
 
 public enum WalletEntryType
@@ -120,6 +137,9 @@ public enum WalletEntryType
     // Build 3662168 appConst.refAgentMissionTimeBonusReward.
     AgentMissionTimeBonusReward = 34,
 
+    // Build 3662168 appConst.refCSPA.
+    Cspa = 35,
+
     // Build 3662168 appConst.refPaymentToLPStore.
     LoyaltyStore = 26,
 
@@ -133,6 +153,7 @@ public enum WalletEntryType
 
     // Build 3662168 appConst.refKillRightBuy.
     KillRightPurchase = 116,
+    SecurityTagProcessingFee = 117,
     CorporationAccountWithdrawal = 37,
     BountyPrizeCorporationTax = 92,
     CorporationRegistration = 39,

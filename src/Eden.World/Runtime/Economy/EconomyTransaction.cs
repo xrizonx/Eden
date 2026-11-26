@@ -85,6 +85,16 @@ internal sealed partial class EconomyTransaction(
             )
             .Where(order => order.StationId == station && (typeId is null || order.TypeId == typeId));
 
+    internal IEnumerable<EconomySavedPersonalOrder> RegionalPersonalOrders(int region, int type) =>
+        ((EconomySet<SavedPersonalOrder, EconomySavedPersonalOrder>)Set<SavedPersonalOrder>())
+            .IndexedSnapshots(nameof(SavedPersonalOrder.RegionId), region, (nameof(SavedPersonalOrder.TypeId), type))
+            .Where(order => order.RegionId == region && order.TypeId == type);
+
+    internal IEnumerable<EconomySavedPersonalOrder> RangedRegionalBids(int region, int type) =>
+        ((EconomySet<SavedPersonalOrder, EconomySavedPersonalOrder>)Set<SavedPersonalOrder>())
+            .IndexedSnapshots(nameof(RangedRegionalBids), (region, type))
+            .Where(order => order.RegionId == region && order.TypeId == type && order.Bid && order.Range != MarketDefinitions.StationRange);
+
     internal EconomySavedRegionalMarketStock? RegionalStockState(long orderId) =>
         ((EconomySet<SavedRegionalMarketStock, EconomySavedRegionalMarketStock>)Set<SavedRegionalMarketStock>()).ReadSnapshot(new(orderId));
 
@@ -421,6 +431,7 @@ internal sealed partial class EconomyTransaction(
             var accounts = (EconomySet<Account, EconomyAccount>)Set<Account>();
             if (
                 string.IsNullOrWhiteSpace(account.UserName)
+                || account.PlexBalance is < 0 or > PlexVaultRules.MaximumBalance
                 || account.CloneGrade is not (AccountCloneGrade.Alpha or AccountCloneGrade.Omega)
                 || account.Id == CapsuleerCommunityStore.MinerAccountId && account.CloneGrade != AccountCloneGrade.Omega
                 || !accounts.HasUniqueCommittedKey(new(account.Id), nameof(Account.UserName), account.UserName)
@@ -429,7 +440,7 @@ internal sealed partial class EconomyTransaction(
                         .Any(other => other.Id != account.Id && StringComparer.OrdinalIgnoreCase.Equals(other.UserName, account.UserName))
             )
             {
-                throw new InvalidDataException("Invalid resident account identity or clone grade.");
+                throw new InvalidDataException("Invalid resident account identity, clone grade or PLEX balance.");
             }
         }
         foreach (var pilot in Retained<Pilot>())
@@ -512,6 +523,8 @@ internal sealed partial class EconomyTransaction(
                 || order.Remaining > order.Entered
                 || order.PriceCents <= 0
                 || order.EscrowCents < 0
+                || !PersonalMarketRules.ValidBuyRange(order.Range)
+                || !order.Bid && order.Range != MarketDefinitions.StationRange
                 || Pilots.Find(order.PilotId) is null
             )
             {

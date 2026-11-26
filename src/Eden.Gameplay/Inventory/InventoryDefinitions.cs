@@ -204,6 +204,11 @@ public enum DogmaEffect
     StructureEnergyNeutralizer = 6216,
     StructureWarpDisruptor = 6222,
     StructureStasisWebifier = 6682,
+    StructureTargetPainter = 6683,
+    StructureSensorDampener = 6684,
+    StructurePointDefense = 6443,
+    StructureEcm = 6685,
+    StructureWeaponDisruption = 6686,
     EnergyNosferatu = 6197,
     ShieldBoosting = 4,
     AncillaryShieldBoosting = 4936,
@@ -212,6 +217,8 @@ public enum DogmaEffect
 
     // Build 3662168: NPC hull missile capability; attributes 506/507 alone can be inert placeholders.
     MissileLaunchingForEntity = 569,
+    AmmoSpeedMultiplier = 598,
+    SnowballLaunching = 2413,
     LaserFired = 10,
     UseMissiles = 101,
     AutoTargetingMissile = 104,

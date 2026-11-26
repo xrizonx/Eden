@@ -98,11 +98,11 @@ public static class PlayerEwarRules
     public static NpcEwarKind? Kind(DogmaEffect effect) =>
         effect switch
         {
-            DogmaEffect.PlayerEcm => NpcEwarKind.Jamming,
-            DogmaEffect.SensorDampener => NpcEwarKind.SensorDampening,
-            DogmaEffect.TrackingDisruptor => NpcEwarKind.TrackingDisruption,
+            DogmaEffect.PlayerEcm or DogmaEffect.StructureEcm => NpcEwarKind.Jamming,
+            DogmaEffect.SensorDampener or DogmaEffect.StructureSensorDampener => NpcEwarKind.SensorDampening,
+            DogmaEffect.TrackingDisruptor or DogmaEffect.StructureWeaponDisruption => NpcEwarKind.TrackingDisruption,
             DogmaEffect.GuidanceDisruptor => NpcEwarKind.GuidanceDisruption,
-            DogmaEffect.TargetPainter => NpcEwarKind.TargetPainting,
+            DogmaEffect.TargetPainter or DogmaEffect.StructureTargetPainter => NpcEwarKind.TargetPainting,
             _ => null,
         };
 
@@ -144,14 +144,19 @@ public static class PlayerEwarRules
                 FalloffPercent: Value(DogmaAttributeId.FalloffBonus),
                 TrackingPercent: Value(DogmaAttributeId.TrackingSpeedBonus)
             ),
-            NpcEwarKind.GuidanceDisruption => new(
-                MissileSpeedPercent: Value(DogmaAttributeId.MissileVelocityBonus),
-                MissileLifetimePercent: Value(DogmaAttributeId.MissileLifetimeBonus),
-                ExplosionRadiusPercent: Value(DogmaAttributeId.ExplosionRadiusBonus),
-                ExplosionVelocityPercent: Value(DogmaAttributeId.ExplosionVelocityBonus)
-            ),
+            NpcEwarKind.GuidanceDisruption => new(),
             _ => new(SignaturePercent: Value(DogmaAttributeId.SignatureRadiusBonus)),
         };
+        if (kind == NpcEwarKind.GuidanceDisruption || DisruptsTurretsAndMissiles(effect))
+        {
+            power = power with
+            {
+                MissileSpeedPercent = Value(DogmaAttributeId.MissileVelocityBonus),
+                MissileLifetimePercent = Value(DogmaAttributeId.MissileLifetimeBonus),
+                ExplosionRadiusPercent = Value(DogmaAttributeId.ExplosionRadiusBonus),
+                ExplosionVelocityPercent = Value(DogmaAttributeId.ExplosionVelocityBonus),
+            };
+        }
         ElectronicWarfareModule module = new(
             itemId,
             typeId,
@@ -272,7 +277,7 @@ public static class PlayerEwarRules
                 contact.StartedAt,
                 contact.ExpiresAt
             );
-            if (contact.Module.Effect == DogmaEffect.ProjectorDisruptor)
+            if (DisruptsTurretsAndMissiles(contact.Module.Effect))
             {
                 var guidance = adapter with { Ability = adapter.Ability with { Kind = NpcEwarKind.GuidanceDisruption } };
                 foreach (var modifier in NpcEwarRules.Modifiers(ship, turrets, [guidance], missiles))
@@ -314,8 +319,7 @@ public static class PlayerEwarRules
         // Apply guidance disruption to those multipliers, leaving movement alone.
         foreach (
             var contact in incoming.Where(c =>
-                (c.Module.Kind == NpcEwarKind.GuidanceDisruption || c.Module.Effect == DogmaEffect.ProjectorDisruptor)
-                && c.Applied is not null
+                (c.Module.Kind == NpcEwarKind.GuidanceDisruption || DisruptsTurretsAndMissiles(c.Module.Effect)) && c.Applied is not null
             )
         )
         {
@@ -369,4 +373,7 @@ public static class PlayerEwarRules
                 )
             );
     }
+
+    private static bool DisruptsTurretsAndMissiles(DogmaEffect effect) =>
+        effect is DogmaEffect.ProjectorDisruptor or DogmaEffect.StructureWeaponDisruption;
 }

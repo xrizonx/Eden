@@ -315,9 +315,9 @@ internal static class ShipContentAudit
             checks.Add(
                 new(
                     ContentOperation.ConsumerCoverage,
-                    false,
+                    catalog.FittingType(MiningPollutionRules.TypeId)?.GroupId == MiningPollutionRules.GroupId,
                     ShipContentMilestone.Mining,
-                    "Mercoxit extraction and crystals work. Pollution cloud hazards remain unavailable.",
+                    "Paid Mercoxit cycles can create a resident pollution cloud using the pinned field profile.",
                     HullCapability.DeepCoreMining
                 )
             );
@@ -358,7 +358,10 @@ internal static class ShipContentAudit
                     CombatDefinitions.EnergyWeaponGroup or CombatDefinitions.HybridWeaponGroup or CombatDefinitions.ProjectileWeaponGroup =>
                         "Single and grouped turrets pay the native overload rate or damage with their rack heat.",
                     CapacitorBoosterDefinitions.Group => "Injection spends a booster charge and registers its shortened heat cycle.",
-                    HardenerDefinitions.ShieldGroup or HardenerDefinitions.ArmorGroup =>
+                    HardenerDefinitions.ShieldGroup
+                    or HardenerDefinitions.ArmorGroup
+                    or HardenerDefinitions.CapitalShieldGroup
+                    or HardenerDefinitions.CapitalArmorGroup =>
                         "Paid overload modifies active resistances until the hardener stops or its deadline expires.",
                     _ when SupportModuleDefinitions.Effect(type.GroupId) is not null =>
                         "The paid local support cycle applies overload to the active fitting graph until stop or expiry.",

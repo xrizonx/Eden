@@ -2,6 +2,7 @@ using Eden.Gameplay.Corporations;
 using Eden.Gameplay.Inventory;
 using Eden.Gameplay.Market;
 using Eden.Infrastructure.Registration;
+using Eden.Protocol.Corporations;
 using Eden.Protocol.Docking;
 using Eden.Protocol.PilotSessions;
 using Eden.Protocol.Serialization;
@@ -12,9 +13,10 @@ namespace Eden.Protocol.Market;
 internal sealed class MarketHandler(
     IPilotMarket market,
     TimeProvider clock,
-    ICorporationWallet corporationWallet,
+    ICorporationMarket corporationMarket,
     IPersonalMarket personal,
-    PersonalMarketMonitor monitor
+    PersonalMarketMonitor monitor,
+    CorporationWalletHandler corporateWallet
 ) : ISelectedPilotCallHandler
 {
     private static double Isk(long cents) => (double)cents / MarketDefinitions.CentsPerIsk;
@@ -34,13 +36,25 @@ internal sealed class MarketHandler(
         return CachedOrders(new MarketOrderBook(book.Where(o => !o.Bid).ToArray(), book.Where(o => o.Bid).ToArray()));
     }
 
-    private BlueList<MarketOrderRow> Changed(PilotCallContext context, MarketResult result, bool multiBuy = false)
+    private BlueList<MarketOrderRow> Changed(
+        PilotCallContext context,
+        MarketResult result,
+        bool multiBuy = false,
+        (int Corporation, int Key)? funding = null
+    )
     {
         foreach (var change in result.Changes)
         {
             InventoryChangesWire.NotifyItemChange(context, change);
         }
-        context.Notifications.Add(new AccountBalanceChanged(context.Pilot.PilotId, Isk(result.BalanceCents)));
+        if (funding is { } account)
+        {
+            corporateWallet.Notify(context, account.Corporation, account.Key, result.BalanceCents);
+        }
+        else
+        {
+            context.Notifications.Add(new AccountBalanceChanged(context.Pilot.PilotId, Isk(result.BalanceCents)));
+        }
         var orders = result
             .Trades.Select(trade =>
                 Row(
@@ -49,13 +63,14 @@ internal sealed class MarketHandler(
                         trade.StationId,
                         result.SystemId,
                         result.RegionId,
-                        context.Pilot.PilotId,
+                        funding?.Corporation ?? context.Pilot.PilotId,
                         trade.TypeId,
                         trade.IsBuy,
                         trade.PriceCents,
                         0,
                         trade.Quantity,
-                        trade.Time
+                        trade.Time,
+                        IsCorporation: funding.HasValue
                     ),
                     0
                 )
@@ -63,16 +78,34 @@ internal sealed class MarketHandler(
             .ToList();
         // The visible book refreshes for a fill. MultiBuy separately waits for
         // Expiry on the execution IDs returned to its pending-order list.
-        context.Notifications.Add(new OwnOrdersChanged(orders, "Filled"));
+        context.Notifications.Add(new OwnOrdersChanged(orders, "Filled", funding.HasValue));
         if (multiBuy)
         {
-            context.Notifications.Add(new OwnOrdersChanged(orders, "Expiry"));
+            context.Notifications.Add(new OwnOrdersChanged(orders, "Expiry", funding.HasValue));
         }
         foreach (var change in result.Changes.Where(c => c.Previous is null))
         {
             context.Notifications.Add(new MarketItemReceived(change.Item));
         }
         return new(orders);
+    }
+
+    private BlueList<MarketOrderRow> Buy(
+        PilotCallContext context,
+        int station,
+        IReadOnlyList<MarketPurchase> purchases,
+        bool corporation,
+        bool multiBuy = false
+    )
+    {
+        long pilot = context.Pilot.PilotId;
+        if (!corporation)
+        {
+            return Changed(context, market.Buy(pilot, station, purchases), multiBuy);
+        }
+        corporateWallet.Enter(context);
+        var purchase = corporationMarket.BuyForCorporation(pilot, station, purchases);
+        return Changed(context, purchase.Result, multiBuy, (purchase.CorporationId, purchase.WalletDivisionKey));
     }
 
     public PilotCallResult Call(
@@ -144,6 +177,7 @@ internal sealed class MarketHandler(
                     monitor.Advance(context);
                     return PilotCallResult.None;
                 case "ModifyCharOrder"
+                or "ModifyPlexCharOrder"
                     when args
                         is [
                             long modifyId,
@@ -152,7 +186,7 @@ internal sealed class MarketHandler(
                             long modifyStation,
                             long modifySystem,
                             var oldPrice,
-                            (long)MarketDefinitions.StationRange,
+                            long modifyRange,
                             long remaining,
                             long issued,
                         ]:
@@ -166,7 +200,9 @@ internal sealed class MarketHandler(
                             checked((int)modifySystem),
                             MarketRequestWire.Price(oldPrice),
                             checked((int)remaining),
-                            issued
+                            issued,
+                            checked((int)modifyRange),
+                            method == "ModifyPlexCharOrder" ? MarketDefinitions.PlexTypeId : null
                         )
                     );
                     monitor.Advance(context);
@@ -205,7 +241,7 @@ internal sealed class MarketHandler(
                             long listedType,
                             var listedPrice,
                             long listedQuantity,
-                            (long)MarketDefinitions.StationRange,
+                            long buyRange,
                             long minimumVolume,
                             long buyDays,
                             false
@@ -221,7 +257,8 @@ internal sealed class MarketHandler(
                             MarketRequestWire.Price(listedPrice),
                             checked((int)listedQuantity),
                             checked((int)buyDays),
-                            checked((int)minimumVolume)
+                            checked((int)minimumVolume),
+                            checked((int)buyRange)
                         )
                     );
                     monitor.Advance(context);
@@ -229,6 +266,30 @@ internal sealed class MarketHandler(
                 case "PlaceMultiSellOrder" when args is [List<object?> entries, false or 0L, 0L, _]:
                     var sales = entries.Select(MarketRequestWire.Sale).ToArray();
                     Changed(context, market.Sell(context.Pilot.PilotId, sales));
+                    return true;
+                case "PlaceMultiSellOrder" when args is [List<object?> corporationEntries, true or 1L, 0L, _]:
+                    corporateWallet.Enter(context);
+                    var sale = corporationMarket.SellForCorporation(
+                        context.Pilot.PilotId,
+                        corporationEntries.Select(MarketRequestWire.Sale).ToArray()
+                    );
+                    Changed(context, sale.Result, funding: (sale.CorporationId, sale.WalletDivisionKey));
+                    return true;
+                case "PlacePlexSellOrder" when args is [var entry, false or 0L, long plexDays, _] && plexDays >= 0:
+                    var plexSale = MarketRequestWire.Sale(entry);
+                    if (plexSale.TypeId != MarketDefinitions.PlexTypeId)
+                    {
+                        throw new InvalidDataException("Choose a PLEX stack for this market order.");
+                    }
+                    if (plexDays == 0)
+                    {
+                        Changed(context, market.Sell(context.Pilot.PilotId, [plexSale]));
+                    }
+                    else
+                    {
+                        personal.PlaceSell(context.Pilot.PilotId, [plexSale], checked((int)plexDays));
+                        monitor.Advance(context);
+                    }
                     return true;
                 case "PlaceBuyOrder"
                     when args
@@ -240,22 +301,20 @@ internal sealed class MarketHandler(
                             (long)MarketDefinitions.StationRange,
                             1L,
                             0L,
-                            false
-                            or 0L,
+                            var useCorp,
                             _,
-                        ]:
-                    Changed(
+                        ]
+                        && useCorp is (false or 0L or true or 1L):
+                    Buy(
                         context,
-                        market.Buy(
-                            context.Pilot.PilotId,
-                            checked((int)station),
-                            [new(checked((int)buyType), MarketRequestWire.Price(price), checked((int)quantity))]
-                        )
+                        checked((int)station),
+                        [new(checked((int)buyType), MarketRequestWire.Price(price), checked((int)quantity))],
+                        useCorp is true or 1L
                     );
                     return PilotCallResult.None;
-                case "BuyMultipleItems" when args is [long destination, List<object?> entries, false or 0L]:
+                case "BuyMultipleItems" when args is [long destination, List<object?> entries, false or 0L or true or 1L]:
                     var purchases = entries.Select(MarketRequestWire.Purchase).ToArray();
-                    return Changed(context, market.Buy(context.Pilot.PilotId, checked((int)destination), purchases), multiBuy: true);
+                    return Buy(context, checked((int)destination), purchases, args[2] is true or 1L, multiBuy: true);
                 case "CharGetTransactions" when args is [null or long]:
                     return new BlueList<MarketTransactionReply>(
                         market
@@ -274,19 +333,20 @@ internal sealed class MarketHandler(
                     {
                         throw new InvalidDataException("Choose a valid corporate market date and wallet division.");
                     }
-                    corporationWallet.CheckMarketHistoryAccess(context.Pilot.PilotId, args[1] is long selected ? (int)selected : null);
-                    // All existing Eden executions are explicitly personal. Never expose
-                    // a member's personal trade history as corporation transactions.
-                    return BlueEmpty.List;
+                    return new BlueList<CorporationMarketTransactionReply>(
+                        corporationMarket
+                            .CorporationTransactions(context.Pilot.PilotId, args[0] as long?, args[1] is long key ? (int)key : null)
+                            .Select(trade => new CorporationMarketTransactionReply(trade))
+                            .ToArray()
+                    );
                 case "PlaceMultiSellOrder":
+                case "PlacePlexSellOrder":
                 case "PlaceBuyOrder":
                 case "BuyMultipleItems":
                 case "ModifyCharOrder":
+                case "ModifyPlexCharOrder":
                 case "CancelCharOrder":
-                    return new PilotCallResult.Failure(
-                        "Choose a supported personal station order with station range.",
-                        ShowInformationDialog: true
-                    );
+                    return new PilotCallResult.Failure("Choose a supported personal market order.", ShowInformationDialog: true);
                 case "GetPlexOldPriceHistory" or "GetPlexNewPriceHistory":
                     return new PilotCallResult.Failure("PLEX price history does not accept arguments.");
                 default:

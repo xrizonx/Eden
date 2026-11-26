@@ -7,6 +7,274 @@ Asteroids, mining, reprocessing, manufacturing, markets, loyalty balances and LP
 [Planetary industry](planetary.md) now covers surface colonies, extraction, all 68 processing schematics,
 command launches and NPC customs import/export. Earlier milestone scope statements below remain historical.
 
+## Immediate corporation market purchases
+
+The native Regional Market and Multibuy can purchase available NPC-station listings through the buyer's selected
+corporation wallet division. The buyer needs the Trader role and withdrawal access to that division. Purchases use the
+existing same-region quote and matching rules. Items enter the corporation's Market Deliveries at each seller's station,
+including at stations where the corporation has no office. Eligible members can dock there and deliver purchases to a
+corporation member's personal hangar. Resting corporate orders, native corporate sell orders, and
+market service at Upwell structures are outside this implementation.
+[Market Deliveries withdrawal](inventory.md#corporation-market-delivery-withdrawal) ·
+[Immediate corporation market sales](#immediate-corporation-market-sales)
+
+The resident market commits fills, wallet entries, and deliveries together. The account update identifies the division,
+and the order notifications identify the corporation scope. `CorpGetTransactions(fromDate, accountKey)` uses an
+inclusive date filter. Accountants and Junior Accountants can view any division or combine divisions. Traders can view a
+specific division they can access. Execution history stores the buyer pilot and
+division separately, and personal history excludes these rows. World schema 239 retains all earlier trades as personal
+history and checkpoints the new scope on corporate executions.
+
+Build 3662168 `code.ccp` (SHA-256 `37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`) passes the
+corporation flag as argument eight of `PlaceBuyOrder` in `marketsvc.MarketQuote.BuyStuff` and argument three of
+`BuyMultipleItems` in `MarketQuote.BuyMulti`. The Wallet's `marketSvc.Market.GetCorpMarketTransactions` consumes an
+iterable of dictionaries and reads `accountID`, `buyerAccountID`, `buyerID`, and `sellerID`.
+`marketTransactionsPanel.MarketTransaction` uses `keyID` to display the wallet division. The pinned corporation
+transactions panel offers the combined division filter to accountants and only lists divisions the trader can access.
+EVE.js revision
+`261108.1`, `server/src/services/market/marketProxyService.js` (SHA-256
+`f457cb1b181ceb570a5fa346c718d71a7ce7f2546a8ce175b`), corroborates the wallet authority, division, and ownership
+on the Multibuy order event. [EVE University corporation roles](https://wiki.eveuniversity.org/Managing_corporation_members) ·
+[CCP corporation orders and deliveries](https://support.eveonline.com/hc/en-us/articles/203280351-Corporation-Orders-and-Market-Deliveries) ·
+[CCP corporation wallets](https://support.eveonline.com/hc/en-us/articles/203209582-Corporation-Wallet-and-Corporation-Taxes)
+
+### Automated validation
+
+The exact market filters were `NativeCorporationPurchasesUseTheSelectedDivisionAndMarketDeliveriesAcrossCheckpoint`,
+`CorporationPurchasesRequireTraderAndRollBackTheWholeBatch`, and `Version238TradesRemainPersonalAfterCorporationMarketUpgrade`.
+The combined exact selection also covered Market Deliveries pickup, office asset search, remote science, and courier cargo
+scanning. All 15 cases passed. The build took 5.90 seconds with zero warnings or errors, and the test runner took 15.84 seconds.
+
+The affected selection covered the market, corporation wallets and hangars, contracts, industry, information modules, and
+world initialization and migration. All 406 cases passed in 149.84 seconds. The broader run also verified the corrected
+market information-dialog assertion against the existing order-quantity validation. Both reports are under
+`artifacts/feature-tests/results/`, with run directories `4e6332e06abc4e9cb2465920dcc7e056` and `5f70887a5eb348d3a0d0184b5b156e2a`.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+- Buy a single item and a Multibuy basket through the second corporation wallet division. Check the Wallet and the seller
+  station's Market Deliveries folder.
+
+## Immediate corporation market sales
+
+Native Sell This Item and Multisell can fill existing market bids at an NPC station and credit the selected
+corporation wallet division. The actor needs Trader and withdrawal access for the wallet division. Goods may come
+from the pilot's Item Hangar or a corporation office division at the station. A sale from a corporation office also
+requires that division's location-specific take authority. Unsold units stay in their original hangar. Remote sales
+use the same Marketing range as personal station sales.
+
+The resident transaction commits custody, volume, and wallet entries together. The gross proceeds and transaction tax
+appear as separate entries in the selected wallet journal. The division's market history records the sale with the pilot
+who placed it and the buyer, while any personal buyer gets their item and ordinary market receipt. The existing
+corporate execution fields carry the receipt through checkpoint without a schema change. Resting corporation orders
+and corporation PLEX sales are outside this implementation.
+
+Build 3662168 `code.ccp` (SHA-256 `37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`) forwards
+`(itemList, useCorp, duration, expectedBrokersFee)` from `marketsvc.MarketQuote.SellMulti` to `PlaceMultiSellOrder`.
+The Wallet tests `accountID == buyerAccountID` to classify a purchase and uses the corresponding actor field.
+Corporation sell receipts use the selling division for `accountID`, zero for the undisclosed buyer account, and the
+placing character for `sellerID`.
+EVE.js revision `261108.1` `marketProxyService.js` (SHA-256
+`f457cb1b181ceb570a5fa346c718d71a7ce7f2546a8ce175b`) confirms the wallet division and station office custody checks.
+[CCP corporation roles](https://support.eveonline.com/hc/en-us/articles/203217712-Roles-Listing) ·
+[EVE University tax](https://wiki.eveuniversity.org/Tax)
+
+### Automated validation
+
+The five cases selected by the exact methods
+`NativeCorporationSaleCreditsTheDivisionAndPreservesTheUnsoldStockAcrossCheckpoint`,
+`CorporationSaleEnforcesSourcePermissionsAndRollsBackTheWholeBatch`, and
+`CorporationSaleFillsAPersonalBidAndDeliversToTheBuyerHangar` passed. They cover both native checkbox types,
+partial NPC fills, player bids, wallet journal and transaction history on the master and second divisions,
+permission failures, rollback and checkpoint reopen. The integrated exact selection passed all 12 cases in
+15.68 seconds after an 11.95-second build with zero warnings or errors. See
+`artifacts/feature-tests/results/49fc5bd845c346dfb3398758369412c6/tests.trx`.
+
+The broader selection passed 658 of 659 cases in 254.80 seconds. The remaining test failed with a locked world
+owner file during teardown. The same failure occurred with the prior market code. The replacement resident test
+uses an underfunded basket that can pay for its first item, checks rollback of both stock entries, goods, wallet,
+and history, then funds the retry and checks both receipts after checkpoint reopen. The repaired exact case passed
+in 7.24 seconds. The broader and repaired exact reports use run directories `d721dead277c400ca7b9eac97c076319`
+and `c129fe92082447feb82e5bb295301b80` under `artifacts/feature-tests/results/`.
+The final targeted rerun passed all 22 cases in 19.18 seconds, including the four new features, corporate purchases,
+and adjacent regional and wire market cases. Its run directory is `0380b2c3167c4cddb6da12d06bee17b3`.
+
+### Live acceptance
+
+Not performed; agent client testing is disabled.
+
+### Optional maintainer checks
+
+- Sell part of a stack from a corporation office through the second wallet division. Check the remaining stack,
+  the division's transaction receipt, and both wallet journal entries.
+
+## PLEX Vault transaction history
+
+Each successful physical PLEX deposit, inventory withdrawal, or market withdrawal adds one account history row alongside
+the inventory and vault balance changes. Wallet Transactions shows the latest 2,000 entries across all pilots on the account.
+Details include the recorded pilot, the signed transfer, timestamp, and resulting balance. Wallet Overview uses the same
+window for its categorized income, expenses, counts, and earliest transaction date. A market withdrawal records the move
+out of the vault, with order settlement recorded by the existing market service. Schema 237 preserves older balances and
+starts the ledger with the next transfer. The checkpoint retains the complete ledger.
+[Vault-to-vault direct trades](inventory.md#plex-vault-offers-in-direct-trades) record both sides and their counterparties.
+
+Build **3662168** `plex/client/message_bus/request_messenger.pyj` calls `GetAllLoggedForUser`, `GetLog`, and `GetStatistics`
+on `eve_public.plex.vault.transaction.api`. The pinned `requests_pb2.pyj`, `invoice_pb2.pyj`, and localization descriptors
+define the identifier, invoice oneof, and formatted message parameters. Pinned English localization identifies Inventory
+**1021278**, Trading **1021780**, and the movement summaries **1021300** and **1021301**. Their `characterID` parameter
+resolves the acting pilot through the client, including in exported rows. The authenticated account owns every read.
+Unknown and foreign entry IDs both return the native unavailable response.
+
+The stock `code.ccp` SHA-256 is `37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`. EVE.js **261108.1**
+`plexVaultLogState.js` (SHA-256 `bf0c8b1770a374f260c7668ba4df26a30ab58cb31a89f3a980e987a4c4676cc5`) and
+`plexVaultGatewayService.js` (SHA-256 `344df02d6756b1771fa62af7976cadcc71a7af1533266bd6fb48a2c80d05cb0d`) provide the
+reference response shapes and 2,000-entry window.
+[CCP PLEX Vault Logs](https://support.eveonline.com/hc/en-us/articles/115003168285-PLEX-Vault) ·
+[CCP Catalyst notes](https://www.eveonline.com/news/view/catalyst-expansion-notes) ·
+[EVE University PLEX Vault](https://wiki.eveuniversity.org/PLEX_Vault)
+
+**Automated validation.** The integrated exact selection passed nine cases in 13.33 seconds. The two PLEX history cases
+exercise the gateway list, details, and statistics calls across two pilots on one account, foreign and unauthenticated
+requests, rejected movements, checkpoint reopen, and migration from schema 236.
+The affected market, gateway, fleet, industry, combat, and persistence selection passed 292 cases in 122.42 seconds.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Deposit PLEX on one pilot and withdraw it on another pilot on the same account. Check both
+rows and the income and expense totals in Wallet → PLEX.
+
+## Account PLEX Vault and market sale
+
+The vault is shared by pilots on an account. `invbroker.DepositPlexToVault` moves whole units of physical PLEX **44992**
+from an owned stack in an NPC station hangar, a current docked Upwell hangar, or the active ship's cargo. Withdrawals
+deliver to the current docked Item Hangar or active ship's cargo, checking ownership, location, quantity, and cargo capacity.
+The inventory mutation and account balance commit together in the resident world. Save version 236 initializes existing
+accounts at zero and uses the account and inventory checkpoint projections to retain both sides of each transfer.
+
+The public gateway serves `BalanceRequest` from the authenticated account in hundredths of a PLEX and publishes balance
+changes to that account's notice stream. Build **3662168** `invControllers.pyj`, `inventory/plexVault.pyj` and
+`market/sellMulti.pyj` use `InventoryToVault`, `VaultToInventory` and `VaultToMarket`. The stock listeners in
+`vgs/common/listeners.pyj` register after the broker replies, so the session queues the matching reference in a later
+`OnPlexDeposited`, `OnPlexItemAddedToInventory`, `OnPlexDepositFailed` or `OnPlexWithdrawFailed` notification.
+`marketsvc.pyj` sends `PlacePlexSellOrder` with one sell entry and uses the ordinary quote fields for `ModifyPlexCharOrder`.
+
+**Sell PLEX** withdraws to the current NPC station and submits to Eden's existing regional market, including normal
+settlement, taxes and sell order expiry. Global order pooling, purchases delivered straight into the vault,
+and New Eden Store spending remain pending. See [PLEX Vault transaction history](#plex-vault-transaction-history).
+
+The stock `code.ccp` SHA-256 is `37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`.
+EVE.js **261108.1** `invBroker/plexVault.js` (SHA-256 `10a36dd41c2645b56e3ee017f4baec29f75e4642f87750ddbb81a95ee8b21c46`)
+and `marketProxyService.js` (SHA-256 `f457cb1b181ceb570a5fa346c718d71a7ce7b84b8734c88cee7f2546a8ce175b`) provide the
+reference transfer and sale wire shapes.
+[EVE University PLEX Vault](https://wiki.eveuniversity.org/PLEX_Vault) ·
+[CCP PLEX Vault](https://support.eveonline.com/hc/en-us/articles/115003168285-PLEX-Vault) ·
+[CCP Global PLEX Market](https://www.eveonline.com/news/view/global-plex-market-now-live)
+
+**Automated validation.** The shared exact filter passed all 10 new cases in 13.74 seconds, including all three
+`PlexVaultTests` cases. The cases check stock transfer and sale signatures, acknowledgement after the reference, failed
+transfers, gateway account isolation and balance updates, repricing, checkpoint reopen, and migration from version 235.
+The affected market, gateway, home station, contacts, combat, and persistence selection passed 268 cases in 112.87 seconds.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Move part of a PLEX stack into the vault and use Sell PLEX from an NPC station.
+
+## Ranged personal buy orders
+
+Personal buy listings at NPC stations support station, solar-system, 1–5, 10, 20, 30 and 40 jumps, and region fulfillment
+ranges. A pilot docked at the order's station can select any range. Procurement governs remote placement, and Visibility
+limits the fulfillment range of an order placed remotely. Matching stays within the origin region and uses the pinned
+stargate graph for finite distances. Immediate purchases use the selected selling station.
+
+An incoming ranged bid can fill from existing asks within reach. A later sale can fill a bid from another station within
+its range. Both paths deliver goods to the seller's station and record that location in the wallet history. Buy orders
+retain their origin, range, residual volume, escrow and expiration. Repricing preserves the selected range and checks it
+with the other quoted order fields. Schema 234 brings forward existing orders with station fulfillment range.
+
+Build **3662168** `buyThisTypeWindow.pyj` lists the range values and `marketutil/skilllimits.pyj` maps Visibility to `vis`.
+The stock `code.ccp` SHA-256 is `37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`.
+EVE.js **261108.1** `marketRules.js` supplies the same choices and `marketProxyService.js` matches in-range asks and
+delivers purchases at the source station. [EVE University Visibility](https://wiki.eveuniversity.org/Skills:Trade#Visibility) ·
+[CCP brokerage rules](https://support.eveonline.com/hc/en-us/articles/203218932-Buy-and-Sell-Orders)
+
+**Automated validation.** The three exact `RangedMarketTests` cases passed in a 13-case run that took 16.09 seconds.
+They cover filling from the seller's station, checkpoint round-trip and repricing, Visibility on a remote order, and
+upgrading version 233 orders to the station range. The affected market, calendar, mail, structure, electronic warfare,
+and persistence selection passed 275 cases in 121.84 seconds. `PersonalMarketRulesTests` passed five in 2.38 seconds.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Place a one-jump buy order and sell to it from a neighboring system. Confirm delivery
+at the seller's station and check the order's remaining escrow.
+
+## Procurement and Marketing at remote stations
+
+Procurement lets pilots place a personal buy order at another NPC market station in the current region.
+Marketing lets pilots list or immediately sell their own Item Hangar stacks at another NPC market station. Orders, escrow,
+deliveries and returned items use the station where the order was placed or the item was sold. Each sell request uses one
+station. Ship cargo remains eligible when the ship is docked at the selling station.
+
+From the authoritative ship location the two skills allow the current station, the current system, 5 jumps, 10 jumps,
+20 jumps and the current region at levels 0 to V. The four pinned Alpha grade records cap Marketing at II and omit
+Procurement. Immediate purchases still use the regional purchase flow. See [ranged personal buy orders](#ranged-personal-buy-orders)
+for the Visibility follow-up.
+
+In build **3662168**, `marketutil/skilllimits.pyj` uses **16598** (Marketing) and **16594** (Procurement) for `ask` and `bid`
+with `JUMPS_PER_SKILL_LEVEL`. `marketsvc.pyj` forwards the selected station and range from `BuyStuff` to `PlaceBuyOrder`,
+and item station IDs from `SellMulti` to `PlaceMultiSellOrder`. The stock `code.ccp` SHA-256 is
+`37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`. EVE.js **261108.1** `marketProxyService.js`
+(SHA-256 `f457cb1b181ceb570a5fa346c718d71a7ce7b84b8734c88cee7f2546a8ce175b`) also validates Procurement for
+resting buy orders and Marketing for sell requests. [EVE University trade skills](https://wiki.eveuniversity.org/Skills:Trade#Procurement) ·
+[CCP brokerage rules](https://support.eveonline.com/hc/en-us/articles/203218932-Buy-and-Sell-Orders)
+
+**Automated validation.** `ProcurementPlacesNativeBuyOrderAndDeliversAtTheOriginStation` and
+`MarketingSellsOnlyOwnedHangarStockAtTheRemoteStation` passed three cases in 8.50 seconds. The affected selection passed
+85 tests in 34 seconds across `RemoteOrderManagementTests`, `RemoteMarketTests`, `PersonalMarketRulesTests`,
+`PersonalMarketTests`, `StandardMarketTests` and `NpcRestingOrderTests`. Cases exercise exact origin delivery, clone-grade
+limits, range and region checks, rejection of cargo from an undocked ship, and both immediate sales and listings.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Use a nearby station's remote buy and sell controls, then confirm delivery at the order station.
+
+## Remote personal order management
+
+Pilots can reprice their own NPC-station buy and sell orders across the current region. Without effective Daytrading,
+the pilot must be docked at the order's station. Levels I through V allow the same system, 5 jumps, 10 jumps, 20 jumps,
+and anywhere in the region respectively. The resident world reads the ship's current system or docked location, the
+pilot's clone grade and trained skill, and the pinned stargate graph. Alpha pilots use the station limit.
+
+The owner can cancel from another region. Cancellation validates the order's saved region from the native request and
+returns remaining sell inventory to the originating station or refunds buy escrow. The five-minute reprice delay, stale
+quote checks, relist fees, price priority and owner notifications use the existing settlement transaction.
+
+In build **3662168**, `marketutil/skilllimits.pyj` reads Daytrading **16595** and supplies the `mod` range from
+`JUMPS_PER_SKILL_LEVEL`. `market/quote.pyj` sends the order's region for cancellation. `marketsvc.pyj` uses the existing
+`CancelCharOrder` and `ModifyCharOrder` shapes. The stock archive SHA-256 is
+`37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`. EVE.js **261108.1**
+`marketProxyService.js` (SHA-256 `f457cb1b181ceb570a5fa346c718d71a7ce7b84b8734c88cee7f2546a8ce175b`)
+also applies Daytrading to repricing and authorizes cancellation with the saved owner's order.
+[EVE University trade skills](https://wiki.eveuniversity.org/Skills:Trade#Daytrading) ·
+[CCP brokerage rules](https://support.eveonline.com/hc/en-us/articles/203218932-Buy-and-Sell-Orders)
+
+**Automated validation.** `NativeModificationUsesEffectiveDaytradingAndCurrentSystem` and
+`NativeCancellationFromAnotherRegionRestoresInventoryAndEscrowOnce` passed in 0.90 seconds of combined case time.
+They cover clone grade, same-system and gate range, cross-region limits, order ownership, returned assets, wallet escrow,
+owner notifications and checkpoint reopen.
+
+The milestone's affected market, fitting, ammunition, map, NPC population, Incursion, and wreck selections passed
+295 tests in 127.50 seconds. Two test methods were excluded from this run after their failures reproduced on `d958de15`.
+`ModuleAndBrainReadsShareTheCommittedGraphAndReturnIndependentAttributes` measured 10 warm SQL commands with a limit
+of nine. The resident pirate case in `KillRewardsUseRoleAndActualCorporation` expected an immediate payout.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Reprice from a nearby system with Daytrading, then cancel an order while in another region.
+
 ## Browsing industry facilities from any station
 
 `facilityManager.GetFacilities` now resolves the browsing region from the pilot's in-space system or dock location.
@@ -678,6 +946,55 @@ Not performed. Agent client testing is disabled.
 
 With AutoMining 1.2.3 active, search the ore picker for `II-Grade` and save one matching type.
 
+## Mercoxit mining pollution clouds
+
+A paid deep-core cycle on any of the three Mercoxit grades can release a temporary cloud centered on the asteroid.
+Build 3662168 gives those ores a base 5% spawn chance. Deep Core Mining reduces that chance by 10% of the base per
+level, leaving 2.5% at level V. One cloud can occupy a deposit at a time. Another paid cycle leaves an existing
+cloud's deadlines in place.
+
+The native local non-solid ball uses Mining Pollution Cloud 11546, Temporary Cloud group 335, with a 5 km radius.
+It appears and disappears through the existing local field stream. The first pulse is due at 30 seconds, followed
+by pulses every 30 seconds until its 300-second expiry. Each pulse deals 50 raw damage of each type to eligible ships
+and deployed drones within the radius. Players' fitted defenses apply. The cloud causes environmental damage,
+and ship losses use the existing loss and capsule settlement. Protected ships and pilots whose combat logoff
+presence has ended are outside the damage candidates.
+
+The resident world commits spawning with the paid cycle and commits each pulse with its damage and next deadline.
+Schema 232 checkpoints the cloud's center, asteroid identity and deadlines. After a late maintenance tick or restart,
+one still-live due pulse uses current positions and advances to the next original interval. Missed intervals never
+replay. Expiry takes precedence at the lifetime boundary, including after an offline interval. The scheduler checks a
+resident deadline index and visits systems with due clouds. Ship discovery uses local presence and system-indexed
+positions with the field cutoff. Deployed drones come from the same system index.
+
+The pinned catalog provides type 11546, damage, radius, `cloudEffectDelay` (544), `cloudDuration` (545), ore spawn
+chance (522), and skill modifier (543). A historical player account describes rolls at cycle start and recurring
+30-second pulses. EVE.js 261108.1 `services/mining/miningDogma.js` was checked for cycle and effect handling,
+SHA-256 `4EAEAEA3992DF767F7CD1E72346439691ABE933548A44777798C22DC9EED6EF9`. Its mining runtime has no pollution
+cloud implementation. [EVE University Mercoxit mining](https://wiki.eveuniversity.org/Mining#Mercoxit_mining) ·
+[Historical mining report](https://eve-search.com/thread/326065-0)
+
+**Automated validation**
+
+The shared exact filter passed 7 cases in 12.69 seconds, including both `MiningPollutionTests` methods
+`PinnedMercoxitCloudProfileUsesTheTrainedSpawnChanceAndExactPulseBoundary` and
+`PaidMercoxitMiningPublishesAndExpiresAResidentCloudWithScopedDamage`. Coverage exercises the pinned parameters,
+native paid mining, local ball publication and removal, a 5,001 m miss, exact first pulse, duplicate callback,
+checkpointed deadlines and exact expiry.
+
+The broader mail, Incursion, mining, market and world migration selection passed 194 of 195 cases in 104.91 seconds.
+The remaining test expected partial deep-core support. After updating its coverage assertion, the exact and mining
+crystal rerun passed all 18 cases in 20.16 seconds. The mining fixture regenerated byte for byte from the pinned catalog.
+
+**Live acceptance**
+
+Not performed; agent client testing is disabled.
+
+**Optional maintainer checks**
+
+Mine Mercoxit within 5 km until a pollution cloud appears. Check that a ship inside the cloud takes damage and that
+leaving its radius prevents the next pulse.
+
 ## Deep-core mining and Morphite
 
 The three Mercoxit variants in the pinned belt catalog require a deep-core module. The static Deep Core Mining Laser I,
@@ -687,7 +1004,7 @@ target type list at activation and collection. Deep-core equipment retains its o
 catalog skill and hull requirements. Existing reprocessing uses the 100-unit ore portions and variant-specific Morphite
 yields. Mercoxit and Morphite stay outside NPC sell supply.
 
-The pinned catalog defines a mining pollution cloud. Its damage, persistence and native display remain unimplemented.
+Mercoxit cycles can release [mining pollution clouds](#mercoxit-mining-pollution-clouds).
 The local evejs build-3396210 mining resource distribution was used as a behavioral reference
 (`miningRuntimeState.js`, SHA-256 `613E77ACFCF7B3FBFB17551EBF35BCDC41DD9E612917CA2CF13DA5C8C863EC06`).
 See [EVE University mining yield](https://wiki.eveuniversity.org/Mining_Yield).
@@ -934,6 +1251,144 @@ no capacity benchmark or full .NET suite was requested or run.
 **Optional maintainer checks:** Mine a small amount, open/refresh the personal ledger and compare the day's quantity,
 waste, system and graph. Native rendering and memoized refresh timing remain unverified.
 
+## Remote manufacturing installation at NPC stations
+
+Pilots can start a personal manufacturing job from space or another station. Their hangar at the facility supplies the
+blueprint and materials and receives the output. A pilot can reach factories in the current solar system at level zero.
+Supply Chain Management adds five stargate jumps per level, up to 25 at level V. Routes can cross region boundaries.
+The resident world uses the active ship's current system, validates the trained skill against the account's clone grade,
+and uses the shortest path on the pinned stargate graph. [EVE University Manufacturing](https://wiki.eveuniversity.org/Manufacturing) ·
+[CCP Manufacturing](https://support.eveonline.com/hc/en-us/articles/203210292-Manufacturing)
+
+The native `GetFacilityLocations`, `ConnectJob`, and `InstallJob` calls use the same range rule for remote factories.
+A connected material monitor reads committed changes at that factory. The install transaction checks ownership, prices,
+job slots, the chosen blueprint, and input and output locations. It consumes materials and reserves the blueprint at the
+facility. Checkpoints use the existing job, inventory, and wallet records.
+
+Build **3662168** `industry/const.pyj` maps manufacturing to Supply Chain Management **24268** and defines
+`DISTANCE_PER_LEVEL` as 0, 5, 10, 15, 20, and 25. `industry/job.pyj` compares `distance` with `max_distance` using
+`FACILITY_DISTANCE` error **32**. The pinned catalog lists 24268 as Supply Chain Management and omits it from all four
+Alpha skill lists. The stock `code.ccp` SHA-256 is `37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`.
+
+EVE.js **261108.1** `industryRestrictions.js` also uses the current system, shortest stargate distance, and the same
+skill table in `industryConstants.js`. Their SHA-256 hashes are
+`35ce309015a6cc17368cc636ad151be774bc5f8aafe560ae75f910aabc0375ec` and
+`ca3217d4f71251159ffe825f051af4fe68ce97d65be857739f46784c1b43df67` respectively. Eden shares the catalog distance cache
+with existing market range checks.
+
+**Automated validation.** `NativeRemoteManufacturingUsesEffectiveStargateRangeAndPersistsAtTheFacility` passed all six
+cases in 9.19 seconds after a zero-warning feature build in 7.57 seconds. The exact cases cover untrained same-system
+installation, an Alpha pilot with saved skill points, the five-jump boundary, a disconnected system, the native material
+monitor, checkpoint reopen, and delivery to the original facility. The isolated results are in
+`artifacts/remote-manufacturing-622fbe7f/source/artifacts/feature-tests/results/03df84b458b4434fb7c56853f84b5cae/tests.trx`.
+The 56-case affected industry and market selection passed in 24.37 seconds, including the warm material monitor's zero
+SQL checks and the personal and ranged market order tests that use the shared route graph.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Leave a manufacturing blueprint and materials at an NPC factory, travel to another
+system within your skill range, and install the job from Industry. Check the product at the original factory after delivery.
+
+## Remote science installation at NPC laboratories
+
+Pilots can start personal material-efficiency research, time-efficiency research, copying, and invention jobs from space
+or another station. The selected NPC laboratory holds the original, copy, or relic and any job materials. Installing from
+the current system needs no range skill. Scientific Networking adds five stargate jumps per level, up to 25 at level V,
+including routes across regions. Alpha pilots use the same-system range. The laboratory retains the inputs, blueprint
+reservation, and output location through checkpoints. [EVE University Research](https://wiki.eveuniversity.org/Research) ·
+[CCP Activities and Job Types](https://support.eveonline.com/hc/en-us/articles/203210272-Activities-and-Job-Types)
+
+Build **3662168** `industry/const.pyj` maps the four science activities to Scientific Networking **24270**. The pinned
+catalog omits it from all four Alpha skill lists. `industrySvc.pyj` sends `Job.dump()` to the native material monitor,
+which carries the selected `activityID` through later material refreshes. `GetFacilityLocations` uses the skills for the
+services offered at the station. Selecting an activity then checks that activity's skill and facility service on its own.
+The stock `code.ccp` SHA-256 is `37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`.
+
+EVE.js **261108.1** `industryConstants.js` maps ME, TE, copying, and invention to the same skill, and
+`industryRestrictions.js` applies the corresponding distance to the selected facility. The source hashes are
+`ca3217d4f71251159ffe825f051af4fe68ce97d65be857739f46784c1b43df67` and
+`35ce309015a6cc17368cc636ad151be774bc5f8aafe560ae75f910aabc0375ec`, respectively.
+
+**Automated validation.** `NativeRemoteScienceUsesScientificNetworkingAndPreservesLaboratoryOutputs` passed six cases
+in 11.49 seconds after a zero-warning feature build in 14.16 seconds. The cases cover all four science activities,
+same-system use at level zero, cross-region use, Alpha limits, the separate manufacturing skill, the native material
+monitor, and checkpoint delivery at the original facility. The isolated results are in
+`artifacts/remote-science-81a2764d/source/artifacts/feature-tests/results/6b8a1a8525574989adab549ea312c06d/tests.trx`.
+The adjacent industry selection passed all 71 cases in 30.17 seconds, including remote manufacturing, facility lookup,
+container custody, bulk delivery, reaction jobs, the warm material monitor, and Upwell manufacturing.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Leave a blueprint original at an NPC laboratory and start a copy job from a nearby
+system with Scientific Networking. Deliver the finished job and check the licensed runs at the original laboratory.
+
+## Remote personal refinery reaction jobs
+
+Pilots can start, deliver, and cancel their own reaction jobs while away from an eligible refinery. Any location in the
+refinery's solar system is in range. Remote Reactions adds five stargate jumps per level, up to 25. Alpha pilots use the
+same-system range. The refinery holds the formula, inputs, and output. Installation checks refinery access, system security,
+and the formula's online reactor. Settlement checks the saved facility and job status, including fuel-related pauses.
+[EVE University Reactions](https://wiki.eveuniversity.org/Reactions) ·
+[CCP Reactions](https://support.eveonline.com/hc/en-us/articles/115005405785-Reactions)
+
+The native facility and material-monitor calls support in-range refinery hangars. Installation and settlement reserve the
+refinery's system in the resident transaction before advancing its fuel or touching jobs. They reuse the existing inventory,
+wallet, formula reservation, and job checkpoint records. Delivery places output at the original refinery, and cancellation
+releases the formula and reaction slot.
+
+Build **3662168** `industry/const.pyj` maps reaction activity **9** to Remote Reactions **45750**, with the
+0–25-jump distance table. The pinned catalog supplies the reactor types and omits the skill from all four Alpha skill
+lists. EVE.js **261108.1** `industryConstants.js` maps the same activity and skill, and `industryRestrictions.js` checks
+the stargate distance to the selected facility on install. Their SHA-256 hashes are
+`ca3217d4f71251159ffe825f051af4fe68ce97d65be857739f46784c1b43df67` and
+`35ce309015a6cc17368cc636ad151be774bc5f8aafe560ae75f910aabc0375ec`, respectively. The stock `code.ccp` SHA-256 is
+`37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`.
+
+**Automated validation.** `NativeRemoteReactionUsesRefineryAccessAndDeliversAfterCheckpoint` passed both cases in
+11.17 seconds after a zero-warning build in 13.86 seconds. The cases cover same-system and cross-system installation,
+untrained and Alpha range checks, the material monitor, refinery access revocation, checkpoint delivery, and cancellation.
+The isolated results are in
+`artifacts/remote-reactions-eab07a5c/source/artifacts/feature-tests/results/c2fb503f66f44d02a7de735c14f78229/tests.trx`.
+All 73 neighboring industry cases passed in 34.63 seconds, including the local reaction supply chain, bulk job rollback,
+remote manufacturing and science, the zero-SQL material monitor, and Upwell production pause and reopen.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** With a formula and materials in an accessible refinery, start a reaction from another
+system within skill range. Deliver the job from there and check the formula and product at the refinery.
+
+## Remote settlement of personal NPC station industry jobs
+
+Pilots can deliver or cancel their own NPC-station jobs from another station or from space, including another region.
+`CompleteJob`, `CompleteManyJobs`, and `CancelJob` use the saved facility's solar system to validate the request. Delivery
+places production output at the job's saved destination. Cancellation releases the blueprint and job slot at the facility.
+Materials used at installation are forfeited. Ownership, ready time, status, and output capacity are checked at settlement.
+The resident transaction commits the inventory and job together and checkpoints them with the existing records.
+
+In build **3662168**, `industrySvc.pyj` sends the saved job and solar-system IDs. `jobEntry.pyj` and `submitButton.pyj`
+pass them directly from the selected job for delivery or cancellation, and `browserJobs.pyj` passes these pairs for a
+batch. The stock archive SHA-256 is `37fb2af4fa0ec5c8fa320f34cd28c8b7dbf4917418336b38cba20a7860db0368`.
+The pinned NPC station catalog provides the facility's system and operation services. [EVE University Industry](https://wiki.eveuniversity.org/Industry_Overview) ·
+[CCP Industry UI](https://www.eveonline.com/news/view/industry-ui)
+
+EVE.js **261108.1** settles jobs against their saved output locations. Its `industryManagerService.js` SHA-256 is
+`07f55314ec86f3005b9ac2cbffd76ddb65f416ddf69f36e558ce0e9c3f135fe5`, and `industryRuntimeState.js` SHA-256 is
+`bf6ab290bd622ed029fd8ed6e2214b4604ff874f6becd585842ffe4eac01d63c`. Eden reuses the native job, inventory, and blueprint
+notifications.
+
+**Automated validation.** `NativePersonalNpcJobsSettleAtTheirFacilityFromAnotherRegion` passed both docked and in-space
+cases in 8.19 seconds, after a zero-warning feature build in 13.78 seconds. The cases verify native single and bulk
+delivery, cancellation, facility-system and ready-time rejection, saved output location, blueprint release, notifications,
+and repeat requests after a checkpoint reopen. The isolated results are in
+`artifacts/industry-remote-b47b1de6/source/artifacts/feature-tests/results/df01f65a3b5c4d0a874508dce975c18d/tests.trx`.
+The affected selection passed 54 cases in 24.27 seconds across `BulkIndustryDeliveryTests`, `ScienceJobTests`,
+`IndustryContainerTests`, `IndustryFacilityLookupTests`, and `ManufacturingUsesEngineeringBonusesAndPausesAtTheExactFuelDeadlineAcrossReopen`.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Start two jobs at an NPC station, travel to another region, cancel one, and deliver the
+ready job. Check the original facility's Item Hangar for the product and released blueprints.
+
 ## Bulk industry-job delivery — November 11, 2026
 
 The native Industry window can now deliver multiple selected personal jobs through
@@ -948,6 +1403,8 @@ Every job retains the individual call's owner, docked-facility, solar-system, re
 If a later entry fails, earlier outputs, blueprint releases, progression claims and statuses roll back together;
 Protocol queues notifications only after the batch commits. Retrying already delivered jobs cannot duplicate output,
 blueprint copies or progression. This does not add remote or corporation job access, and needs no schema migration.
+The [remote settlement update](#remote-settlement-of-personal-npc-station-industry-jobs) extends these calls to personal
+NPC jobs when the pilot is elsewhere.
 
 Reference: installed EveJs **261108.1**, `industry/industryManagerService.js` SHA-256
 `07f55314ec86f3005b9ac2cbffd76ddb65f416ddf69f36e558ce0e9c3f135fe5` (the installation has no Git metadata).
@@ -1609,6 +2066,39 @@ formatting verification passed. The full validation sequence took 87 seconds.
 **Live acceptance:** Not performed; agent client testing is disabled.
 
 **Optional maintainer checks.** Open the Caldari Navy LP store and check the Quantum Physics bundle.
+
+## Ship SKIN licenses from NPC loyalty stores
+
+The embedded November 8, 2026 CCP ESI offer snapshot and pinned build **3662168** catalog supply **112** physical
+ship SKIN license offers across **10** NPC issuers. A listing needs a published category-91 item, a matching
+`client/skinlicenses` record, and a ship skin in `client/skins` with supported hulls and a valid license duration.
+The CONCORD Police Comet license costs 37,500 LP and 25 million ISK per item. DED's Algos Triglavian Twilight license
+costs 10,000 LP, 25 million ISK, and 100 Triglavian Survey Databases per item.
+
+The existing `LPStoreMgr` browse and purchase calls deliver the physical license to the selected pilot's station Item
+Hangar. The docked ship must be at the issuer's NPC station with an LP store. The resident purchase settles any required
+items, the LP and wallet debits, the resulting license stack, and the wallet receipt together. Pilots can then use the
+existing `shipCosmeticsMgr.ActivateSkinLicense` and `ApplySkinToShip` calls. Activation consumes one physical license and
+grants the entitlement used to apply the skin. The inventory, wallet, entitlement, and application persist through the
+existing checkpoint records. [Pinned ship cosmetics calls](inventory.md#first-party-ship-skin-licenses) ·
+[EVE University Loyalty Points](https://wiki.eveuniversity.org/Loyalty_Points) ·
+[CCP Ship SKINs](https://support.eveonline.com/hc/en-us/articles/203280701-Ship-SKINs)
+
+EVE.js **261108.1** uses the ordinary LP store purchase and item delivery path for static inventory offers. Its
+`lpStoreMgrService.js` hashes to `c92159a9f99f847a8fb9378c668b13dbb5bb7d2beef8cc71625ead15fd742d` and
+`lpStoreItemCustody.js` hashes to `3e44e0e333671ec0ce48951366904acec81d2fa805e1034c76c3829211df28ad`.
+Paragon heraldry purchases use the emblem feature.
+[CCP Heraldry and Emblems](https://support.eveonline.com/hc/en-us/articles/6807979979036-Heraldry-and-Emblems)
+
+**Automated validation.** Both `NativeLoyaltyStoreLicensesCanBePurchasedActivatedAndAppliedAcrossCheckpoint`
+cases passed in 1.27 seconds of combined case time. They cover CONCORD and DED offer and issuer eligibility, required
+item rejection and consumption, two-license delivery, native activation and application, and wallet, inventory, and
+entitlement state after checkpoint reopen. Results are in
+`artifacts/feature-tests/results/9c823db5346a4959999788173cea5450/tests.trx`.
+
+**Live acceptance.** Not performed; agent client testing is disabled.
+
+**Optional maintainer checks.** Buy a funded physical license, activate it from the Item Hangar, and apply it to the matching hull.
 
 ## Currency redemption and loyalty wallets
 
